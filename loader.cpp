@@ -151,7 +151,7 @@ uint32_t load(const char *file)
 			address = EmulatedNewPtr(a5size);
 
 			a5 = address + below;
-			std::memcpy(memory + a5, data, above);
+			std::memcpy(memory + a5 + jtOffset, data + 16 , jtSize);
 
 			segments[resID] = std::make_pair(address, a5size);
 
