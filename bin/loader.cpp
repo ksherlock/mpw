@@ -132,7 +132,6 @@ uint32_t load(const char *file)
 		ResID resID;
 		ResType resType;
 		Str255 name;
-		char *cname;
 		uint32_t size;
 		uint32_t address;
 		Handle h;
