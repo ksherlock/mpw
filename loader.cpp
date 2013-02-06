@@ -10,18 +10,27 @@
 #include <CoreServices/CoreServices.h>
 
 
-uint8_t *memory;
-uint32_t HighWater = 2048;
+uint8_t *Memory;
+uint32_t HighWater = 0x1000;
+uint32_t MemorySize;
 
 uint32_t EmulatedNewPtr(uint32_t size)
 {
 	if (size & 0x01) size++;
 
+	if (HighWater + size > MemorySize)
+	{
+		fprintf(stderr, "Insufficient Memory!\n");
+		exit(EX_CONFIG);
+	}
+
+
 	uint32_t address = HighWater;
+
 
 	HighWater += size;
 
-	std::memset(memory + HighWater, 0, size);
+	std::memset(Memory + HighWater, 0, size);
 
 	return address;
 }
@@ -29,6 +38,7 @@ uint32_t EmulatedNewPtr(uint32_t size)
 uint8_t ReadByte(const void *data, uint32_t offset)
 {
 	offset &= 0xffffff;
+	if (offset >= MemorySize) return 0;
 	return ((uint8_t *)data)[offset];
 }
 
@@ -47,12 +57,15 @@ uint32_t ReadLong(const void *data, uint32_t offset)
 void WriteByte(void *data, uint32_t offset, uint8_t value)
 {
 	offset &= 0xffffff;
+	if (offset >= MemorySize) return;
 	((uint8_t *)data)[offset] = value;
 }
 
 void WriteWord(void *data, uint32_t offset, uint16_t value)
 {
 	offset &= 0xffffff;
+
+	if (offset + 1 >= MemorySize) return;
 
 	((uint8_t *)data)[offset++] = value >> 8;
 	((uint8_t *)data)[offset++] = value;
@@ -61,6 +74,8 @@ void WriteWord(void *data, uint32_t offset, uint16_t value)
 void WriteLong(void *data, uint32_t offset, uint32_t value)
 {
 	offset &= 0xffffff;
+
+	if (offset + 3 >= MemorySize) return;
 
 	((uint8_t *)data)[offset++] = value >> 24;
 	((uint8_t *)data)[offset++] = value >> 16;
@@ -96,7 +111,6 @@ uint32_t load(const char *file)
 
 	std::vector< std::pair<uint32_t, uint32_t> > segments; // segment, address
 
-	memory = new uint8_t[16 * 1024 * 1024];
 
 	uint32_t a5 = 0;
 
@@ -151,17 +165,20 @@ uint32_t load(const char *file)
 			address = EmulatedNewPtr(a5size);
 
 			a5 = address + below;
-			std::memcpy(memory + a5 + jtOffset, data + 16 , jtSize);
+			std::memcpy(Memory + a5 + jtOffset, data + 16 , jtSize);
 
 			segments[resID] = std::make_pair(address, a5size);
 
 			jtStart = a5 + jtOffset;
 			jtEnd = jtStart + jtSize;
+
+			// 0x0934 - CurJTOffset (16-bit)
+			WriteWord(Memory, 0x934, jtOffset);
 		}
 		else
 		{
 			address = EmulatedNewPtr(size);
-			std::memcpy(memory + address, data, size);
+			std::memcpy(Memory + address, data, size);
 
 			segments[resID] = std::make_pair(address, size);
 		}
@@ -174,11 +191,11 @@ uint32_t load(const char *file)
 
     for (; jtStart < jtEnd; jtStart += 8)
     {
-    	uint16_t offset = ReadWord(memory, jtStart);
-    	uint16_t seg = ReadWord(memory, jtStart + 4);
+    	uint16_t offset = ReadWord(Memory, jtStart);
+    	uint16_t seg = ReadWord(Memory, jtStart + 4);
 
-    	assert(ReadWord(memory, jtStart + 2) == 0x3F3C);
-    	assert(ReadWord(memory, jtStart + 6) == 0xA9F0);
+    	assert(ReadWord(Memory, jtStart + 2) == 0x3F3C);
+    	assert(ReadWord(Memory, jtStart + 6) == 0xA9F0);
 
     	assert(seg < segments.size());
 
@@ -190,8 +207,8 @@ uint32_t load(const char *file)
     	uint32_t address = p.first + offset + 4;
 
     	// JMP absolute long
-    	WriteWord(memory, jtStart + 2, 0x4EF9);
-    	WriteLong(memory, jtStart + 4, address);
+    	WriteWord(Memory, jtStart + 2, 0x4EF9);
+    	WriteLong(Memory, jtStart + 4, address);
     }
 
     // set pc to jump table entry 0.
@@ -210,7 +227,7 @@ void InitializeMPW(int argc, char **argv)
 		memcpy(str32 + 1, argv[0], l);
 		while (l < 32) str32[l++] = 0;
 
-		memcpy(memory + 0x910, str32, 32);
+		memcpy(Memory + 0x910, str32, 32);
 	}
 
 
@@ -230,7 +247,7 @@ void InitializeMPW(int argc, char **argv)
 			uint32_t address;
 			length = strlen(argv[i]);
 			address = EmulatedNewPtr(length + 1);
-			memcpy(memory + address, argv[i], length + 1);
+			memcpy(Memory + address, argv[i], length + 1);
 
 			argvSpine.push_back(address);
 		}
@@ -240,20 +257,20 @@ void InitializeMPW(int argc, char **argv)
 		uint32_t address = argvAddress;
 		for (uint32_t x : argvSpine)
 		{
-			WriteLong(memory, address, x);
+			WriteLong(Memory, address, x);
 			address += 4;
 		}
 	}
 	// same thing for envp... but \0 instead of =
 
 	uint32_t address = EmulatedNewPtr(8 + 10);
-	WriteLong(memory, 0x0316, address);
-	WriteLong(memory, address, 0x4d50474d); // MPGM - magic
-	WriteLong(memory, address + 4, address + 8); // block ptr
-	WriteWord(memory, address + 8, 0x5348); // SH - more magic
-	WriteWord(memory, address + 10, argc);
-	WriteWord(memory, address + 14, argvAddress);
-	WriteWord(memory, address + 18, envpAddress);
+	WriteLong(Memory, 0x0316, address);
+	WriteLong(Memory, address, 0x4d50474d); // MPGM - magic
+	WriteLong(Memory, address + 4, address + 8); // block ptr
+	WriteWord(Memory, address + 8, 0x5348); // SH - more magic
+	WriteWord(Memory, address + 10, argc);
+	WriteWord(Memory, address + 14, argvAddress);
+	WriteWord(Memory, address + 18, envpAddress);
 
 
 }
@@ -378,6 +395,9 @@ int main(int argc, char **argv)
 		help();
 		exit(EX_USAGE);
 	}
+
+	Memory = new uint8_t[Flags.ram];
+
 
 	load(argv[0]);
 
