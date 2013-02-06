@@ -278,10 +278,31 @@ bool parse_number(const char *input, uint32_t *dest)
 	errno = 0;
 	value = strtol(input, &end, base);
 
-	if (errno || value < 0)
+	if (errno || value < 0 || input == end)
 	{
 		fprintf(stderr, "%s - invalid input\n", input);
 		return false;
+	}
+
+	// M/K
+	if (*end)
+	{
+		int old = value;
+		if (strcasecmp(end, "M") == 0)
+			value *= 1024 * 1024;
+		else if (strcasecmp(end, "K") == 0)
+			value *= 1024;
+		else 
+		{
+			fprintf(stderr, "%s - invalid input\n", input);
+			return false;
+		}
+		if (value < old)
+		{
+			// overflow
+			fprintf(stderr, "%s - invalid input\n", input);
+			return false;
+		}
 	}
 
 	if (dest) *dest = value;
