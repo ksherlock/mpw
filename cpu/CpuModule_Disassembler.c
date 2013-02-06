@@ -1023,11 +1023,11 @@ static ULO cpuDisMovep(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   sprintf(sinstruction, "MOVEP.%c", sizech);
   if (to_mem)
   {
-    sprintf(soperands, "D%1d,$.4X(A%d)", dataregno, disp, adrregno); 
+    sprintf(soperands, "D%1d,$%.4X(A%d)", dataregno, disp, adrregno);
   }
   else
   {
-    sprintf(soperands, "$.4X(A%1d),D%1d,", disp, adrregno, dataregno);
+    sprintf(soperands, "$%.4X(A%1d),D%1d,", disp, adrregno, dataregno);
   }
   return prc + 4;
 }
