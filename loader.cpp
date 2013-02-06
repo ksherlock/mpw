@@ -201,8 +201,7 @@ uint32_t load(const char *file)
 void InitializeMPW(int argc, char **argv)
 {
 
-	// 0x0910 is a pointer to a 32-char (max) pstring
-	// with the program name.
+	// 0x0910 CurApName 
 	{
 		char str32[32];
 		int l = strlen(argv[0]);
@@ -211,9 +210,7 @@ void InitializeMPW(int argc, char **argv)
 		memcpy(str32 + 1, argv[0], l);
 		while (l < 32) str32[l++] = 0;
 
-		uint32_t address = EmulatedNewPtr(32);
-		memcpy(memory + address, str32, 32);
-		WriteLong(memory, 0x0910, address);
+		memcpy(memory + 0x910, str32, 32);
 	}
 
 
