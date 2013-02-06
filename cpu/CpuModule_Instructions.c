@@ -38,6 +38,8 @@
 /* profiling help functions                                                   */
 /*============================================================================*/
 
+
+#if 0
 #ifndef X64
 static __inline void cpuTscBefore(LLO* a)
 {
@@ -84,6 +86,7 @@ static __inline void cpuTscAfter(LLO* a, LLO* b, ULO* c)
   *b = local_b;
   *c = local_c;
 }
+#endif
 #endif
 
 /* Maintains the integrity of the super/user state */
@@ -2658,7 +2661,9 @@ static void cpuSetBfField(UBY *bytes, ULO end_offset, ULO byte_count, ULO field,
   }
   if (i < byte_count)
   {
-    bytes[0] = (bytes[0] & (UBY)~(field_mask >> (end_offset + 8*i)) | (UBY)(field >> (end_offset + 8*i)));
+    // clang warning...
+    //bytes[0] = (bytes[0] & (UBY)~(field_mask >> (end_offset + 8*i)) | (UBY)(field >> (end_offset + 8*i)));
+    bytes[0] = ((bytes[0] & (UBY)~(field_mask >> (end_offset + 8*i))) | (UBY)(field >> (end_offset + 8*i)));
   }
 }
 
@@ -3671,7 +3676,7 @@ static void cpuPtest040(ULO rw, ULO regno)
 
 #include "CpuModule_Decl.h"
 #include "CpuModule_Data.h"
-#include "CpuModule_Profile.h"
+//#include "CpuModule_Profile.h"
 #include "CpuModule_Code.h"
 
 cpuOpcodeData cpu_opcode_data_current[65536];
