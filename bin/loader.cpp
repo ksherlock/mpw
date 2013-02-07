@@ -9,6 +9,8 @@
 
 #include <CoreServices/CoreServices.h>
 
+#include <cpu/defs.h>
+#include <cpu/CpuModule.h>
 
 uint8_t *Memory;
 uint32_t HighWater = 0x1000;
@@ -172,7 +174,8 @@ uint32_t load(const char *file)
 			jtEnd = jtStart + jtSize;
 
 			// 0x0934 - CurJTOffset (16-bit)
-			WriteWord(Memory, 0x934, jtOffset);
+			WriteWord(Memory, 0x0934, jtOffset);
+			cpuSetAReg(5, a5);
 		}
 		else
 		{
@@ -397,9 +400,42 @@ int main(int argc, char **argv)
 
 	Memory = new uint8_t[Flags.ram];
 
+	cpuStartup();
+	cpuSetModel(3,0);
 
 	load(argv[0]);
 
 	InitializeMPW(argc, argv);
+
+
+	if (!Flags.stack)
+	{
+		fprintf(stderr, "Invalid stack size\n");
+		exit(EX_CONFIG);
+	}
+
+	std::pair<uint32_t, uint32_t> StackRange;
+	// allocate stack, set A7...
+	{
+		Flags.stack = (Flags.stack + 3) & ~0x03;
+		uint32_t address = EmulatedNewPtr(Flags.stack);
+
+
+		StackRange.first = address;
+		StackRange.second = address + Flags.stack;
+
+		// address grows down
+		// -4 is for the return address.
+		cpuSetAReg(7, address + Flags.stack - 4);
+		// return address.
+		WriteLong(Memory, address + Flags.stack - 4, 0xffffffff);
+	}
+
+	/*
+	for (unsigned i = 0; i < 10; ++i)
+	{
+		cpuExecuteInstruction();
+	}
+	*/
 
 }
