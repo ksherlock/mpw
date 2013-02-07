@@ -11,10 +11,11 @@
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
+#include <cpu/fmem.h>
 
 uint8_t *Memory;
 uint32_t HighWater = 0x1000;
-uint32_t MemorySize;
+uint32_t MemorySize = 0;
 
 uint32_t EmulatedNewPtr(uint32_t size)
 {
@@ -105,7 +106,7 @@ struct MPWArgs
 
 */
 
-uint32_t load(const char *file)
+bool load(const char *file)
 {
 
 	ResFileRefNum refNum;
@@ -191,6 +192,7 @@ uint32_t load(const char *file)
     // now link the segment 0 jump table...
     assert(a5);
 
+    bool first = true;
     for (; jtStart < jtEnd; jtStart += 8)
     {
     	uint16_t offset = ReadWord(Memory, jtStart);
@@ -211,10 +213,18 @@ uint32_t load(const char *file)
     	// JMP absolute long
     	WriteWord(Memory, jtStart + 2, 0x4EF9);
     	WriteLong(Memory, jtStart + 4, address);
+
+    	if (first)
+    	{
+	    	cpuSetPC(address);
+    		first = false;
+    	}
     }
 
+
+
     // set pc to jump table entry 0.
-    return a5;
+    return true;
 }
 
 void InitializeMPW(int argc, char **argv)
@@ -332,18 +342,24 @@ struct {
 	uint32_t ram;
 	uint32_t stack;
 	uint32_t machine;
+	bool traceCPU;
 
-} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030 };
+} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false };
 
 int main(int argc, char **argv)
 {
 	// getopt...
 
+	enum
+	{
+		kTraceCPU = 1,
+	};
 	static struct option LongOpts[] = 
 	{
 		{ "ram",required_argument, NULL, 'r' },
 		{ "stack", required_argument, NULL, 's' },
 		{ "machine", required_argument, NULL, 'm' },
+		{ "trace-cpu", no_argument, NULL, kTraceCPU },
 		{ "help", no_argument, NULL, 'h' },
 		{ "version", no_argument, NULL, 'V' },
 		{ NULL, 0, NULL, 0 }
@@ -354,6 +370,9 @@ int main(int argc, char **argv)
 	{
 		switch(c)
 		{
+			case kTraceCPU:
+				Flags.traceCPU = true;
+				break;
 
 			case 'm':
 				if (!parse_number(optarg, &Flags.machine))
@@ -399,6 +418,7 @@ int main(int argc, char **argv)
 	}
 
 	Memory = new uint8_t[Flags.ram];
+	MemorySize = Flags.ram;
 
 	cpuStartup();
 	cpuSetModel(3,0);
@@ -431,11 +451,27 @@ int main(int argc, char **argv)
 		WriteLong(Memory, address + Flags.stack - 4, 0xffffffff);
 	}
 
-	/*
+	memorySetMemory(Memory, MemorySize);
 	for (unsigned i = 0; i < 10; ++i)
 	{
+		if (Flags.traceCPU)
+		{
+			static char strings[4][256];
+			for (unsigned j = 0; j < 4; ++j) strings[j][0] = 0;
+
+			uint32_t pc = cpuGetPC();
+
+			// todo - check for Axxx, recognize as a toolcall.
+			// move this to the cpuLogging facility?
+			cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
+
+			// address, data, instruction, operand
+			fprintf(stderr, "%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
+
+			// todo -- trace registers (only print changed registers?)
+		}
 		cpuExecuteInstruction();
 	}
-	*/
-
+	
+	exit(0); // cpuGetDReg(0)
 }
