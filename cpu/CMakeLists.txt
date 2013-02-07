@@ -1,5 +1,7 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+set(CMAKE_C_FLAGS " -Wall -Wno-unused-function -g")
+
 set(CPU_SRC 
 	CpuModule.c 
 	CpuModule_Disassembler.c 
@@ -13,8 +15,5 @@ set(CPU_SRC
 	CpuModule_StackFrameGen.c
 	memory.c
 )
-
-#FILE(GLOB CPU_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
-
 
 add_library(CPU_LIB ${CPU_SRC})
