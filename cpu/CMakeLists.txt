@@ -6,6 +6,7 @@ set(CPU_SRC
 	CpuModule_EffectiveAddress.c 
 	CpuModule_Exceptions.c 
 	CpuModule_Flags.c
+	CpuModule_Logging.c
 	CpuModule_Instructions.c
 	CpuModule_InternalState.c
 	CpuModule_Interrupts.c
