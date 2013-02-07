@@ -176,6 +176,9 @@ bool load(const char *file)
 
 			// 0x0934 - CurJTOffset (16-bit)
 			WriteWord(Memory, 0x0934, jtOffset);
+
+			// 0x0904 -- CurrentA5 (32-bit)
+			WriteLong(Memory, 0x0904, a5);
 			cpuSetAReg(5, a5);
 		}
 		else
@@ -452,7 +455,7 @@ int main(int argc, char **argv)
 	}
 
 	memorySetMemory(Memory, MemorySize);
-	for (unsigned i = 0; i < 10; ++i)
+	for (unsigned i = 0; i < 10000; ++i)
 	{
 		if (Flags.traceCPU)
 		{
@@ -460,7 +463,22 @@ int main(int argc, char **argv)
 			for (unsigned j = 0; j < 4; ++j) strings[j][0] = 0;
 
 			uint32_t pc = cpuGetPC();
+			uint16_t opcode = ReadWord(Memory, pc);
 
+			if ((opcode & 0xf000) == 0xa000)
+			{
+				fprintf(stderr, "tool %04x\n", opcode);
+			}
+
+			#if 0
+			fprintf(stderr, "D0       D1       D2       D3       D4       D5       D6       D7       A0       A1       A2       A3       A4       A5       A6       A7\n");
+			fprintf(stderr, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
+				cpuGetDReg(0), cpuGetDReg(1), cpuGetDReg(2), cpuGetDReg(3), 
+				cpuGetDReg(4), cpuGetDReg(5), cpuGetDReg(6), cpuGetDReg(7), 
+				cpuGetAReg(0), cpuGetAReg(1), cpuGetAReg(2), cpuGetAReg(3), 
+				cpuGetAReg(4), cpuGetAReg(5), cpuGetAReg(6), cpuGetAReg(7)
+			);
+			#endif
 			// todo - check for Axxx, recognize as a toolcall.
 			// move this to the cpuLogging facility?
 			cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
