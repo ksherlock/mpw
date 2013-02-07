@@ -34,6 +34,20 @@
 #include "autoconf.h"
 #endif
 
+
+static cpuLineExceptionFunc cpu_a_line_exception_func = NULL;
+static cpuLineExceptionFunc cpu_f_line_exception_func = NULL;
+
+void cpuSetALineExceptionFunc(cpuLineExceptionFunc func)
+{
+  cpu_a_line_exception_func = func;
+}
+
+void cpuSetFLineExceptionFunc(cpuLineExceptionFunc func)
+{
+  cpu_f_line_exception_func = func;
+}
+
 /*============================================================================*/
 /* profiling help functions                                                   */
 /*============================================================================*/
@@ -124,9 +138,23 @@ void cpuUpdateSr(ULO new_sr) {
 
 static void cpuIllegal(void) {
 	UWO opcode = memoryReadWord(cpuGetPC() - 2);
-	if ((opcode & 0xf000) == 0xf000) {
-		cpuThrowFLineException();
-	} else if ((opcode & 0xa000) == 0xa000) {
+	if ((opcode & 0xf000) == 0xf000)
+  {
+    if (cpu_f_line_exception_func)
+    {
+      cpu_f_line_exception_func(opcode);
+      cpuInitializeFromNewPC(cpuGetPC());
+      cpuSetInstructionTime(512);
+    }
+    else
+    {
+  		cpuThrowFLineException();
+    }
+	}
+  else if ((opcode & 0xa000) == 0xa000)
+  {
+    
+/*
 #ifdef UAE_FILESYS
     if ((cpuGetPC() & 0xff0000) == 0xf00000)
     {
@@ -136,6 +164,14 @@ static void cpuIllegal(void) {
     }
     else
 #endif
+*/
+    if (cpu_a_line_exception_func)
+    {
+      cpu_a_line_exception_func(opcode);
+      cpuInitializeFromNewPC(cpuGetPC());
+      cpuSetInstructionTime(512);
+    }
+    else
     {
       cpuThrowALineException();
     }

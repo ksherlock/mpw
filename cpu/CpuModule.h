@@ -6,6 +6,10 @@ extern "C" {
 #endif
 
 
+typedef void (*cpuLineExceptionFunc)(uint16_t);
+extern void cpuSetALineExceptionFunc(cpuLineExceptionFunc func);
+extern void cpuSetFLineExceptionFunc(cpuLineExceptionFunc func);
+
 // This header file defines the internal interfaces of the CPU module.
 
 #define CPU_INSTRUCTION_LOGGING
