@@ -235,6 +235,8 @@ void InitializeMPW(int argc, char **argv)
 
 	// 0x0910 CurApName 
 	{
+
+		// todo -- basename it.
 		char str32[32];
 		int l = strlen(argv[0]);
 		l = std::min(l, 32);
@@ -283,11 +285,9 @@ void InitializeMPW(int argc, char **argv)
 	WriteLong(Memory, address, 0x4d50474d); // MPGM - magic
 	WriteLong(Memory, address + 4, address + 8); // block ptr
 	WriteWord(Memory, address + 8, 0x5348); // SH - more magic
-	WriteWord(Memory, address + 10, argc);
-	WriteWord(Memory, address + 14, argvAddress);
-	WriteWord(Memory, address + 18, envpAddress);
-
-
+	WriteLong(Memory, address + 10, argc);
+	WriteLong(Memory, address + 14, argvAddress);
+	WriteLong(Memory, address + 18, envpAddress);
 }
 
 void help()
