@@ -29,8 +29,8 @@
 #include "CpuModule.h"
 #include "CpuIntegration.h"
 #include "CpuModule_Internal.h"
-#include "bus.h"
-#include "fileops.h"
+//#include "bus.h"
+//#include "fileops.h"
 
 
 jmp_buf cpu_integration_exception_buffer;
