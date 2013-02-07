@@ -1,6 +1,10 @@
 #ifndef CpuModule_Internal_H
 #define CpuModule_Internal_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // This header file defines the internal interfaces of the CPU module.
 extern void cpuMakeOpcodeTableForModel(void);
 extern void cpuCreateMulTimeTables(void);
@@ -195,6 +199,10 @@ static BOOLE cpuMsbL(ULO v) {return v>>31;}
 static BOOLE cpuIsZeroB(UBY v) {return v == 0;}
 static BOOLE cpuIsZeroW(UWO v) {return v == 0;}
 static BOOLE cpuIsZeroL(ULO v) {return v == 0;}
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

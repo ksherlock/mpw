@@ -1,6 +1,10 @@
 #ifndef CPUMODULE_DISASSEMBLER_H
 #define CPUMODULE_DISASSEMBLER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern ULO cpuDisOpcode(ULO disasm_pc, STR *saddress, STR *sdata, STR *sinstruction, STR *soperands);
 
 extern ULO cpuDisIllegal(ULO prc, ULO opc, STR *sdata, STR *sinstruction, STR *soperands);
@@ -93,5 +97,9 @@ extern ULO cpuDisTrapcc(ULO prc, ULO opc, STR *sdata, STR *sinstruction, STR *so
 extern ULO cpuDisUnpk(ULO prc, ULO opc, STR *sdata, STR *sinstruction, STR *soperands);
 extern ULO cpuDisCallm(ULO prc, ULO opc, STR *sdata, STR *sinstruction, STR *soperands);
 extern ULO cpuDisRtm(ULO prc, ULO opc, STR *sdata, STR *sinstruction, STR *soperands);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

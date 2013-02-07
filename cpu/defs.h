@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Maximum values for memory, don't change */
 
 #define CHIPMEM 0x200000
@@ -68,5 +72,9 @@ typedef void (*buseventfunc)(void);
 #define FELLOWVERSION        "WinFellow alpha v0.5.0 build 0 (CVS)"
 #define FELLOWLONGVERSION    "WinFellow Amiga Emulator alpha v0.5.0 - CVS" 
 #define FELLOWNUMERICVERSION "0.5.0.0"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

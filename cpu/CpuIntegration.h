@@ -1,6 +1,12 @@
 #ifndef CpuIntegration_H
 #define CpuIntegration_H
 
+#include <setjmp.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   M68000  = 0,
   M68010  = 1,
@@ -40,5 +46,9 @@ extern void cpuIntegrationEmulationStop(void);
 extern void cpuIntegrationHardReset(void);
 extern void cpuIntegrationStartup(void);
 extern void cpuIntegrationShutdown(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

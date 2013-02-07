@@ -1,6 +1,10 @@
 #ifndef FMEM_H
 #define FMEM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Memory access functions */
 
 extern UBY memoryReadByte(ULO address);
@@ -148,5 +152,9 @@ extern ULO potgor;
 
 extern ULO memory_fault_address;
 extern BOOLE memory_fault_read;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

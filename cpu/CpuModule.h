@@ -1,6 +1,11 @@
 #ifndef CpuModule_H
 #define CpuModule_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 // This header file defines the internal interfaces of the CPU module.
 
 #define CPU_INSTRUCTION_LOGGING
@@ -89,5 +94,9 @@ extern void cpuSetResetExceptionFunc(cpuResetExceptionFunc func);
 extern void cpuSetModel(ULO major, ULO minor);
 extern ULO cpuGetModelMajor(void);
 extern ULO cpuGetModelMinor(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
