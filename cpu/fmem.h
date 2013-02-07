@@ -5,6 +5,11 @@
 extern "C" {
 #endif
 
+// new functions
+
+extern void memorySetMemory(uint8_t *memory, uint32_t size);
+
+
 /* Memory access functions */
 
 extern UBY memoryReadByte(ULO address);
