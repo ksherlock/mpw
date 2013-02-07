@@ -7,8 +7,10 @@ set(CPU_SRC
 	CpuModule_Exceptions.c 
 	CpuModule_Flags.c
 	CpuModule_Instructions.c
+	CpuModule_InternalState.c
 	CpuModule_Interrupts.c
 	CpuModule_StackFrameGen.c
+	memory.c
 )
 
 #FILE(GLOB CPU_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
