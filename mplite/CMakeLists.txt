@@ -1,0 +1,5 @@
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(MPLITE_SRC mplite.c)
+
+add_library(MPLITE_LIB ${MPLITE_SRC})
