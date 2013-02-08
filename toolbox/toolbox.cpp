@@ -8,6 +8,7 @@
 
 #include "toolbox.h"
 #include "rm.h"
+#include "mm.h"
 
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
@@ -28,7 +29,7 @@ namespace ToolBox {
 			case 0xa51e:
 			case 0xa71e:
 				// clear = bit 9, sys = bit 10
-				d0 = MM:NewPtr(trap);
+				d0 = MM::NewPtr(trap);
 				break;
 
 
