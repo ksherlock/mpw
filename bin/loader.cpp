@@ -14,6 +14,8 @@
 #include <cpu/fmem.h>
 
 #include <toolbox/toolbox.h>
+#include <toolbox/mm.h>
+#include <mplite/mplite.h>
 
 uint8_t *Memory;
 uint32_t HighWater = 0x10000;
@@ -467,7 +469,7 @@ int main(int argc, char **argv)
 
 	cpuSetALineExceptionFunc(ToolBox::dispatch);
 	memorySetMemory(Memory, MemorySize);
-
+	MM::Init(Memory, MemorySize, HighWater);
 	
 	for (unsigned i = 0; i < 10000; ++i)
 	{
