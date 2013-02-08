@@ -14,7 +14,7 @@
 #include <cpu/fmem.h>
 
 uint8_t *Memory;
-uint32_t HighWater = 0x1000;
+uint32_t HighWater = 0x10000;
 uint32_t MemorySize = 0;
 
 uint32_t EmulatedNewPtr(uint32_t size)
@@ -288,6 +288,15 @@ void InitializeMPW(int argc, char **argv)
 	WriteLong(Memory, address + 10, argc);
 	WriteLong(Memory, address + 14, argvAddress);
 	WriteLong(Memory, address + 18, envpAddress);
+
+
+
+	// 0x031a - Lo3Bytes
+	WriteLong(Memory, 0x031a, 0x00ffffff);
+	// 0x0a02 - OneOne
+	WriteLong(Memory, 0x0a02, 0x00010001);
+	// 0x0a06 - MinusOne
+	WriteLong(Memory, 0x0a06, 0xffffffff);
 }
 
 void help()
