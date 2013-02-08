@@ -23,6 +23,11 @@ namespace ToolBox {
 		switch (trap)
 		{
 
+			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
+			case 0xa02e:
+				d0 = MM::BlockMove(trap);
+				break;
+
 			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
 			case 0xa11e:
 			case 0xa31e:

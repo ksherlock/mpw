@@ -73,19 +73,58 @@ namespace MM
 		return true;
 	}
 
-	uint16_t NewPtr(uint16_t trap)
+
+	uint16_t BlockMove(uint16_t trap)
 	{
-		/* on entry:
-		 * A0 Number of logical bytes requested
+		/* 
+		 * on entry:
+		 * A0 Pointer to source
+		 * A1 Pointer to destination
+		 * D0 Number of bytes to copy
+		 *
 		 * on exit:
 		 * A0 Address of the new block or NIL
 		 * D0 Result code
+		 *
+		 */
+
+		uint32_t source = cpuGetAReg(0);
+		uint32_t dest = cpuGetAReg(1);
+		uint32_t count = cpuGetDReg(0);
+
+		fprintf(stderr, "%04x BlockMove(%08x, %08x, %08x)\n",
+			trap, source, dest, count);
+
+		// TODO -- 32-bit clean?
+		// TODO -- verify within MemorySize?
+
+		#if 0
+		if (source == 0 || dest == 0 || count == 0)
+			return 0;
+		#endif
+		
+		std::memmove(Memory + dest, Memory + source, count);
+
+		return 0;
+	}
+
+
+	uint16_t NewPtr(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0 Number of logical bytes requested
+		 *
+		 * on exit:
+		 * A0 Address of the new block or NIL
+		 * D0 Result code
+		 *
 		 */
 
 		bool clear = trap & (1 << 9);
-		bool sys = trap & (1 << 10);
+		//bool sys = trap & (1 << 10);
 
-		uint32_t size = cpuGetAReg(0);
+		uint32_t size = cpuGetDReg(0);
 
 		fprintf(stderr, "%04x NewPtr(%08x)\n", trap, size);
 
