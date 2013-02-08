@@ -55,6 +55,12 @@ void memorySetMemory(uint8_t *memory, uint32_t size)
 
 UBY memoryReadByte(ULO address)
 {
+
+	if (address < 0x10000)
+	{
+		fprintf(stderr, "memoryReadByte(%08x)\n", address);
+	}
+
 	// hmmm... 32-bit clean addresses?
 	if (address < MemorySize) 
 		return Memory[address];
@@ -63,6 +69,13 @@ UBY memoryReadByte(ULO address)
 
 UWO memoryReadWord(ULO address)
 {
+
+	if (address < 0x10000)
+	{
+		fprintf(stderr, "memoryReadWord(%08x)\n", address);
+	}
+	
+
 	if (address & 0x01) memoryOddRead(address);
 
 	if (address + 1 < MemorySize)
@@ -74,6 +87,11 @@ UWO memoryReadWord(ULO address)
 
 ULO memoryReadLong(ULO address)
 {
+	if (address < 0x10000)
+	{
+		fprintf(stderr, "memoryReadLong(%08x)\n", address);
+	}
+
 	if (address & 0x01) memoryOddRead(address);
 
 	if (address + 1 < MemorySize)
@@ -87,6 +105,11 @@ ULO memoryReadLong(ULO address)
 }
 void memoryWriteByte(UBY data, ULO address)
 {
+	if (address < 0x10000)
+	{
+		fprintf(stderr, "memoryWriteByte(%02x, %08x)\n", data, address);
+	}
+
 	if (address < MemorySize)
 	{
 		Memory[address] = data;
@@ -95,6 +118,12 @@ void memoryWriteByte(UBY data, ULO address)
 
 void memoryWriteWord(UWO data, ULO address)
 {
+
+	if (address < 0x10000)
+	{
+		fprintf(stderr, "memoryWriteWord(%04x, %08x)\n", data, address);
+	}
+
 	if (address & 0x01) memoryOddWrite(address);
 
 	if (address + 1 < MemorySize)
@@ -106,6 +135,13 @@ void memoryWriteWord(UWO data, ULO address)
 
 void memoryWriteLong(ULO data, ULO address)
 {
+
+	if (address < 0x10000)
+	{
+		fprintf(stderr, "memoryWriteLong(%08x, %08x)\n", data, address);
+	}
+
+
 	if (address & 0x01) memoryOddWrite(address);
 
 	if (address + 3 < MemorySize)
