@@ -13,6 +13,8 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <toolbox/toolbox.h>
+
 uint8_t *Memory;
 uint32_t HighWater = 0x10000;
 uint32_t MemorySize = 0;
@@ -463,7 +465,10 @@ int main(int argc, char **argv)
 		WriteLong(Memory, address + Flags.stack - 4, 0xffffffff);
 	}
 
+	cpuSetALineExceptionFunc(ToolBox::dispatch);
 	memorySetMemory(Memory, MemorySize);
+
+	
 	for (unsigned i = 0; i < 10000; ++i)
 	{
 		if (Flags.traceCPU)
