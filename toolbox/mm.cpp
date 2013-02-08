@@ -27,6 +27,12 @@ namespace
 	// map of handle -> size [? just use Ptr map?]
 	std::map<uint32_t, uint32_t> HandleMap;
 
+	inline uint16_t SetMemError(uint16_t error)
+	{
+		memoryWriteWord(error, 0x0220);
+		return error;
+	}
+
 	bool alloc_handle_block()
 	{
 		const unsigned HandleCount = 128;
@@ -135,7 +141,7 @@ namespace MM
 		if (size == 0)
 		{
 			cpuSetAReg(0, 0);
-			return 0;
+			return SetMemError(0);
 		}
 
 		uint8_t *ptr = NULL;
@@ -143,7 +149,7 @@ namespace MM
 		if (!ptr)
 		{
 			cpuSetAReg(0, 0);
-			return memFullErr;
+			return SetMemError(memFullErr);
 		}
 
 		if (clear)
@@ -154,7 +160,7 @@ namespace MM
 		uint32_t mcptr = ptr - Memory;
 		PtrMap.emplace(std::make_pair(mcptr, size));
 		cpuSetAReg(0, mcptr);
-		return 0;
+		return SetMemError(0);
 	}
 
 
