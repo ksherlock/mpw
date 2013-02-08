@@ -64,7 +64,7 @@ namespace
 
 namespace RM
 {
-	uint16_t Get1NamedResource()
+	uint16_t Get1NamedResource(uint16_t trap)
 	{
 		// Get1NamedResource (theType: ResType; name: Str255) : Handle;
 
@@ -89,7 +89,7 @@ namespace RM
 
 		std::string sname = PString(name);
 
-		fprintf(stderr, "Get1NamedResource(%08x, %s)\n", theType, sname.c_str());
+		fprintf(stderr, "%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
 
 		ToolReturn(sp, (uint32_t)0);
 		return -192;

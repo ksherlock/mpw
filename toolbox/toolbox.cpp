@@ -22,9 +22,20 @@ namespace ToolBox {
 		switch (trap)
 		{
 
+			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
+			case 0xa11e:
+			case 0xa31e:
+			case 0xa51e:
+			case 0xa71e:
+				// clear = bit 9, sys = bit 10
+				d0 = MM:NewPtr(trap);
+				break;
+
+
+
 			// Get1NamedResource (theType: ResType; name: Str255) : Handle;
 			case 0xa820:
-				d0 = RM::Get1NamedResource();
+				d0 = RM::Get1NamedResource(trap);
 				break;
 
 			default:

@@ -7,6 +7,7 @@ add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 set(TOOLBOX_SRC 
 	toolbox.cpp
 	rm.cpp
+	mm.cpp
 )
 
 

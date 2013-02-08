@@ -5,7 +5,7 @@
 
 namespace RM
 {
-	uint16_t Get1NamedResource();
+	uint16_t Get1NamedResource(uint16_t trap);
 }
 
 #endif
