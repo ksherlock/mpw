@@ -6,53 +6,60 @@
 
 #include <string>
 
-uint32_t PopLong()
+namespace
 {
-	uint32_t sp = cpuGetAReg(7);
-	uint32_t value = memoryReadLong(a7);
-	cpuSetAReg(7, sp + 4);
-	return value;
-}
 
-
-uint16_t PopWord()
-{
-	uint32_t sp = cpuGetAReg(7);
-	uint16_t value = memoryReadWord(a7);
-	cpuSetAReg(7, sp + 2);
-	return value;
-}
-
-uint32_t StackFrame(uint32_t &b, uint32_t &a)
-{
-	uint32_t sp = cpuGetAReg(7);
-	a = memoryReadLong(sp); sp += 4;
-	b = memoryReadLong(sp); sp += 4;
-	cpuSetAReg(7, sp);
-}
-
-void ToolReturn(uint32_t sp, uint32_t value)
-{
-	memoryWriteLong(sp, value);
-}
-
-std::string PString(uint32_t address)
-{
-	std::string s;
-
-	unsigned length = address == 0 ? 0 : memoryReadByte(address++);
-	if (length == 0)
+	uint32_t PopLong()
 	{
+		uint32_t sp = cpuGetAReg(7);
+		uint32_t value = memoryReadLong(sp);
+		cpuSetAReg(7, sp + 4);
+		return value;
+	}
+
+
+	uint16_t PopWord()
+	{
+		uint32_t sp = cpuGetAReg(7);
+		uint16_t value = memoryReadWord(sp);
+		cpuSetAReg(7, sp + 2);
+		return value;
+	}
+
+	uint32_t StackFrame(uint32_t &b, uint32_t &a)
+	{
+		uint32_t sp = cpuGetAReg(7);
+		a = memoryReadLong(sp); sp += 4;
+		b = memoryReadLong(sp); sp += 4;
+		cpuSetAReg(7, sp);
+
+		return sp;
+	}
+
+	void ToolReturn(uint32_t sp, uint32_t value)
+	{
+		memoryWriteLong(sp, value);
+	}
+
+	std::string PString(uint32_t address)
+	{
+		std::string s;
+
+		unsigned length = address == 0 ? 0 : memoryReadByte(address++);
+		if (length == 0)
+		{
+			return s;
+		}
+
+		s.reserve(length);
+		for (unsigned i = 0; i < length; ++i)
+		{
+			s.push_back((char)memoryReadByte(address++));
+		}
+
 		return s;
 	}
 
-	s.reserve(length);
-	for (unsigned i = 0; i < length; ++i)
-	{
-		s.push_back((char)memoryReadByte(address++));
-	}
-
-	return s;
 }
 
 namespace RM
@@ -82,9 +89,9 @@ namespace RM
 
 		std::string sname = PString(name);
 
-		printf(stderr, "Get1NamedResource(%08x, %s)\n", theType, sname.c_str());
+		fprintf(stderr, "Get1NamedResource(%08x, %s)\n", theType, sname.c_str());
 
 		ToolReturn(sp, (uint32_t)0);
-		return –192;
+		return -192;
 	}
 }

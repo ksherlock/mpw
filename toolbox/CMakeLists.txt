@@ -5,7 +5,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wno-deprecated-declaration
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 
 set(TOOLBOX_SRC 
-	dispatch.cpp
+	toolbox.cpp
 	rm.cpp
 )
 
