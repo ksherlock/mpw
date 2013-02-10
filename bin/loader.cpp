@@ -6,6 +6,7 @@
 #include <vector>
 #include <sysexits.h>
 #include <getopt.h>
+#include <libgen.h>
 
 #include <CoreServices/CoreServices.h>
 
@@ -239,13 +240,13 @@ void InitializeMPW(int argc, char **argv)
 
 	// 0x0910 CurApName 
 	{
-
-		// todo -- basename it.
+		// basename it.
+		char * name = basename(argv[0]);
 		char str32[32];
-		int l = strlen(argv[0]);
+		int l = strlen(name);
 		l = std::min(l, 32);
 		str32[0] = l;
-		memcpy(str32 + 1, argv[0], l);
+		memcpy(str32 + 1, name, l);
 		while (l < 32) str32[l++] = 0;
 
 		memcpy(Memory + 0x910, str32, 32);
