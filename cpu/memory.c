@@ -46,6 +46,7 @@ static void memoryOddWrite(ULO address)
 
 static uint8_t *Memory = NULL;
 static uint32_t MemorySize = 0;
+static uint32_t MemoryGlobalLog = 0;
 
 void memorySetMemory(uint8_t *memory, uint32_t size)
 {
@@ -53,10 +54,15 @@ void memorySetMemory(uint8_t *memory, uint32_t size)
 	MemorySize = size;
 }
 
+void memorySetGlobalLog(uint32_t globalLog)
+{
+	MemoryGlobalLog = globalLog;
+}
+
 UBY memoryReadByte(ULO address)
 {
 
-	if (address < 0x10000)
+	if (address < MemoryGlobalLog)
 	{
 		fprintf(stderr, "memoryReadByte(%08x)\n", address);
 	}
@@ -70,7 +76,7 @@ UBY memoryReadByte(ULO address)
 UWO memoryReadWord(ULO address)
 {
 
-	if (address < 0x10000)
+	if (address < MemoryGlobalLog)
 	{
 		fprintf(stderr, "memoryReadWord(%08x)\n", address);
 	}
@@ -87,7 +93,7 @@ UWO memoryReadWord(ULO address)
 
 ULO memoryReadLong(ULO address)
 {
-	if (address < 0x10000)
+	if (address < MemoryGlobalLog)
 	{
 		fprintf(stderr, "memoryReadLong(%08x)\n", address);
 	}
@@ -105,7 +111,7 @@ ULO memoryReadLong(ULO address)
 }
 void memoryWriteByte(UBY data, ULO address)
 {
-	if (address < 0x10000)
+	if (address < MemoryGlobalLog)
 	{
 		fprintf(stderr, "memoryWriteByte(%02x, %08x)\n", data, address);
 	}
@@ -119,7 +125,7 @@ void memoryWriteByte(UBY data, ULO address)
 void memoryWriteWord(UWO data, ULO address)
 {
 
-	if (address < 0x10000)
+	if (address < MemoryGlobalLog)
 	{
 		fprintf(stderr, "memoryWriteWord(%04x, %08x)\n", data, address);
 	}
@@ -136,7 +142,7 @@ void memoryWriteWord(UWO data, ULO address)
 void memoryWriteLong(ULO data, ULO address)
 {
 
-	if (address < 0x10000)
+	if (address < MemoryGlobalLog)
 	{
 		fprintf(stderr, "memoryWriteLong(%08x, %08x)\n", data, address);
 	}

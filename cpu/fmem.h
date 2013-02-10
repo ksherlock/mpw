@@ -8,6 +8,7 @@ extern "C" {
 // new functions
 
 extern void memorySetMemory(uint8_t *memory, uint32_t size);
+extern void memorySetGlobalLog(uint32_t globalLog);
 
 
 /* Memory access functions */
