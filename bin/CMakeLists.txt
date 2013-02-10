@@ -10,3 +10,7 @@ add_executable(mpw loader.cpp)
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
 target_link_libraries(mpw MPLITE_LIB)
+
+
+add_executable(disasm disasm.cpp traps.c)
+target_link_libraries(disasm CPU_LIB)
