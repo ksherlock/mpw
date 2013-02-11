@@ -113,11 +113,13 @@ struct MPWArgs
 
 */
 
-bool load(const char *file)
+uint32_t load(const char *file)
 {
 
 	ResFileRefNum refNum;
 	FSRef ref;
+
+	uint32_t returnAddress = 0;
 
 	std::vector< std::pair<uint32_t, uint32_t> > segments; // segment, address
 
@@ -226,7 +228,8 @@ bool load(const char *file)
 
     	if (first)
     	{
-	    	cpuSetPC(address);
+	    	//cpuSetPC(address);
+	    	returnAddress = address;
     		first = false;
     	}
     }
@@ -234,7 +237,7 @@ bool load(const char *file)
 
 
     // set pc to jump table entry 0.
-    return true;
+    return returnAddress;
 }
 
 void InitializeMPW(int argc, char **argv)
@@ -460,16 +463,19 @@ void InstructionLogger()
 		return;
 	}
 
-	#if 0
-	fprintf(stderr, "D0       D1       D2       D3       D4       D5       D6       D7       A0       A1       A2       A3       A4       A5       A6       A7\n");
-	fprintf(stderr, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
+
+	#if 0	
+	fprintf(stderr, "D: %08x %08x %08x %08x %08x %08x %08x %08x\n",
 		cpuGetDReg(0), cpuGetDReg(1), cpuGetDReg(2), cpuGetDReg(3), 
-		cpuGetDReg(4), cpuGetDReg(5), cpuGetDReg(6), cpuGetDReg(7), 
+		cpuGetDReg(4), cpuGetDReg(5), cpuGetDReg(6), cpuGetDReg(7)
+
+	);
+
+	fprintf(stderr, "A: %08x %08x %08x %08x %08x %08x %08x %08x\n",
 		cpuGetAReg(0), cpuGetAReg(1), cpuGetAReg(2), cpuGetAReg(3), 
 		cpuGetAReg(4), cpuGetAReg(5), cpuGetAReg(6), cpuGetAReg(7)
 	);
 	#endif
-
 
 	cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
 
@@ -478,6 +484,12 @@ void InstructionLogger()
 
 	// todo -- trace registers (only print changed registers?)
 
+	#if 0
+	if (pc >= 0x00010E94 && pc <= 0x00010FC0)
+	{
+		fprintf(stderr, "d7 = %08x\n", cpuGetDReg(7));
+	}
+	#endif
 
 	if (opcode == 0x4E75)
 	{
@@ -635,7 +647,7 @@ int main(int argc, char **argv)
 	cpuStartup();
 	cpuSetModel(3,0);
 
-	load(argv[0]);
+	uint32_t address = load(argv[0]);
 
 	InitializeMPW(argc, argv);
 
@@ -666,8 +678,12 @@ int main(int argc, char **argv)
 	cpuSetALineExceptionFunc(ToolBox::dispatch);
 	cpuSetFLineExceptionFunc(MPW::dispatch);
 
+
+	/// ahhh... need to set PC after memory.
+	// for pre-fetch.
 	memorySetMemory(Memory, MemorySize);
 	memorySetGlobalLog(0x10000);
+	cpuInitializeFromNewPC(address);
 
 	MM::Init(Memory, MemorySize, HighWater);
 	
