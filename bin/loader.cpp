@@ -7,6 +7,7 @@
 #include <sysexits.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <unistd.h>
 
 #include <CoreServices/CoreServices.h>
 
@@ -16,6 +17,7 @@
 
 #include <toolbox/toolbox.h>
 #include <toolbox/mm.h>
+#include <mpw/mpw.h>
 #include <mplite/mplite.h>
 
 uint8_t *Memory;
@@ -238,10 +240,10 @@ bool load(const char *file)
 void InitializeMPW(int argc, char **argv)
 {
 
+	argv[0] = basename(argv[0]);
 	// 0x0910 CurApName 
 	{
-		// basename it.
-		char * name = basename(argv[0]);
+		char * name = argv[0];
 		char str32[32];
 		int l = strlen(name);
 		l = std::min(l, 32);
@@ -251,6 +253,10 @@ void InitializeMPW(int argc, char **argv)
 
 		memcpy(Memory + 0x910, str32, 32);
 	}
+
+
+
+
 
 
 	// 0x0316 is a pointer to the argc, argv, envp.
@@ -285,15 +291,131 @@ void InitializeMPW(int argc, char **argv)
 	}
 	// same thing for envp... but \0 instead of =
 
-	uint32_t address = EmulatedNewPtr(8 + 10);
+
+	// _macpgminfo
+	uint32_t address = EmulatedNewPtr(8 + 0x30);
+
+	address = 0x2000; // monitor reads...
 	WriteLong(Memory, 0x0316, address);
 	WriteLong(Memory, address, 0x4d50474d); // MPGM - magic
-	WriteLong(Memory, address + 4, address + 8); // block ptr
-	WriteWord(Memory, address + 8, 0x5348); // SH - more magic
-	WriteLong(Memory, address + 10, argc);
-	WriteLong(Memory, address + 14, argvAddress);
-	WriteLong(Memory, address + 18, envpAddress);
+	WriteLong(Memory, address + 4, 0x2100 /* address + 8 */); // block ptr
 
+	// address += 8;	
+	address = 0x2100;
+	WriteWord(Memory, address + 0x00, 0x5348); // SH - more magic
+	WriteLong(Memory, address + 0x02, argc);
+	WriteLong(Memory, address + 0x06, argvAddress);
+	WriteLong(Memory, address + 0x0a, envpAddress);
+
+
+
+	// possible the application exit code...
+	WriteLong(Memory, address + 0x0e, 0x00007000);
+
+	WriteLong(Memory, address + 0x12, 0x00008000);
+	WriteLong(Memory, address + 0x16, 0x00009000);
+	WriteWord(Memory, address + 0x1a, 0x0190); //  ???? 
+
+	// default file table? block of size 0x3c.
+	// copied into IntEnv+0x1c
+	// _initIOPtable
+	WriteLong(Memory, address + 0x1c, 0x0000a000);
+
+	// stdin
+	WriteLong(Memory, 0x0000a000+0, 0x00010000); // ???
+	WriteLong(Memory, 0x0000a000+4, 0x00003000); // type ptr (FSYS)
+	WriteLong(Memory, 0x0000a000+8, STDIN_FILENO); // ptr to refcount/fd struct?
+	WriteLong(Memory, 0x0000a000+12, 0x00000000); // transferCount
+	WriteLong(Memory, 0x0000a000+16, 0x00000000); // transferBuffer
+
+	// stdout
+	//0x0001 = readable
+	//0x0002 = writable
+	// others?...
+	WriteLong(Memory, 0x0000a000+20, 0x00020000); // ??? {uint16_t flags, uint16_t error? }
+	WriteLong(Memory, 0x0000a000+24, 0x00003000); // type ptr (FSYS)
+	WriteLong(Memory, 0x0000a000+28, STDOUT_FILENO); // ptr to refcount/fd struct?
+	WriteLong(Memory, 0x0000a000+32, 0x00000000); //???
+	WriteLong(Memory, 0x0000a000+36, 0x00000000); //???
+
+	// stderr
+	WriteLong(Memory, 0x0000a000+40, 0x00020000); // ???
+	WriteLong(Memory, 0x0000a000+44, 0x00003000); // type ptr (FSYS)
+	WriteLong(Memory, 0x0000a000+48, STDERR_FILENO); // ptr to refcount/fd struct?
+	WriteLong(Memory, 0x0000a000+52, 0x00000000); //???
+	WriteLong(Memory, 0x0000a000+56, 0x00000000); //???
+
+
+	WriteWord(Memory, 0xf000, MPW::fQuit);
+	WriteWord(Memory, 0xf002, 0x4E75); // rts
+
+	WriteWord(Memory, 0xf004, MPW::fAccess);
+	WriteWord(Memory, 0xf006, 0x4E75); // rts	
+
+	WriteWord(Memory, 0xf008, MPW::fClose);
+	WriteWord(Memory, 0xf00a, 0x4E75); // rts
+
+	WriteWord(Memory, 0xf00c, MPW::fRead);
+	WriteWord(Memory, 0xf00e, 0x4E75); // rts
+
+	WriteWord(Memory, 0xf010, MPW::fWrite);
+	WriteWord(Memory, 0xf012, 0x4E75); // rts
+
+	WriteWord(Memory, 0xf014, MPW::fIOCtl);
+	WriteWord(Memory, 0xf016, 0x4E75); // rts
+
+
+	// StdDevs (0x78 bytes)
+	// copied into a $78 byte buffer stored at _IntEnv+20
+	// this has pointers to read/write functions
+	// (although the executable has it's own functions as well...)
+	WriteLong(Memory, address + 0x20, 0x00003000);
+
+	WriteLong(Memory, 0x00003000+0, 0x46535953); // 'FSYS'
+	WriteLong(Memory, 0x00003000+4, 0xf004); //access
+	WriteLong(Memory, 0x00003000+8, 0xf008); // close
+	WriteLong(Memory, 0x00003000+12, 0xf00c); // read
+	WriteLong(Memory, 0x00003000+16, 0xf010); // write
+	WriteLong(Memory, 0x00003000+20, 0xf014); // ioctl
+
+	WriteLong(Memory, 0x00003000+24, 0x45434f4e); // 'ECON'
+	WriteLong(Memory, 0x00003000+28, 0); //access
+	WriteLong(Memory, 0x00003000+32, 0); // close
+	WriteLong(Memory, 0x00003000+36, 0); // read
+	WriteLong(Memory, 0x00003000+40, 0); // write
+	WriteLong(Memory, 0x00003000+44, 0); // ioctl
+
+	WriteLong(Memory, 0x00003000+48, 0x53595354); // 'SYST'
+	WriteLong(Memory, 0x00003000+52, 0); //access
+	WriteLong(Memory, 0x00003000+56, 0); // close
+	WriteLong(Memory, 0x00003000+60, 0); // read
+	WriteLong(Memory, 0x00003000+68, 0); // write
+	WriteLong(Memory, 0x00003000+72, 0); // ioctl
+
+	WriteLong(Memory, 0x00003000+76, 0);
+	WriteLong(Memory, 0x00003000+80, 0);
+	WriteLong(Memory, 0x00003000+84, 0);
+	WriteLong(Memory, 0x00003000+88, 0);
+	WriteLong(Memory, 0x00003000+92, 0);
+	WriteLong(Memory, 0x00003000+96, 0);
+	WriteLong(Memory, 0x00003000+100, 0);
+	WriteLong(Memory, 0x00003000+104, 0);
+	WriteLong(Memory, 0x00003000+108, 0);
+	WriteLong(Memory, 0x00003000+112, 0);
+	WriteLong(Memory, 0x00003000+116, 0);
+
+
+
+	// _RTInit fills in this location with &_IntEnv.
+	WriteLong(Memory, address + 0x24, 0x00004000);
+	WriteLong(Memory, address + 0x28, 0x00005000); 
+	WriteLong(Memory, address + 0x2c, 0x00006000); 
+
+
+
+
+
+	// 0x1c should have something, too .... :(
 
 
 	// 0x031a - Lo3Bytes
@@ -305,6 +427,24 @@ void InitializeMPW(int argc, char **argv)
 }
 
 
+extern "C" { const char *TrapName(uint16_t trap); }
+
+void LogToolBox(uint32_t pc, uint16_t trap)
+{
+	const char *name;
+
+	name = TrapName(trap);
+
+	if (name)
+	{
+		fprintf(stderr, "$%08X   %-51s ; %04X\n", pc, name, trap);
+	}
+	else
+	{
+		fprintf(stderr, "$%08X   Tool       #$%04X                                   ; %04X\n", pc, trap, trap);
+	}
+}
+
 void InstructionLogger()
 {
 
@@ -312,14 +452,13 @@ void InstructionLogger()
 	for (unsigned j = 0; j < 4; ++j) strings[j][0] = 0;
 
 	uint32_t pc = cpuGetPC();
-	//uint16_t opcode = ReadWord(Memory, pc);
+	uint16_t opcode = ReadWord(Memory, pc);
 
-	#if 0
 	if ((opcode & 0xf000) == 0xa000)
 	{
-		fprintf(stderr, "tool %04x\n", opcode);
+		LogToolBox(pc, opcode);
+		return;
 	}
-	#endif
 
 	#if 0
 	fprintf(stderr, "D0       D1       D2       D3       D4       D5       D6       D7       A0       A1       A2       A3       A4       A5       A6       A7\n");
@@ -330,8 +469,8 @@ void InstructionLogger()
 		cpuGetAReg(4), cpuGetAReg(5), cpuGetAReg(6), cpuGetAReg(7)
 	);
 	#endif
-	// todo - check for Axxx, recognize as a toolcall.
-	// move this to the cpuLogging facility?
+
+
 	cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
 
 	// address, data, instruction, operand
@@ -340,6 +479,23 @@ void InstructionLogger()
 	// todo -- trace registers (only print changed registers?)
 
 
+	if (opcode == 0x4E75)
+	{
+		// check for MacsBug name after rts.
+		std::string s;
+		unsigned b = memoryReadByte(pc + 2);
+		if (b > 0x80)
+		{
+			b -= 0x80;
+			pc += 3;
+			s.reserve(b);
+			for (unsigned i = 0; i < b; ++i)
+			{
+				s.push_back(memoryReadByte(pc++));
+			}
+			fprintf(stderr, "%s\n\n", s.c_str());
+		}
+	}
 
 }
 
@@ -508,9 +664,11 @@ int main(int argc, char **argv)
 	}
 
 	cpuSetALineExceptionFunc(ToolBox::dispatch);
+	cpuSetFLineExceptionFunc(MPW::dispatch);
+
 	memorySetMemory(Memory, MemorySize);
 	memorySetGlobalLog(0x10000);
-	
+
 	MM::Init(Memory, MemorySize, HighWater);
 	
 	if (Flags.traceCPU)
@@ -518,11 +676,13 @@ int main(int argc, char **argv)
 		cpuSetInstructionLoggingFunc(InstructionLogger);
 	}
 
-	for (unsigned i = 0; i < 9200; ++i)
+	for (unsigned i = 0; i < 20000; ++i)
 	{
+		uint32_t pc = cpuGetPC();
+		if (pc == 0xffffffff) break;
 
 		cpuExecuteInstruction();
 	}
-	
-	exit(0); // cpuGetDReg(0)
+	// return value in mpwblock + 0x0e?
+	exit(0);
 }

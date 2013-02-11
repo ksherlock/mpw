@@ -6,9 +6,10 @@ SET(CMAKE_EXE_LINKER_FLAGS "-framework Carbon")
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 
 
-add_executable(mpw loader.cpp)
+add_executable(mpw loader.cpp traps.c)
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
+target_link_libraries(mpw MPW_LIB)
 target_link_libraries(mpw MPLITE_LIB)
 
 
