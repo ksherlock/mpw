@@ -28,6 +28,7 @@ namespace ToolBox {
 				d0 = MM::BlockMove(trap);
 				break;
 
+		
 			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
 			case 0xa11e:
 			case 0xa31e:
@@ -37,7 +38,10 @@ namespace ToolBox {
 				d0 = MM::NewPtr(trap);
 				break;
 
-
+			// DisposPtr (p: Ptr);
+			case 0xa01f:
+				d0 = MM::DisposePtr(trap);
+				break;
 
 			// Get1NamedResource (theType: ResType; name: Str255) : Handle;
 			case 0xa820:
