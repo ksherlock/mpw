@@ -9,7 +9,7 @@ extern "C" {
 
 extern void memorySetMemory(uint8_t *memory, uint32_t size);
 extern void memorySetGlobalLog(uint32_t globalLog);
-
+extern uint8_t *memoryPointer(uint32_t address);
 
 /* Memory access functions */
 

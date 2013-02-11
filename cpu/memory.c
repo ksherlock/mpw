@@ -59,6 +59,13 @@ void memorySetGlobalLog(uint32_t globalLog)
 	MemoryGlobalLog = globalLog;
 }
 
+
+uint8_t *memoryPointer(uint32_t address)
+{
+	return Memory + address;
+}
+
+
 UBY memoryReadByte(ULO address)
 {
 
