@@ -23,8 +23,22 @@ namespace {
 
 	void ftrap_access(uint16_t trap)
 	{
-		// should never hit... only used for opening a file
+		// open a file, rename a file, or delete a file.
+
+		uint32_t sp = cpuGetAReg(7);
+
+		// hmmm not sure if 3 or 4 parameters.
+		
+		uint32_pt name = memoryReadLong(sp + 4);
+		uint32_t op = memoryReadLong(sp + 8);
+		uint32_t parm = memoryReadLong(sp + 12);
+
+
+		MPWFile f;
+
+
 		fprintf(stderr, "%04x Access()\n", trap);
+		cpuSetDReg(0, 0);				
 	}
 
 	void ftrap_close(uint16_t trap)
