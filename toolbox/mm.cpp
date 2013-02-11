@@ -114,6 +114,35 @@ namespace MM
 		return 0;
 	}
 
+	uint16_t DisposePtr(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Pointer to the nonrelocatable block to be disposed of
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t mcptr = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x DisposePtr(%08x)\n", trap, mcptr);
+
+
+		auto iter = PtrMap.find(mcptr);
+
+		if (iter == PtrMap.end()) return memWZErr;
+		PtrMap.erase(iter);
+
+		uint8_t *ptr = mcptr + Memory;
+
+		mplite_free(&pool, ptr);
+
+		return 0;
+	}
+
+
 
 	uint16_t NewPtr(uint16_t trap)
 	{
