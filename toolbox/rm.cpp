@@ -38,7 +38,7 @@ namespace
 
 	void ToolReturn(uint32_t sp, uint32_t value)
 	{
-		memoryWriteLong(sp, value);
+		memoryWriteLong(value, sp);
 	}
 
 	std::string PString(uint32_t address)
