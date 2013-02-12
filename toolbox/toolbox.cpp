@@ -9,6 +9,7 @@
 #include "toolbox.h"
 #include "rm.h"
 #include "mm.h"
+#include "os.h"
 
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
@@ -22,6 +23,9 @@ namespace ToolBox {
 		uint32_t d0 = 0;
 		switch (trap)
 		{
+			case 0xA00C:
+				d0 = OS::GetFileInfo(trap);
+				break;
 
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
 			case 0xa02e:

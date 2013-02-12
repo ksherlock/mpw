@@ -8,6 +8,7 @@ set(TOOLBOX_SRC
 	toolbox.cpp
 	rm.cpp
 	mm.cpp
+	os.cpp
 )
 
 
