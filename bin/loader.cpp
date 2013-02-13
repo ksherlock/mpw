@@ -672,7 +672,7 @@ int main(int argc, char **argv)
 		// -4 is for the return address.
 		cpuSetAReg(7, address + Flags.stack - 4);
 		// return address.
-		WriteLong(Memory, address + Flags.stack - 4, 0xffffffff);
+		WriteLong(Memory, address + Flags.stack - 4, 0x0a06); // MinusOne global :) 
 	}
 
 	cpuSetALineExceptionFunc(ToolBox::dispatch);
@@ -692,13 +692,15 @@ int main(int argc, char **argv)
 		cpuSetInstructionLoggingFunc(InstructionLogger);
 	}
 
-	for (unsigned i = 0; i < 20000; ++i)
+	for (;;)
 	{
 		uint32_t pc = cpuGetPC();
-		if (pc == 0xffffffff) break;
+		if (pc == 0x00000000) break;
 
+		if (cpuGetStop()) break;
 		cpuExecuteInstruction();
 	}
+
 	// return value in mpwblock + 0x0e?
 	exit(0);
 }
