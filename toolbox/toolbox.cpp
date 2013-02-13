@@ -11,10 +11,16 @@
 #include "mm.h"
 #include "os.h"
 
+#include <string>
+
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
 namespace ToolBox {
+
+
+
+
 
 	void dispatch(uint16_t trap)
 	{
@@ -25,6 +31,9 @@ namespace ToolBox {
 		{
 			case 0xA00C:
 				d0 = OS::GetFileInfo(trap);
+				break;
+			case 0xa00d:
+				d0 = OS::SetFileInfo(trap);
 				break;
 
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
@@ -61,5 +70,32 @@ namespace ToolBox {
 		cpuSetDReg(0, d0);
 		cpuSetFlagsNZ00NewW(d0);
 	}
+
+	std::string ReadCString(uint32_t address)
+	{
+		std::string tmp;
+
+		if (address)
+		{
+			tmp.assign((char *)memoryPointer(address));
+		}
+
+		return tmp;
+	}
+	
+	std::string ReadPString(uint32_t address)
+	{
+		std::string tmp;
+
+		if (address)
+		{
+			unsigned length = memoryReadByte(address);
+		
+			tmp.assign((char *)memoryPointer(address + 1), length);
+		}
+
+		return tmp;
+	}
+
 
 }

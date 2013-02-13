@@ -74,7 +74,7 @@ namespace OS
 		wrgVolTypErr = -123,                            /*Wrong volume type error [operation not supported for MFS]*/
 		volGoneErr = -124                               /*Server volume has been disconnected.*/
 	};
-	
+
 	enum {
 		fidNotFound = -1300,                            /*no file thread exists.*/
 		fidExists = -1301,                              /*file id already exists*/
@@ -100,6 +100,7 @@ namespace OS
 
 
 	uint16_t GetFileInfo(uint16_t trap);
+	uint16_t SetFileInfo(uint16_t trap);
 }
 
 #endif
