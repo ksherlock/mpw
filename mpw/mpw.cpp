@@ -6,9 +6,12 @@
 #include <cpu/fmem.h>
 #include <cpu/cpuModule.h>
 
+#include <toolbox/os.h>
+
 #include <memory>
 #include <string>
 #include <algorithm>
+#include <vector>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -26,7 +29,10 @@ namespace {
 	using namespace MPW;
 
 
-	int remap_errno(int xerrno)
+	// for dup counts, etc.
+	std::vector<int> FDTable;
+
+	int errno_to_errno(int xerrno)
 	{
 		switch (xerrno)
 		{
@@ -118,7 +124,8 @@ namespace {
 
 		if (fd < 0)
 		{
-			d0 = 0x40000000 | remap_errno(errno);
+			// why the 0x40... ??
+			d0 = 0x40000000 | errno_to_errno(errno);
 			f.error = -36; // ioErr ... whatever.
 			f.cookie = 0;
 		}
@@ -127,9 +134,11 @@ namespace {
 			d0 = 0;
 			f.error = 0;
 			f.cookie = fd;
-			// todo -- keep a separate array of fd/counts for dup/close?
 
-			// ... do I need to create the buffer?
+			if (FDTable.size() <= fd)
+				FDTable.resize(fd + 1);
+
+			FDTable[fd] = 1;
 		}
 
 		memoryWriteWord(f.error, parm + 2);
@@ -169,15 +178,120 @@ namespace {
 
 	void ftrap_close(uint16_t trap)
 	{
-		// this can be nopped since it's stdin/stdout/stderr.
+		// returns an mpw_errno
+		// close actually checks the error in the File Entry and converts that to unix.
+		// (sigh)
 
-		fprintf(stderr, "%04x Close()\n", trap);
-		cpuSetDReg(0, 0);				
+		uint32_t d0;
+
+		uint32_t sp = cpuGetAReg(7);
+		uint32_t parm  = memoryReadLong(sp + 4);
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+
+		fprintf(stderr, "%04x Close(%08x)\n", trap, parm);
+
+		if (!parm)
+		{
+			cpuSetDReg(0, kEINVAL);
+			return;
+		}
+
+
+		int fd = f.cookie;
+
+		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+		{
+			f.error = OS::notOpenErr;
+			d0 = kEINVAL;
+		}
+		else
+		{
+			if (--FDTable[fd] == 0)
+			{
+				::close(fd);
+				f.error = 0;
+				d0 = 0;
+			}
+		}
+
+		memoryWriteWord(f.error, parm + 2);
+		cpuSetDReg(0, 0);
 	}
 
 	void ftrap_read(uint16_t trap)
 	{
-		fprintf(stderr, "%04x Read()\n", trap);
+
+		uint32_t d0;
+
+		uint32_t sp = cpuGetAReg(7);
+		uint32_t parm  = memoryReadLong(sp + 4);
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+
+		fprintf(stderr, "%04x Read(%02x, %08x, %08x)\n", trap, f.cookie, f.buffer, f.count);
+
+		d0 = 0;
+
+		if (f.count)
+		{
+			ssize_t size;
+
+			int fd = f.cookie;
+
+			if (f.flags & kO_BINARY)
+			{
+				size = ::read(fd, memoryPointer(f.buffer), f.count);
+			}
+			else
+			{
+				std::unique_ptr<uint8_t[]> buffer(new uint8_t[f.count]);
+				uint8_t *ptr = memoryPointer(f.buffer);
+
+				size = ::read(fd, buffer.get(), f.count);
+
+				if (size > 0)
+				{
+					std::transform(buffer.get(), buffer.get() + size, ptr, 
+						[](uint8_t c) { return c == '\n' ? '\r' : c; }
+					);
+				}
+			}
+
+			if (size < 0)
+			{
+				f.count = 0;
+				f.error = OS::ioErr; // ioErr
+				d0 = 0x40000000 | errno_to_errno(errno);
+			}
+			else
+			{
+				f.count = size;
+				f.error = 0;
+			}
+
+			// write back...
+			memoryWriteWord(f.error, parm + 2);
+			memoryWriteLong(f.count, parm + 12);
+		}
+
+		cpuSetDReg(0, d0);
 	}
 
 	void ftrap_write(uint16_t trap)
@@ -196,9 +310,7 @@ namespace {
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
-		fprintf(stderr, "%04x Write(%08x)\n", trap, parm);
-
-		// hmmm how to handle crlf?
+		fprintf(stderr, "%04x Write(%02x, %08x, %08x)\n", trap, f.cookie, f.buffer, f.count);
 
 
 		d0 = 0;
@@ -228,7 +340,7 @@ namespace {
 			{
 				f.count = 0;
 				f.error = -36; // ioErr
-				d0 = 0x40000000 | remap_errno(errno);
+				d0 = 0x40000000 | errno_to_errno(errno);
 			}
 			else
 			{
@@ -243,8 +355,94 @@ namespace {
 		cpuSetDReg(0, d0);		
 	}
 
+	uint32_t ftrap_dup(uint32_t parm, uint32_t arg)
+	{
+		uint32_t d0;
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+		int fd = f.cookie;
+		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+		{
+			d0 = kEINVAL; // & 0x40000000 ?
+			f.error = 0;
+		}
+		else
+		{
+			FDTable[fd]++;
+			d0 = 0;
+			f.error = 0;
+		}
+
+		memoryWriteWord(f.error, parm + 2);
+		return d0;
+	}
+
+	uint32_t ftrap_bufsize(uint32_t parm, uint32_t arg)
+	{
+		// should return the preferred buffsize in *arg
+		// an error will use the default size (0x400 bytes).
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+		f.error = 0;
+
+		memoryWriteWord(f.error, parm + 2);
+		return kEINVAL;
+	}
+
+
+	uint32_t ftrap_interactive(uint32_t parm, uint32_t arg)
+	{
+		// return 0 if interactive, an error if 
+		// non-interactive.
+
+		uint32_t d0;
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+		f.error = 0;
+
+		int fd = f.cookie;
+
+		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+		{
+			d0 = kEINVAL;
+		}
+		else
+		{
+			int tty = ::isatty(fd);
+			d0 = tty ? 0 : kEINVAL;
+		}
+
+		memoryWriteWord(f.error, parm + 2);
+		return kEINVAL;
+	}
+
 	void ftrap_ioctl(uint16_t trap)
 	{
+		// returns an mpw_errno in d0 [???]
+
 		// int ioctl(int fildes, unsigned int cmd, long *arg);
 		uint32_t d0;
 		uint32_t sp = cpuGetAReg(7);
@@ -255,9 +453,34 @@ namespace {
 
 		fprintf(stderr, "%04x IOCtl(%08x, %08x, %08x)\n", trap, fd, cmd, arg);
 
-		// dup doesn't appear to dup so much as increment a refCount
-		// close decrements this refCount and doesn't close until it hits 0.
-		d0 = 0;
+		switch (cmd)
+		{
+			/*
+			case kFIOLSEEK:
+				d0 = ftrap_lseek(fd, arg);
+				break;
+			*/
+			case kFIODUPFD:
+				d0 = ftrap_dup(fd, arg);
+				break;
+
+			case kFIOBUFSIZE:
+				d0 = ftrap_bufsize(fd, arg);
+				break;
+
+			case kFIOINTERACTIVE:
+				d0 = ftrap_interactive(fd, arg);
+				break;
+
+
+			case kFIOLSEEK:
+			case kFIOFNAME:
+			case kFIOREFNUM:
+			case kFIOSETEOF:
+				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);	
+				exit(1);
+				break;
+		}
 
 		cpuSetDReg(0, d0);
 	}
@@ -273,13 +496,26 @@ namespace {
 namespace MPW
 {
 
+	void Init()
+	{
+		FDTable.resize(16);
+
+		FDTable[STDIN_FILENO] = 1;
+		FDTable[STDOUT_FILENO] = 1;
+		FDTable[STDERR_FILENO] = 1;
+
+		// todo -- should eventually set up the mpw environment.
+	}
+
 	void dispatch(uint16_t trap)
 	{
 		switch (trap)
 		{
 			case fQuit:
+			case 0xffff:
 				ftrap_quit(trap);
 				break;
+
 			case fAccess:
 				ftrap_access(trap);
 				break;
@@ -287,12 +523,15 @@ namespace MPW
 			case fClose:
 				ftrap_close(trap);
 				break;
+
 			case fRead:
 				ftrap_read(trap);
 				break;
+
 			case fWrite:
 				ftrap_write(trap);
 				break;
+
 			case fIOCtl:
 				ftrap_ioctl(trap);
 				break;

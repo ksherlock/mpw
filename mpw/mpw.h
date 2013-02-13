@@ -58,7 +58,7 @@ namespace MPW {
 	};
 
 	enum {
-		fQuit = 0xf000,
+		fQuit = 0xf000, // also ffff
 		fAccess,
 		fClose,
 		fRead,
