@@ -276,13 +276,13 @@ namespace {
 
 			if (size < 0)
 			{
-				f.count = 0;
+				//f.count = 0;
 				f.error = OS::ioErr; // ioErr
 				d0 = 0x40000000 | errno_to_errno(errno);
 			}
 			else
 			{
-				f.count = size;
+				f.count -= size;
 				f.error = 0;
 			}
 
@@ -338,13 +338,14 @@ namespace {
 
 			if (size < 0)
 			{
-				f.count = 0;
+				//f.count = 0;
 				f.error = -36; // ioErr
 				d0 = 0x40000000 | errno_to_errno(errno);
 			}
 			else
 			{
-				f.count = size;
+				// this is, apparently, correct.
+				f.count -= size;
 				f.error = 0;
 			}
 
