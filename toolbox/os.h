@@ -99,8 +99,12 @@ namespace OS
 	};
 
 
+	uint16_t Create(uint16_t trap);
+	
 	uint16_t GetFileInfo(uint16_t trap);
 	uint16_t SetFileInfo(uint16_t trap);
+
+	uint16_t GetVol(uint16_t trap);
 }
 
 #endif

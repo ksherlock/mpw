@@ -1,5 +1,6 @@
 #include "os.h"
 #include "toolbox.h"
+#include "mpw_time.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -12,6 +13,8 @@
 #include <sys/stat.h>
 #include <sys/paths.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 namespace {
 
@@ -30,6 +33,8 @@ namespace {
 			case ENOTSUP: return extFSErr;
 			case EROFS: return wPrErr;
 
+			case EEXIST: return dupFNErr;
+
 			case EDQUOT: return dskFulErr;
 			case ENOSPC: return dskFulErr;
 
@@ -43,6 +48,71 @@ namespace {
 
 namespace OS
 {
+
+	uint16_t Create(uint16_t trap)
+	{
+		uint32_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x Create(%08x)\n", trap, parm);
+
+		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint32_t namePtr = memoryReadLong(parm + 18);
+
+		uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		uint8_t ioFVersNum = memoryReadByte(parm + 26);
+
+		std::string sname = ToolBox::ReadPString(namePtr);
+
+		if (!sname.length())
+		{
+			memoryWriteWord(bdNamErr, parm + 16);
+			return bdNamErr;
+		}
+		fprintf(stderr, "     Create(%s)\n", sname.c_str());
+
+		int fd;
+		fd = ::open(sname.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+
+		if (fd < 0)
+		{
+			d0 = errno_to_oserr(errno);
+		}
+		else
+		{
+			::close(fd);
+			d0 = 0;		
+		}
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+
+	}
+
+
+	// return the name of the default volume.
+	// this does not translate well.
+	uint16_t GetVol(uint16_t trap)
+	{
+		uint32_t parm = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x GetVol(%08x)\n", trap, parm);
+
+
+		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint32_t namePtr = memoryReadLong(parm + 18);
+
+		// ioResult
+		memoryWriteWord(0, parm + 16);
+		// ioVRefNum
+		memoryWriteWord(0, parm + 22);
+
+		std::string tmp = "MacOS";
+		ToolBox::WritePString(namePtr, tmp);
+
+		return 0;
+	}
 
 	uint16_t GetFileInfo(uint16_t trap)
 	{
@@ -71,6 +141,8 @@ namespace OS
 			}
 
 			sname = ToolBox::ReadPString(ioNamePtr);
+
+			fprintf(stderr, "     GetFileInfo(%s)\n", sname.c_str());
 
 			// todo -- how are absolute, relative, etc paths handled...
 
@@ -114,12 +186,9 @@ namespace OS
 			memoryWriteLong(st.st_size, parm + 54);
 			memoryWriteLong(st.st_size, parm + 58);
 
-			// todo -- create date, create time (seconds since 1904, I believe...)
-			const long EpochAdjust = 86400 * (365 * (1970 - 1904) + 17); // 17 leap years.
-
 			// create date.
-			memoryWriteLong(st.st_birthtime + EpochAdjust, parm + 72);
-			memoryWriteLong(st.st_mtime + EpochAdjust, parm + 76);
+			memoryWriteLong(Time::UnixToMac(st.st_birthtime), parm + 72);
+			memoryWriteLong(Time::UnixToMac(st.st_mtime), parm + 76);
 
 			// res fork...
 			// do this last since it adjusts the name and the stat.
@@ -184,6 +253,7 @@ namespace OS
 		}
 
 		sname = ToolBox::ReadPString(ioNamePtr);
+		fprintf(stderr, "     SetFileInfo(%s)\n", sname.c_str());
 
 		// check if the file actually exists
 		{
