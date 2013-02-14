@@ -33,7 +33,10 @@ namespace ToolBox {
 			case 0xa008:
 				d0 = OS::Create(trap);
 				break;
-
+			case 0xa009:
+				d0 = OS::Delete(trap);
+				break;
+				
 			case 0xA00C:
 				d0 = OS::GetFileInfo(trap);
 				break;

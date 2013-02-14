@@ -24,6 +24,7 @@ namespace {
 	{
 		switch (xerrno)
 		{
+			case 0: return 0;
 			case EBADF: return rfNumErr;
 			case EIO: return ioErr;
 			case EACCES: return permErr;
@@ -34,6 +35,8 @@ namespace {
 			case EROFS: return wPrErr;
 
 			case EEXIST: return dupFNErr;
+
+			case EBUSY: return fBsyErr;
 
 			case EDQUOT: return dskFulErr;
 			case ENOSPC: return dskFulErr;
@@ -87,7 +90,39 @@ namespace OS
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
+	}
 
+	uint16_t Delete(uint16_t trap)
+	{
+		uint32_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x Delete(%08x)\n", trap, parm);
+
+		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint32_t namePtr = memoryReadLong(parm + 18);
+
+		uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		uint8_t ioFVersNum = memoryReadByte(parm + 26);
+
+		std::string sname = ToolBox::ReadPString(namePtr);
+
+		if (!sname.length())
+		{
+			memoryWriteWord(bdNamErr, parm + 16);
+			return bdNamErr;
+		}
+		fprintf(stderr, "     Delete(%s)\n", sname.c_str());
+
+		int ok = ::unlink(sname.c_str());
+		if (ok < 0)
+			d0 = errno_to_oserr(errno);
+		else
+			d0 = 0;
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
 	}
 
 
