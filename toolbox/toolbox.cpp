@@ -36,7 +36,7 @@ namespace ToolBox {
 			case 0xa009:
 				d0 = OS::Delete(trap);
 				break;
-				
+
 			case 0xA00C:
 				d0 = OS::GetFileInfo(trap);
 				break;
@@ -78,10 +78,26 @@ namespace ToolBox {
 				d0 = MM::DisposePtr(trap);
 				break;
 
+			// resource manager stuff.
+
 			// Get1NamedResource (theType: ResType; name: Str255) : Handle;
 			case 0xa820:
 				d0 = RM::Get1NamedResource(trap);
 				break;
+
+			// GetResource (theType: ResType; thelD: INTEGER) : Handle;
+			case 0xa9a0:
+				d0 = RM::GetResource(trap);
+				break;
+
+			// quickdraw
+
+			// _ShowCursor();
+			case 0xA853:
+				d0 = 0;
+				break;
+				
+
 
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
