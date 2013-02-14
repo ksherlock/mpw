@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <stdlib.h>
+#include <string>
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -10,8 +11,8 @@
 #include "rm.h"
 #include "mm.h"
 #include "os.h"
+#include "mpw_time.h"
 
-#include <string>
 
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
@@ -29,6 +30,10 @@ namespace ToolBox {
 		uint32_t d0 = 0;
 		switch (trap)
 		{
+			case 0xa008:
+				d0 = OS::Create(trap);
+				break;
+
 			case 0xA00C:
 				d0 = OS::GetFileInfo(trap);
 				break;
@@ -36,11 +41,25 @@ namespace ToolBox {
 				d0 = OS::SetFileInfo(trap);
 				break;
 
+			case 0xa014:
+				d0 = OS::GetVol(trap);
+				break;
+
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
 			case 0xa02e:
 				d0 = MM::BlockMove(trap);
 				break;
 
+
+			// ReadDateTime (VAR sees: LONGINT) : OSErr;
+			case 0xa039:
+				d0 = Time::ReadDateTime(trap);
+				break;
+
+			// SecondsToDate (s: LongInt; VAR d: DateTimeRec);
+			case 0xa9c6:
+				d0 = Time::SecondsToDate(trap);
+				break;
 		
 			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
 			case 0xa11e:
