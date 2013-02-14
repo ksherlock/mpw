@@ -97,5 +97,20 @@ namespace ToolBox {
 		return tmp;
 	}
 
+	bool WritePString(uint32_t address, const std::string &s)
+	{
+		int length = s.length();
+		if (length > 255) return false;
+		if (address == 0) return false;
+
+		uint8_t *ptr = memoryPointer(address);
+		*ptr++  = (uint8_t)length;
+		for (char c : s)
+		{
+			*ptr++ = (uint8_t)c;
+		}
+		return true;
+	}
+
 
 }
