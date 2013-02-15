@@ -58,6 +58,11 @@ namespace ToolBox {
 				d0 = MM::BlockMove(trap);
 				break;
 
+			// CompactMem (cbNeeded: Size) : Size;
+			case 0xa04c:
+				d0 = MM::CompactMem(trap);
+				break;
+
 
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:

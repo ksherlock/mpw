@@ -124,6 +124,27 @@ namespace MM
 		return 0;
 	}
 
+
+	uint32_t CompactMem(uint16_t trap)
+	{
+		// todo -- add function to check pool for largest block?
+
+		/* 
+		 * on entry:
+		 * D0: cbNeeded (long word)
+		 *
+		 * on exit:
+		 * D0: function result (long word)
+		 *
+		 */
+		 uint32_t cbNeeded = cpuGetDReg(0);
+
+		 fprintf(stderr, "%04x CompactMem(%08x)\n", trap, cbNeeded);
+		 
+		 return 0x0f0000;
+	}
+
+
 	uint16_t DisposePtr(uint16_t trap)
 	{
 		/* 
