@@ -24,8 +24,18 @@ namespace
 	// map of ptr -> size
 	std::map<uint32_t, uint32_t> PtrMap;
 
+	struct HandleInfo
+	{
+		uint32_t address;
+		uint32_t size;
+
+		HandleInfo(uint32_t a = 0, uint32_t s = 0) : 
+			address(a), size(s)
+		{}
+	};
+
 	// map of handle -> size [? just use Ptr map?]
-	std::map<uint32_t, uint32_t> HandleMap;
+	std::map<uint32_t, HandleInfo> HandleMap;
 
 	inline uint16_t SetMemError(uint16_t error)
 	{
@@ -132,15 +142,49 @@ namespace MM
 
 		auto iter = PtrMap.find(mcptr);
 
-		if (iter == PtrMap.end()) return memWZErr;
+		if (iter == PtrMap.end()) return SetMemError(memWZErr);
 		PtrMap.erase(iter);
 
 		uint8_t *ptr = mcptr + Memory;
 
 		mplite_free(&pool, ptr);
 
-		return 0;
+		return SetMemError(0);
 	}
+
+	uint16_t DisposeHandle(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle to be disposed of
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t hh = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x DisposeHandle(%08x)\n", trap, hh);
+
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		HandleInfo info = iter->second;
+
+		HandleMap.erase(iter);
+
+		uint8_t *ptr = info.address + Memory;
+
+		mplite_free(&pool, ptr);
+
+		HandleQueue.push_back(hh);
+
+		return SetMemError(0);
+	}
+
 
 
 
@@ -173,7 +217,7 @@ namespace MM
 			return SetMemError(0);
 		}
 
-		uint8_t *ptr = NULL;
+		uint8_t *ptr = nullptr;
 		ptr = (uint8_t *)mplite_malloc(&pool, size);
 		if (!ptr)
 		{
@@ -191,6 +235,68 @@ namespace MM
 		cpuSetAReg(0, mcptr);
 		return SetMemError(0);
 	}
+
+	uint16_t NewHandle(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0 Number of logical bytes requested
+		 *
+		 * on exit:
+		 * A0 Address of the new handle or NIL
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t hh = 0;
+		uint8_t *ptr;
+		uint32_t mcptr;
+
+		bool clear = trap & (1 << 9);
+		//bool sys = trap & (1 << 10);
+
+		uint32_t size = cpuGetDReg(0);
+
+		fprintf(stderr, "%04x NewHandle(%08x)\n", trap, size);
+
+		if (!HandleQueue.size())
+		{
+			if (!alloc_handle_block())
+			{
+				cpuSetAReg(0, 0);
+				return SetMemError(memFullErr);
+			}
+		}
+
+		hh = HandleQueue.front();
+		HandleQueue.pop_front();
+
+		ptr = nullptr;
+		mcptr = 0;
+
+		if (size)
+		{
+			ptr = (uint8_t *)mplite_malloc(&pool, size);
+			if (!ptr)
+			{
+				HandleQueue.push_back(hh);
+				cpuSetAReg(0, 0);
+				return SetMemError(memFullErr);
+			}
+			mcptr = ptr - Memory; 
+
+			if (clear)
+				std::memset(ptr, 0, size);
+		}
+
+		// need a handle -> ptr map?
+		HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
+
+		memoryWriteLong(mcptr, hh);
+		cpuSetAReg(0, hh);
+		return SetMemError(0);
+	}
+
 
 
 }

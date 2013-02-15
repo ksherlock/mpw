@@ -49,6 +49,10 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
+			case 0xA023:
+				d0 = MM::DisposeHandle(trap);
+				break;
+
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
 			case 0xa02e:
 				d0 = MM::BlockMove(trap);
@@ -77,6 +81,12 @@ namespace ToolBox {
 			// DisposPtr (p: Ptr);
 			case 0xa01f:
 				d0 = MM::DisposePtr(trap);
+				break;
+
+			// NewHandle (logicalSize: Size) : Handle;
+			case 0xA122:
+			case 0xa322:
+				d0 = MM::NewHandle(trap);
 				break;
 
 			// resource manager stuff.
