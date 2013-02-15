@@ -5,7 +5,9 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include "stackframe.h"
 
+#if 0
 namespace
 {
 
@@ -33,6 +35,7 @@ namespace
 	}	
 
 }
+#endif
 
 namespace QD {
 
@@ -48,12 +51,12 @@ namespace QD {
 		uint32_t sp;
 		uint16_t cursorID;
 
-		sp = StackFrame(cursorID);
+		sp = StackFrame<2>(cursorID);
 
 		fprintf(stderr, "%04x GetCursor(%04x)\n", trap, cursorID);
 
 
-		ToolReturn(sp, 0);
+		ToolReturn<4>(sp, 0);
 		return 0;
 	}
 
@@ -62,12 +65,28 @@ namespace QD {
 		uint32_t sp;
 		uint32_t cursor;
 
-		sp = StackFrame(cursor);
+		sp = StackFrame<4>(cursor);
 
 		fprintf(stderr, "%04x SetCursor(%08x)\n", trap, cursor);
 
 		return 0;
 	}
 
+
+	uint16_t GetFNum(uint16_t trap)
+	{
+		uint32_t sp;
+		uint32_t fontName;
+		uint32_t theNum;
+
+
+		sp = StackFrame<8>(fontName, theNum);
+		std::string sname = ToolBox::ReadPString(fontName);
+
+		fprintf(stderr, "%04x GetFNum(%s, %08x)\n", trap, sname.c_str(), theNum);
+
+		if (theNum) memoryWriteWord(0, theNum);
+		return 0;
+	}
 
 }
