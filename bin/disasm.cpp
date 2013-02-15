@@ -95,25 +95,29 @@ void disasm(const char *name, int segment, uint32_t data_size)
 
 		uint16_t op = memoryReadWord(pc);
 
-		if (prevOP == 0x4E75 && op > 0x8000)
+		if (prevOP == 0x4E75  || prevOP == 0x4ED0)
 		{
-			// RTS followed by debug symbol.
-			unsigned len = (op >> 8) - 0x80;
-
-			std::string s;
-			s.reserve(len);
-			for (unsigned i = 0; i < len; ++ i)
+			if (op > 0x8000)
 			{
+				// RTS followed by debug symbol.
+				unsigned len = (op >> 8) - 0x80;
 
-				s.push_back(memoryReadByte(pc + 1 + i));
+				std::string s;
+				s.reserve(len);
+				for (unsigned i = 0; i < len; ++ i)
+				{
+
+					s.push_back(memoryReadByte(pc + 1 + i));
+				}
+
+				printf("%s\n\n", s.c_str());
+				pc = (pc + 1) & ~0x01;
+				// if next word is 0, skip as well.
+				if (memoryReadWord(pc) == 0) pc += 2; 
+
+				prevOP = 0;
+				continue;
 			}
-
-			printf("%s\n\n", s.c_str());
-			pc = pc + 2 + len + 2;
-			pc = (pc + 1) & ~0x01;
-
-			prevOP = 0;
-			continue;
 		}
 
 		if ((op & 0xf000) == 0xa000)
