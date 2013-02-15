@@ -9,6 +9,7 @@ set(TOOLBOX_SRC
 	rm.cpp
 	mm.cpp
 	os.cpp
+	qd.cpp
 	mpw_time.cpp
 )
 
