@@ -11,6 +11,7 @@
 #include "rm.h"
 #include "mm.h"
 #include "os.h"
+#include "qd.h"
 #include "mpw_time.h"
 
 
@@ -90,13 +91,28 @@ namespace ToolBox {
 				d0 = RM::GetResource(trap);
 				break;
 
-			// quickdraw
+			// quickdraw (AsmIIgs ... )
 
 			// _ShowCursor();
 			case 0xA853:
-				d0 = 0;
+				d0 = QD::ShowCursor(trap);
 				break;
-				
+
+			// GetCursor (cursorlD: INTEGER) : CursHandle;
+			case 0xA9B9:
+				d0 = QD::GetCursor(trap);
+				break;
+
+
+			//SetCursor (crsr: Cursor)
+			case 0xA851:
+				d0 = QD::SetCursor(trap);
+				break;
+
+			// GetFNum (fontName: Str255; VAR theNum: INTEGER);
+			case 0xa900:
+				d0 = QD::GetFNum(trap);
+				break;
 
 
 			default:
