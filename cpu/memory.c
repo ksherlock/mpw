@@ -65,7 +65,8 @@ uint8_t *memoryPointer(uint32_t address)
 	return Memory + address;
 }
 
-
+// memory read of 0xffffffff not handled correctly
+// since the unsigned compare overflows.
 UBY memoryReadByte(ULO address)
 {
 
