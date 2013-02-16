@@ -41,8 +41,13 @@ namespace ToolBox {
 			case 0xA00C:
 				d0 = OS::GetFileInfo(trap);
 				break;
+
 			case 0xa00d:
 				d0 = OS::SetFileInfo(trap);
+				break;
+
+			case 0xa011:
+				d0 = OS::GetEOF(trap);
 				break;
 
 			case 0xa014:

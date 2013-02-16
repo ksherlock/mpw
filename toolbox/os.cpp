@@ -207,6 +207,38 @@ namespace OS
 		return d0;
 	}
 
+	uint16_t GetEOF(uint16_t trap)
+	{
+		uint32_t d0;
+		size_t size;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x GetEOF(%08x)\n", trap, parm);
+
+		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+
+		struct stat st;
+
+		if (::fstat(ioRefNum, &st) < 0)
+		{
+			d0 = errno_to_oserr(errno);
+			size = 0;
+		}
+		else
+		{
+			d0 = 0;
+			size = st.st_size;
+		}
+
+		memoryWriteWord(d0, parm + 16);
+		memoryWriteLong(size, parm + 28);
+
+		return d0;
+	}
+
+
 
 	// return the name of the default volume.
 	// this does not translate well.
