@@ -118,6 +118,8 @@ namespace {
 
 		fprintf(stderr, "     open(%s, %04x)\n", sname.c_str(), f.flags);
 
+		// TODO -- can you create a resource file like this?
+
 		if (f.flags & kO_RSRC)
 			sname.append(_PATH_RSRCFORKSPEC);
 
@@ -143,8 +145,20 @@ namespace {
 				FDTable.resize(fd + 1);
 
 			FDTable[fd] = 1;
+
+
+			// adjust the binary flags...
+			// most apps are good about this but dumpobj doesn't set O_BINARY (but should)
+			// and MPW Assembler sets O_BINARY (but shouldn't)
+
+			if (OS::IsTextFile(sname)) f.flags &= ~kO_BINARY;
+			if (OS::IsBinaryFile(sname)) f.flags |= kO_BINARY;
+
+			if (f.flags & kO_RSRC) f.flags |= kO_BINARY;
+
 		}
 
+		memoryWriteWord(f.flags, parm + 0);
 		memoryWriteWord(f.error, parm + 2);
 		memoryWriteLong(f.cookie, parm + 8);
 
