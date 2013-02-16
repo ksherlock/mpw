@@ -121,8 +121,10 @@ namespace {
 		if (f.flags & kO_RSRC)
 			sname.append(_PATH_RSRCFORKSPEC);
 
-		if (f.flags & kO_CREAT) fd = ::open(sname.c_str(), nativeFlags, 0666);
-		else fd = ::open(sname.c_str(), nativeFlags);
+		if (f.flags & kO_CREAT)
+			fd = ::open(sname.c_str(), nativeFlags, 0666);
+		else
+			fd = ::open(sname.c_str(), nativeFlags);
 
 		if (fd < 0)
 		{
@@ -450,6 +452,63 @@ namespace {
 		return kEINVAL;
 	}
 
+	uint32_t ftrap_lseek(uint32_t parm, uint32_t arg)
+	{
+		MPWFile f;
+		uint32_t d0;
+
+		uint32_t whence = memoryReadLong(arg);
+		int32_t offset =memoryReadLong(arg + 4);
+		int nativeWhence = 0;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+
+		int fd = f.cookie;
+
+
+		// TODO - MacOS returns eofERR and sets mark to eof
+		// if seeking past the eof.
+		// TODO - MacOS treats offset as a signed value, unix is unsigned [?]
+		switch (whence)
+		{
+			case kSEEK_CUR:
+				nativeWhence = SEEK_CUR;
+				break;
+			case kSEEK_END:
+				nativeWhence = SEEK_END;
+				break;
+			case kSEEK_SET:
+				nativeWhence = SEEK_SET;
+				break;
+
+			default:
+				memoryWriteWord(0, parm + 2);
+				return kEINVAL;
+		}
+
+		fprintf(stderr, "     seek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
+
+		if (::lseek(fd, offset, nativeWhence) < 0)
+		{
+			d0 = errno_to_errno(errno);
+			f.error = 0;
+		}
+		else
+		{
+			d0 = 0;
+			f.error = 0;
+		}
+
+		memoryWriteWord(f.error, parm + 2);
+		return d0;
+	}
+
 
 	void ftrap_ioctl(uint16_t trap)
 	{
@@ -467,11 +526,10 @@ namespace {
 
 		switch (cmd)
 		{
-			/*
 			case kFIOLSEEK:
 				d0 = ftrap_lseek(fd, arg);
 				break;
-			*/
+
 			case kFIODUPFD:
 				d0 = ftrap_dup(fd, arg);
 				break;
@@ -488,7 +546,6 @@ namespace {
 				d0 = ftrap_iofname(fd, arg);
 				break;
 
-			case kFIOLSEEK:
 			case kFIOREFNUM:
 			case kFIOSETEOF:
 				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);	
