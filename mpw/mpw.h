@@ -27,6 +27,27 @@ namespace MPW {
 		kF_RENAME = (('d' << 8) | 0x02),
 	};
 
+	enum
+	{
+		kF_GTABINFO = (('e' << 8) | 0x00),		/* get tab offset for file */	
+		kF_STABINFO = (('e' << 8) | 0x01),		/* set 	"	"		"	"  */
+		kF_GFONTINFO = (('e' << 8) | 0x02),		/* get font number and size for file */
+		kF_SFONTINFO = (('e' << 8) | 0x03),		/* set 	"		"	"	"	"	" 	 */
+		kF_GPRINTREC = (('e' << 8) | 0x04),		/* get print record for file */
+		kF_SPRINTREC = (('e' << 8) | 0x05),		/* set 	"		"	"	" 	 */
+		kF_GSELINFO = (('e' << 8) | 0x06),		/* get selection information for file */
+		kF_SSELINFO = (('e' << 8) | 0x07),		/* set		"		"		"		" */
+		kF_GWININFO = (('e' << 8) | 0x08),		/* get current window position */
+		kF_SWININFO = (('e' << 8) | 0x09),		/* set	"		"		" 	   */
+		kF_GSCROLLINFO = (('e' << 8) | 0x0A),	/* get scroll information */
+		kF_SSCROLLINFO = (('e' << 8) | 0x0B),	/* set    "   		"  	  */
+		kF_GMARKER = (('e' << 8) | 0x0D),		/* Get Marker */
+		kF_SMARKER = (('e' << 8) | 0x0C),		/* Set   " 	  */
+		kF_GSAVEONCLOSE = (('e' << 8) | 0x0F),	/* Get Save on close */
+		kF_SSAVEONCLOSE = (('e' << 8) | 0x0E),	/* Set   "	 "	 " 	 */
+	};
+
+
 	// from MPW's IOCtl.h
 	enum
 	{
