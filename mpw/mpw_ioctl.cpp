@@ -217,6 +217,13 @@ namespace MPW
 
 		int fd = f.cookie;
 
+		/*
+		 * LinkIIgs does a seek on stdin.  If it doesn't cause an
+		 * error, then it attempts to read a list of files from stdin,
+		 * which causes problems.
+		 * (Get_Standard_Input -> fseek -> lseek -> ioctl )
+		 * to compensate, error out if isatty.
+		 */
 
 		// TODO - MacOS returns eofERR and sets mark to eof
 		// if seeking past the eof.
@@ -237,18 +244,33 @@ namespace MPW
 				return kEINVAL;
 		}
 
-		fprintf(stderr, "     seek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
+		fprintf(stderr, "     lseek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
+
+		if (::isatty(fd))
+		{
+			off_t rv = -1;
+
+			d0 = kEINVAL;
+			f.error = 0;
+
+			memoryWriteLong(rv, arg + 4);
+			memoryWriteWord(f.error, parm + 2);
+			return d0;
+
+		}
 
 		off_t rv = ::lseek(fd, offset, nativeWhence);
 		if (rv < 0)
 		{
 			d0 = errno_to_errno(errno);
 			f.error = 0;
+			perror(NULL);
 		}
 		else
 		{
 			d0 = 0;
 			f.error = 0;
+			fprintf(stderr, "-> %lld\n", rv);
 		}
 
 		memoryWriteLong(rv, arg + 4);
