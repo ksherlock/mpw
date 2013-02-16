@@ -44,7 +44,6 @@ namespace MPW
 
 		int fd = f.cookie;
 
-		//fprintf(stderr, "     dup(%02x)\n", fd);
 		Log("     dup(%02x)\n", fd);
 
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
@@ -79,7 +78,6 @@ namespace MPW
 
 		int fd = f.cookie;
 
-		//fprintf(stderr, "     bufsize(%02x)\n", fd);
 		Log("     bufsize(%02x)\n", fd);
 
 		memoryWriteWord(f.error, parm + 2);
@@ -111,7 +109,6 @@ namespace MPW
 
 		int fd = f.cookie;
 
-		//fprintf(stderr, "     interactive(%02x)\n", fd);
 		Log("     interactive(%02x)\n", fd);
 
 		//d0 = kEINVAL;
@@ -152,7 +149,6 @@ namespace MPW
 
 		int fd = f.cookie;
 
-		//fprintf(stderr, "     fname(%02x)\n", fd);
 		Log("     fname(%02x)\n", fd);
 
 		memoryWriteWord(f.error, parm + 2);
@@ -177,7 +173,6 @@ namespace MPW
 
 		int fd = f.cookie;
 
-		//fprintf(stderr, "     refnum(%02x)\n", fd);
 		Log("     refnum(%02x)\n", fd);
 
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
@@ -242,7 +237,6 @@ namespace MPW
 				return kEINVAL;
 		}
 
-		//fprintf(stderr, "     lseek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
 		Log("     lseek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
 
 		if (::isatty(fd))
@@ -289,7 +283,6 @@ namespace MPW
 		uint32_t cmd = memoryReadLong(sp + 8);
 		uint32_t arg = memoryReadLong(sp + 12);
 
-		//fprintf(stderr, "%04x IOCtl(%08x, %08x, %08x)\n", trap, fd, cmd, arg);
 		Log("%04x IOCtl(%08x, %08x, %08x)\n", trap, fd, cmd, arg);
 
 		switch (cmd)

@@ -40,7 +40,6 @@ namespace MPW
 		f.buffer = memoryReadLong(parm + 16);
 
 
-		//fprintf(stderr, "%04x Close(%08x)\n", trap, parm);
 		Log("%04x Close(%08x)\n", trap, parm);
 
 		if (!parm)

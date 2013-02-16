@@ -39,7 +39,7 @@ namespace MPW
 		f.buffer = memoryReadLong(parm + 16);
 
 
-		fprintf(stderr, "%04x Read(%02x, %08x, %08x)\n", trap, f.cookie, f.buffer, f.count);
+		Log("%04x Read(%08x)\n", parm);
 
 		d0 = 0;
 
@@ -48,6 +48,9 @@ namespace MPW
 			ssize_t size;
 
 			int fd = f.cookie;
+
+			Log("     read(%02x, %08x, %08x)\n", f.cookie, f.buffer, f.count);
+
 
 			if (f.flags & kO_BINARY)
 			{
@@ -104,7 +107,7 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
-		fprintf(stderr, "%04x Write(%02x, %08x, %08x)\n", trap, f.cookie, f.buffer, f.count);
+		Log("%04x Write(%08x)\n", trap, parm);
 
 
 		d0 = 0;
@@ -113,6 +116,9 @@ namespace MPW
 			ssize_t size;
 
 			int fd = f.cookie;
+
+			Log("     write(%02x, %08x, %08x)\n", f.cookie, f.buffer, f.count);
+
 
 			if (f.flags & kO_BINARY)
 			{

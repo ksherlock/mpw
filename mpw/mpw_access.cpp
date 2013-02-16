@@ -65,7 +65,6 @@ namespace MPW
 
 		sname = ToolBox::ReadCString(name);
 
-		//fprintf(stderr, "     open(%s, %04x)\n", sname.c_str(), f.flags);
 		Log("     open(%s, %04x)\n", sname.c_str(), f.flags);
 
 		// TODO -- can you create a resource file like this?
@@ -129,7 +128,6 @@ namespace MPW
 		uint32_t op = memoryReadLong(sp + 8);
 		uint32_t parm = memoryReadLong(sp + 12);
 
-		//fprintf(stderr, "%04x Access(%08x, %04x, %08x)\n", trap, name, op, parm);
 		Log("%04x Access(%08x, %04x, %08x)\n", trap, name, op, parm);
 		
 		switch (op)

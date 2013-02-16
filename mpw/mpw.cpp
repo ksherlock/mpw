@@ -93,7 +93,6 @@ namespace MPW
 	void ftrap_quit(uint16_t trap)
 	{
 		Log("%04x Quit()\n", trap);
-		//fprintf(stderr, "%04x Quit()\n", trap);
 		cpuSetStop(true);
 	}
 
