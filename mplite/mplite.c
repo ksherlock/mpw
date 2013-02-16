@@ -168,6 +168,27 @@ MPLITE_API void *mplite_realloc(mplite_t *handle, const void *pPrior,
     return p;
 }
 
+// like realloc but will not resize.
+// for compatibility with MM::SetPtrSize
+MPLITE_API int mplite_resize(mplite_t *handle, const void *pPrior,
+                             const int nBytes)
+{
+    int nOld;
+
+    /* Check the parameters */
+    if ((NULL == handle) || (NULL == pPrior) || (nBytes <= 0) ||
+        (nBytes & (nBytes - 1))) {
+        return MPLITE_ERR_INVPAR;
+    }
+
+    nOld = mplite_size(handle, pPrior);
+    if (nBytes <= nOld) {
+        return MPLITE_OK;
+    }
+
+    return MPLITE_ERR_INVPAR; // not really, but ok.
+}
+
 MPLITE_API int mplite_roundup(mplite_t *handle, const int n)
 {
     int iFullSz;

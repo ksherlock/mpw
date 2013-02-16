@@ -192,6 +192,11 @@ MPLITE_API void mplite_free(mplite_t *handle, const void *pPrior);
 MPLITE_API void *mplite_realloc(mplite_t *handle, const void *pPrior,
                                 const int nBytes);
 
+
+MPLITE_API int mplite_resize(mplite_t *handle, const void *pPrior,
+                             const int nBytes);
+
+
 /**
  * @brief Round up a request size to the next valid allocation size.
  * @param[in,out] handle Pointer to an initialized @ref mplite_t object
