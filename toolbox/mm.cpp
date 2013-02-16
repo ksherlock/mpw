@@ -1,4 +1,5 @@
 #include "mm.h"
+#include "toolbox.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -10,6 +11,8 @@
 #include <map>
 
 #include <mplite/mplite.h>
+
+using ToolBox::Log;
 
 namespace 
 {
@@ -108,7 +111,7 @@ namespace MM
 		uint32_t dest = cpuGetAReg(1);
 		uint32_t count = cpuGetDReg(0);
 
-		fprintf(stderr, "%04x BlockMove(%08x, %08x, %08x)\n",
+		Log("%04x BlockMove(%08x, %08x, %08x)\n",
 			trap, source, dest, count);
 
 		// TODO -- 32-bit clean?
@@ -139,8 +142,9 @@ namespace MM
 		 */
 		 uint32_t cbNeeded = cpuGetDReg(0);
 
-		 fprintf(stderr, "%04x CompactMem(%08x)\n", trap, cbNeeded);
+		 Log("%04x CompactMem(%08x)\n", trap, cbNeeded);
 
+		 // todo -- add mplite call to return total free mem, largest block.
 		 return 0x0f0000;
 	}
 
@@ -165,8 +169,7 @@ namespace MM
 
 		uint32_t size = cpuGetDReg(0);
 
-		fprintf(stderr, "%04x NewPtr(%08x)\n", trap, size);
-
+		Log("%04x NewPtr(%08x)\n", trap, size);
 
 		// todo -- separate pools for sys vs non-sys?
 		// todo -- NewPtr(0) -- null or empty ptr?
@@ -209,7 +212,7 @@ namespace MM
 
 		uint32_t mcptr = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x DisposePtr(%08x)\n", trap, mcptr);
+		Log("%04x DisposePtr(%08x)\n", trap, mcptr);
 
 
 		auto iter = PtrMap.find(mcptr);
@@ -237,7 +240,7 @@ namespace MM
 
 		uint32_t mcptr = cpuGetAReg(0);
 
-		fprintf(stderr, "%08x GetPtrSize(%08x,)\n", trap, mcptr);
+		Log("%08x GetPtrSize(%08x,)\n", trap, mcptr);
 
 		auto iter = PtrMap.find(mcptr);
 
@@ -261,7 +264,7 @@ namespace MM
 		uint32_t mcptr = cpuGetAReg(0);
 		uint32_t newSize = cpuGetDReg(0);
 
-		fprintf(stderr, "%08x SetPtrSize(%08x, %08x)\n", trap, mcptr, newSize);
+		Log("%08x SetPtrSize(%08x, %08x)\n", trap, mcptr, newSize);
 
 		auto iter = PtrMap.find(mcptr);
 
@@ -303,7 +306,7 @@ namespace MM
 
 		uint32_t size = cpuGetDReg(0);
 
-		fprintf(stderr, "%04x NewHandle(%08x)\n", trap, size);
+		Log("%04x NewHandle(%08x)\n", trap, size);
 
 		if (!HandleQueue.size())
 		{
@@ -356,7 +359,7 @@ namespace MM
 
 		uint32_t hh = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x DisposeHandle(%08x)\n", trap, hh);
+		Log("%04x DisposeHandle(%08x)\n", trap, hh);
 
 
 		auto iter = HandleMap.find(hh);
@@ -393,7 +396,7 @@ namespace MM
 
 		uint32_t hh = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x HLock(%08x)\n", trap, hh);
+		Log("%04x HLock(%08x)\n", trap, hh);
 
 		auto iter = HandleMap.find(hh);
 
@@ -415,7 +418,7 @@ namespace MM
 
 		uint32_t hh = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x HUnlock(%08x)\n", trap, hh);
+		Log("%04x HUnlock(%08x)\n", trap, hh);
 
 		auto iter = HandleMap.find(hh);
 

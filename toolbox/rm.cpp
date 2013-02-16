@@ -8,6 +8,8 @@
 #include <string>
 #include "stackframe.h"
 
+using ToolBox::Log;
+
 namespace RM
 {
 	uint16_t Get1NamedResource(uint16_t trap)
@@ -35,7 +37,7 @@ namespace RM
 
 		std::string sname = ToolBox::ReadPString(name);
 
-		fprintf(stderr, "%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
+		Log("%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
 
 		ToolReturn<4>(sp, 0);
 		return -192;
@@ -64,7 +66,7 @@ namespace RM
 
 		sp = StackFrame<6>(theType, theID);
 
-		fprintf(stderr, "%04x GetResource(%08x, %04x)\n", trap, theType, theID);
+		Log("%04x GetResource(%08x, %04x)\n", trap, theType, theID);
 
 		ToolReturn<4>(sp, 0);
 		return -192;
@@ -86,7 +88,7 @@ namespace RM
 
 		 sp = StackFrame<4>(routineAddr);
 
-		 fprintf(stderr, "%04x UnloadSeg(%08x)\n", trap, routineAddr);
+		 Log("%04x UnloadSeg(%08x)\n", trap, routineAddr);
 
 		 return 0;
 	}

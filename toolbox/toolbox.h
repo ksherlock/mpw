@@ -3,8 +3,20 @@
 
 #include <string>
 
+#include <cstdint>
+#include <cstdio>
+
 namespace ToolBox
 {
+	extern bool Trace;
+
+	template<typename... Args>
+	inline void Log(const char *format, Args... args)
+	{
+		if (Trace) fprintf(stderr, format, args...);
+	}
+
+
 	void dispatch(uint16_t trap);
 
 

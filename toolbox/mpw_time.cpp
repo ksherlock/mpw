@@ -10,13 +10,14 @@
 
 #include "stackframe.h"
 
+using ToolBox::Log;
+
 	// todo -- have background thread to update Ticks and Time global variables?
 
-namespace {
+namespace
+{
 
 	const long EpochAdjust = 86400 * (365 * (1970 - 1904) + 17); // 17 leap years.
-
-
 
 }
 namespace Time
@@ -48,7 +49,7 @@ namespace Time
 
 		uint32_t secsPtr = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x ReadDateTime(%08x)\n", trap, secsPtr);
+		Log("%04x ReadDateTime(%08x)\n", trap, secsPtr);
 
 		now = ::time(NULL);
 
@@ -76,7 +77,7 @@ namespace Time
 		uint32_t s = cpuGetDReg(0);
 		uint32_t dtPtr = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x SecondsToDate(%08x, %08x)\n", trap, s, dtPtr);
+		Log("%04x SecondsToDate(%08x, %08x)\n", trap, s, dtPtr);
 
 
 		if (dtPtr)
@@ -103,7 +104,7 @@ namespace Time
 	{
 		uint32_t ticks;
 
-		fprintf(stderr, "%04x TickCount()\n", trap);
+		Log("%04x TickCount()\n", trap);
 
 		//auto t = std::chrono::steady_clock::now();
 		ticks = 0;

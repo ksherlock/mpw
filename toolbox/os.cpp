@@ -19,6 +19,8 @@
 
 #include <strings.h>
 
+using ToolBox::Log;
+
 namespace {
 
 	using namespace OS;
@@ -140,13 +142,13 @@ namespace OS
 
 		uint32_t parm = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x Create(%08x)\n", trap, parm);
+		Log("%04x Create(%08x)\n", trap, parm);
 
-		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t namePtr = memoryReadLong(parm + 18);
 
-		uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		uint8_t ioFVersNum = memoryReadByte(parm + 26);
+		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
 
 		std::string sname = ToolBox::ReadPString(namePtr);
 
@@ -155,7 +157,7 @@ namespace OS
 			memoryWriteWord(bdNamErr, parm + 16);
 			return bdNamErr;
 		}
-		fprintf(stderr, "     Create(%s)\n", sname.c_str());
+		Log("     Create(%s)\n", sname.c_str());
 
 		int fd;
 		fd = ::open(sname.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
@@ -180,13 +182,13 @@ namespace OS
 
 		uint32_t parm = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x Delete(%08x)\n", trap, parm);
+		Log("%04x Delete(%08x)\n", trap, parm);
 
-		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t namePtr = memoryReadLong(parm + 18);
 
-		uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		uint8_t ioFVersNum = memoryReadByte(parm + 26);
+		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
 
 		std::string sname = ToolBox::ReadPString(namePtr);
 
@@ -195,7 +197,7 @@ namespace OS
 			memoryWriteWord(bdNamErr, parm + 16);
 			return bdNamErr;
 		}
-		fprintf(stderr, "     Delete(%s)\n", sname.c_str());
+		Log("     Delete(%s)\n", sname.c_str());
 
 		int ok = ::unlink(sname.c_str());
 		if (ok < 0)
@@ -214,9 +216,9 @@ namespace OS
 
 		uint32_t parm = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x GetEOF(%08x)\n", trap, parm);
+		Log("%04x GetEOF(%08x)\n", trap, parm);
 
-		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint16_t ioRefNum = memoryReadWord(parm + 24);
 
 		struct stat st;
@@ -246,10 +248,10 @@ namespace OS
 	{
 		uint32_t parm = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x GetVol(%08x)\n", trap, parm);
+		Log("%04x GetVol(%08x)\n", trap, parm);
 
 
-		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t namePtr = memoryReadLong(parm + 18);
 
 		// ioResult
@@ -270,12 +272,12 @@ namespace OS
 
 		uint32_t parm = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x GetFileInfo(%08x)\n", trap, parm);
+		Log("%04x GetFileInfo(%08x)\n", trap, parm);
 
-		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t ioNamePtr = memoryReadLong(parm + 18);
-		uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		uint8_t ioFVersNum = memoryReadByte(parm + 26);
+		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
 		int16_t ioFDirIndex = memoryReadWord(parm + 28);
 
 		if (ioFDirIndex <= 0)
@@ -291,7 +293,7 @@ namespace OS
 
 			sname = ToolBox::ReadPString(ioNamePtr);
 
-			fprintf(stderr, "     GetFileInfo(%s)\n", sname.c_str());
+			Log("     GetFileInfo(%s)\n", sname.c_str());
 
 			// todo -- how are absolute, relative, etc paths handled...
 
@@ -389,18 +391,18 @@ namespace OS
 
 		uint32_t parm = cpuGetAReg(0);
 
-		fprintf(stderr, "%04x SetFileInfo(%08x)\n", trap, parm);
+		Log("%04x SetFileInfo(%08x)\n", trap, parm);
 
-		uint32_t ioCompletion = memoryReadLong(parm + 12);
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t ioNamePtr = memoryReadLong(parm + 18);
-		uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		uint8_t ioFVersNum = memoryReadByte(parm + 26);
+		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
 		//int16_t ioFDirIndex = memoryReadWord(parm + 28);
 
 		// + 32 = finder data - 16 bytes.
 
-		uint32_t ioFlCrDat = memoryReadLong(parm + 72);
-		uint32_t ioFlMdDat = memoryReadLong(parm + 76);
+		//uint32_t ioFlCrDat = memoryReadLong(parm + 72);
+		//uint32_t ioFlMdDat = memoryReadLong(parm + 76);
 
 		// currently, only sets finder info.
 
@@ -411,7 +413,7 @@ namespace OS
 		}
 
 		sname = ToolBox::ReadPString(ioNamePtr);
-		fprintf(stderr, "     SetFileInfo(%s)\n", sname.c_str());
+		Log("     SetFileInfo(%s)\n", sname.c_str());
 
 		// check if the file actually exists
 		{

@@ -20,8 +20,7 @@ extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
 namespace ToolBox {
 
-
-
+	bool Trace = false;
 
 
 	void dispatch(uint16_t trap)

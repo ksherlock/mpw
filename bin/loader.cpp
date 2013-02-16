@@ -700,6 +700,7 @@ int main(int argc, char **argv)
 	MPW::Init();
 
 	MPW::Trace = Flags.traceMPW;
+	ToolBox::Trace = Flags.traceToolBox;
 
 	if (!Flags.stack)
 	{
