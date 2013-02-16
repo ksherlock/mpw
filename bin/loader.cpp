@@ -20,6 +20,17 @@
 #include <mpw/mpw.h>
 #include <mplite/mplite.h>
 
+struct {
+	uint32_t ram;
+	uint32_t stack;
+	uint32_t machine;
+	bool traceCPU;
+	bool traceMacsbug;
+	bool traceGlobals;
+
+} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false };
+
+
 uint8_t *Memory;
 uint32_t HighWater = 0x10000;
 uint32_t MemorySize = 0;
@@ -294,6 +305,11 @@ void InitializeMPW(int argc, char **argv)
 	}
 	// same thing for envp... but \0 instead of =
 
+	{
+		envpAddress = EmulatedNewPtr(4);
+		WriteLong(Memory, envpAddress, 0);
+	}
+
 
 	// _macpgminfo
 	uint32_t address = EmulatedNewPtr(8 + 0x30);
@@ -416,8 +432,6 @@ void InitializeMPW(int argc, char **argv)
 
 
 
-
-
 	// 0x1c should have something, too .... :(
 
 
@@ -427,6 +441,15 @@ void InitializeMPW(int argc, char **argv)
 	WriteLong(Memory, 0x0a02, 0x00010001);
 	// 0x0a06 - MinusOne
 	WriteLong(Memory, 0x0a06, 0xffffffff);
+
+
+	// todo -- expects high stack, low heap.
+	// the allocator currently works from the top down,
+	// so put stack at top of memory?
+	
+	// 0x0130 -- ApplLimit
+	WriteLong(Memory, 0x0130, Flags.ram - 1);
+
 }
 
 
@@ -477,26 +500,29 @@ void InstructionLogger()
 	);
 	#endif
 
-	cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
-
-	// address, data, instruction, operand
-	fprintf(stderr, "%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
-
-	// todo -- trace registers (only print changed registers?)
-
-	#if 0
-	if (pc >= 0x00010E94 && pc <= 0x00010FC0)
+	if (Flags.traceCPU)
 	{
-		fprintf(stderr, "d7 = %08x\n", cpuGetDReg(7));
-	}
-	#endif
+		cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
 
-	if (opcode == 0x4E75)
+		// address, data, instruction, operand
+		fprintf(stderr, "%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
+
+		// todo -- trace registers (only print changed registers?)
+
+		#if 0
+		if (pc >= 0x00010E94 && pc <= 0x00010FC0)
+		{
+			fprintf(stderr, "d7 = %08x\n", cpuGetDReg(7));
+		}
+		#endif
+	}
+
+	if (opcode == 0x4E75 || opcode == 0x4ED0) // RTS or JMP (A0)
 	{
 		// check for MacsBug name after rts.
 		std::string s;
 		unsigned b = memoryReadByte(pc + 2);
-		if (b > 0x80)
+		if (b > 0x80 && b < 0xa0)
 		{
 			b -= 0x80;
 			pc += 3;
@@ -562,13 +588,6 @@ bool parse_number(const char *input, uint32_t *dest)
 	return true;
 }
 
-struct {
-	uint32_t ram;
-	uint32_t stack;
-	uint32_t machine;
-	bool traceCPU;
-
-} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false };
 
 int main(int argc, char **argv)
 {
@@ -577,6 +596,8 @@ int main(int argc, char **argv)
 	enum
 	{
 		kTraceCPU = 1,
+		kTraceMacsBug,
+		kTraceGlobals,
 	};
 	static struct option LongOpts[] = 
 	{
@@ -584,6 +605,8 @@ int main(int argc, char **argv)
 		{ "stack", required_argument, NULL, 's' },
 		{ "machine", required_argument, NULL, 'm' },
 		{ "trace-cpu", no_argument, NULL, kTraceCPU },
+		{ "trace-macsbug", no_argument, NULL, kTraceMacsBug },
+		{ "trace-globals", no_argument, NULL, kTraceGlobals },
 		{ "help", no_argument, NULL, 'h' },
 		{ "version", no_argument, NULL, 'V' },
 		{ NULL, 0, NULL, 0 }
@@ -596,6 +619,14 @@ int main(int argc, char **argv)
 		{
 			case kTraceCPU:
 				Flags.traceCPU = true;
+				break;
+
+			case kTraceMacsBug:
+				Flags.traceMacsbug = true;
+				break;
+
+			case kTraceGlobals:
+				Flags.traceGlobals = true;
 				break;
 
 			case 'm':
@@ -682,12 +713,12 @@ int main(int argc, char **argv)
 	/// ahhh... need to set PC after memory.
 	// for pre-fetch.
 	memorySetMemory(Memory, MemorySize);
-	memorySetGlobalLog(0x10000);
+	if (Flags.traceGlobals) memorySetGlobalLog(0x3000);
 	cpuInitializeFromNewPC(address);
 
 	MM::Init(Memory, MemorySize, HighWater);
 	
-	if (Flags.traceCPU)
+	if (Flags.traceCPU || Flags.traceMacsbug)
 	{
 		cpuSetInstructionLoggingFunc(InstructionLogger);
 	}
