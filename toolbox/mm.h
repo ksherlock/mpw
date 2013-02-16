@@ -20,6 +20,9 @@ namespace MM
 
 	uint16_t NewPtr(uint16_t trap);
 	uint16_t NewHandle(uint16_t trap);
+
+	uint16_t SetPtrSize(uint16_t);
+	uint16_t SetHandleSize(uint16_t);
 }
 
 

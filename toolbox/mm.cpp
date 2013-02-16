@@ -140,7 +140,7 @@ namespace MM
 		 uint32_t cbNeeded = cpuGetDReg(0);
 
 		 fprintf(stderr, "%04x CompactMem(%08x)\n", trap, cbNeeded);
-		 
+
 		 return 0x0f0000;
 	}
 
@@ -254,6 +254,38 @@ namespace MM
 		uint32_t mcptr = ptr - Memory;
 		PtrMap.emplace(std::make_pair(mcptr, size));
 		cpuSetAReg(0, mcptr);
+		return SetMemError(0);
+	}
+
+	uint16_t SetPtrSize(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 pointer
+		 * D0 new size
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t mcptr = cpuGetAReg(0);
+		uint32_t newSize = cpuGetDReg(0);
+
+		fprintf(stderr, "%08x SetPtrSize(%08x, %08x)\n", trap, mcptr, newSize);
+
+		auto iter = PtrMap.find(mcptr);
+
+		if (iter == PtrMap.end()) return SetMemError(memWZErr);
+		PtrMap.erase(iter);
+
+		uint8_t *ptr = mcptr + Memory;
+
+		if (mplite_resize(&pool, ptr, newSize) < 0)
+		{
+			return SetMemError(memFullErr);
+		}
+
 		return SetMemError(0);
 	}
 

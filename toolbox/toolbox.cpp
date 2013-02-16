@@ -49,6 +49,11 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
+			// SetPtrSize (p: Ptr; newSize: Size);
+			case 0xa020:
+				d0 = MM::SetPtrSize(trap);
+				break;
+
 			case 0xA023:
 				d0 = MM::DisposeHandle(trap);
 				break;
