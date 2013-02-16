@@ -40,17 +40,20 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
+		f.error = 0;
+
 		int fd = f.cookie;
+
+		fprintf(stderr, "     dup(%02x)\n", fd);
+
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
-			d0 = kEINVAL; // & 0x40000000 ?
-			f.error = 0;
+			d0 = kEINVAL; // | 0x40000000 ?
 		}
 		else
 		{
 			FDTable[fd]++;
 			d0 = 0;
-			f.error = 0;
 		}
 
 		memoryWriteWord(f.error, parm + 2);
@@ -73,6 +76,11 @@ namespace MPW
 
 		f.error = 0;
 
+		int fd = f.cookie;
+
+		fprintf(stderr, "     bufsize(%02x)\n", fd);
+
+
 		memoryWriteWord(f.error, parm + 2);
 		return kEINVAL;
 	}
@@ -94,9 +102,20 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
+		// linkgs reads from stdin and 
+		// doesn't work quite right when 
+		// this returns 0.  So, don't.
+
 		f.error = 0;
 
 		int fd = f.cookie;
+
+		fprintf(stderr, "     interactive(%02x)\n", fd);
+
+		d0 = kEINVAL;
+
+
+#if 0
 
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
@@ -107,6 +126,9 @@ namespace MPW
 			int tty = ::isatty(fd);
 			d0 = tty ? 0 : kEINVAL;
 		}
+#endif
+
+
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -116,7 +138,27 @@ namespace MPW
 	{
 		// return file name.
 		// AsmIIgs uses this...
-		memoryWriteWord(0, parm + 2);
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+		// linkgs reads from stdin and 
+		// doesn't work quite right when 
+		// this returns 0.  So, don't.
+
+		f.error = 0;
+
+		int fd = f.cookie;
+
+		fprintf(stderr, "     interactive(%02x)\n", fd);
+
+		memoryWriteWord(f.error, parm + 2);
 		return kEINVAL;
 	}
 
@@ -137,6 +179,8 @@ namespace MPW
 		f.error = 0;
 
 		int fd = f.cookie;
+
+		fprintf(stderr, "     refnum(%02x)\n", fd);
 
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
