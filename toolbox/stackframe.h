@@ -8,6 +8,7 @@
 template<unsigned N>
 void ToolReturn(uint32_t sp, uint32_t value)
 {
+	if (sp == -1) sp = cpuGetAReg(7);
 	static_assert(N == 2 || N == 4, "Invalid Return Size");
 	if (N == 4)
 	{
@@ -18,6 +19,14 @@ void ToolReturn(uint32_t sp, uint32_t value)
 		memoryWriteWord(value, sp);
 	}
 }
+
+// pre-define these templates to prevent instantiation errors.
+template<int Bytes, int Offset, typename... Args>
+uint32_t StackFrame__(uint32_t sp, uint32_t &x, Args&... args);
+template<int Bytes, int Offset, typename... Args>
+uint32_t StackFrame__(uint32_t sp, uint16_t &x, Args&... args);
+template<int Bytes, int Offset>
+uint32_t StackFrame__(uint32_t sp);
 
 
 template<int Bytes, int Offset>
