@@ -13,6 +13,7 @@ namespace Time
 	uint16_t ReadDateTime(uint16_t trap);
 	uint16_t SecondsToDate(uint16_t trap);
 
+	uint16_t TickCount(uint16_t trap);
 }
 
 #endif

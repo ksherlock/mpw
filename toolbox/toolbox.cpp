@@ -79,6 +79,11 @@ namespace ToolBox {
 				d0 = Time::SecondsToDate(trap);
 				break;
 		
+			// TickCount : LONGINT;
+			case 0xa975:
+				d0 = Time::TickCount(trap);
+				break;
+
 			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
 			case 0xa11e:
 			case 0xa31e:

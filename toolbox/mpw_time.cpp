@@ -6,10 +6,17 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <chrono>
+
+#include "stackframe.h"
+
+	// todo -- have background thread to update Ticks and Time global variables?
 
 namespace {
 
 	const long EpochAdjust = 86400 * (365 * (1970 - 1904) + 17); // 17 leap years.
+
+
 
 }
 namespace Time
@@ -91,5 +98,22 @@ namespace Time
 
 		return 0;
 	}
+
+	uint16_t TickCount(uint16_t trap)
+	{
+		uint32_t ticks;
+
+		fprintf(stderr, "%04x TickCount()\n", trap);
+
+		//auto t = std::chrono::steady_clock::now();
+		ticks = 0;
+
+		// global Ticks
+		memoryWriteLong(ticks, 0x16A);
+		ToolReturn<4>(-1, ticks);
+
+		return 0;
+	}
+
 
 }
