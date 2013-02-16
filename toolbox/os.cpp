@@ -8,6 +8,7 @@
 
 #include <string>
 #include <cerrno>
+#include <cctype>
 
 #include <sys/xattr.h>
 #include <sys/stat.h>
@@ -16,10 +17,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <strings.h>
+
 namespace {
 
 	using namespace OS;
 
+	// should make this public since it's needed by mpw/*
 	uint16_t errno_to_oserr(int xerrno)
 	{
 		switch (xerrno)
@@ -47,10 +51,88 @@ namespace {
 		}
 
 	}
+
+
+	std::string extension(const std::string &s)
+	{
+		std::string tmp;
+		int pos;
+
+		pos = s.find_last_of("./:");
+
+		if (pos == s.npos) return tmp;		
+		if (s[pos++] != '.') return tmp;
+		if (pos >= s.length()) return tmp;
+
+		tmp = s.substr(pos);
+
+		std::transform(tmp.begin(), tmp.end(), tmp.begin(), 
+			[](char c) { return tolower(c); }
+		);
+
+		return tmp;
+
+	}
+
 }
 
 namespace OS
 {
+
+
+	// known text file extensions
+	bool IsTextFile(const std::string &s)
+	{
+		std::string ext = extension(s);
+		if (ext.empty()) return false;
+
+		char c = ext[0];
+		switch(c)
+		{
+			case 'a':
+				if (ext == "aii")
+					return true;
+				break;
+
+			case 'c':
+				if (ext == "c")
+					return true;
+				break;
+
+			case 'p':
+				if (ext == "pii")
+					return true;
+				break;
+
+			case 'r':
+				if (ext == "rii")
+					return true;
+				break;
+
+		}
+
+		return false;
+	}
+
+	// known binary file extensions
+	bool IsBinaryFile(const std::string &s)
+	{
+		std::string ext = extension(s);
+		if (ext.empty()) return false;
+
+		char c = ext[0];
+		switch(c)
+		{
+			case 'o':
+				if (ext == "obj")
+					return true;
+				break;
+		}
+
+		return false;
+	}
+
+
 
 	uint16_t Create(uint16_t trap)
 	{
@@ -201,6 +283,12 @@ namespace OS
 
 				rv = ::getxattr(sname.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
 				xerrno = errno;
+
+				// override for source files.
+				if (IsTextFile(sname))
+				{
+					std::memcpy(buffer, "TEXTMPS ", 8);
+				}
 
 				// only 16 bytes copied.
 				std::memcpy(memoryPointer(parm + 32), buffer, 16);

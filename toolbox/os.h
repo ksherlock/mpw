@@ -2,6 +2,7 @@
 #define __mpw_os_h__
 
 #include <cstdint>
+#include <string>
 
 namespace OS
 {
@@ -97,6 +98,10 @@ namespace OS
 		offLinErr = -65,                                /*r/w requested for an off-line drive*/
 		noNybErr = -66                                  /*couldn't find 5 nybbles in 200 tries*/
 	};
+
+
+	bool IsTextFile(const std::string &s);
+	bool IsBinaryFile(const std::string &s);
 
 
 	uint16_t Create(uint16_t trap);
