@@ -116,6 +116,11 @@ namespace ToolBox {
 				d0 = RM::GetResource(trap);
 				break;
 
+			// UnloadSeg (routineAddr: Ptr);
+			case 0xa9f1:
+				d0 = RM::UnloadSeg(trap);
+				break;
+
 			// quickdraw (AsmIIgs ... )
 
 			// _ShowCursor();

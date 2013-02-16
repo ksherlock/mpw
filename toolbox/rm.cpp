@@ -6,54 +6,7 @@
 #include <cpu/fmem.h>
 
 #include <string>
-
-namespace
-{
-
-	uint32_t PopLong()
-	{
-		uint32_t sp = cpuGetAReg(7);
-		uint32_t value = memoryReadLong(sp);
-		cpuSetAReg(7, sp + 4);
-		return value;
-	}
-
-
-	uint16_t PopWord()
-	{
-		uint32_t sp = cpuGetAReg(7);
-		uint16_t value = memoryReadWord(sp);
-		cpuSetAReg(7, sp + 2);
-		return value;
-	}
-
-	uint32_t StackFrame(uint32_t &b, uint32_t &a)
-	{
-		uint32_t sp = cpuGetAReg(7);
-		a = memoryReadLong(sp); sp += 4;
-		b = memoryReadLong(sp); sp += 4;
-		cpuSetAReg(7, sp);
-
-		return sp;
-	}
-
-	uint32_t StackFrame(uint32_t &b, uint16_t &a)
-	{
-		uint32_t sp = cpuGetAReg(7);
-		a = memoryReadWord(sp); sp += 2;
-		b = memoryReadLong(sp); sp += 4;
-		cpuSetAReg(7, sp);
-
-		return sp;
-	}
-
-	void ToolReturn(uint32_t sp, uint32_t value)
-	{
-		memoryWriteLong(value, sp);
-	}
-
-
-}
+#include "stackframe.h"
 
 namespace RM
 {
@@ -78,13 +31,13 @@ namespace RM
 		uint32_t theType;
 		uint32_t name;
 
-		sp = StackFrame(theType, name);
+		sp = StackFrame<8>(theType, name);
 
 		std::string sname = ToolBox::ReadPString(name);
 
 		fprintf(stderr, "%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
 
-		ToolReturn(sp, (uint32_t)0);
+		ToolReturn<4>(sp, 0);
 		return -192;
 	}
 
@@ -109,12 +62,33 @@ namespace RM
 		uint32_t theType;
 		uint16_t theID;
 
-		sp = StackFrame(theType, theID);
+		sp = StackFrame<6>(theType, theID);
 
 		fprintf(stderr, "%04x GetResource(%08x, %04x)\n", trap, theType, theID);
 
-		ToolReturn(sp, (uint32_t)0);
+		ToolReturn<4>(sp, 0);
 		return -192;
+	}
+
+	uint16_t UnloadSeg(uint16_t trap)
+	{
+		// UnloadSeg (routineAddr: Ptr);	
+
+		/*
+		 * ------------
+		 * +0 routineAddr
+		 * ------------
+		 *
+		 */
+
+		 uint32_t sp;
+		 uint32_t routineAddr;
+
+		 sp = StackFrame<4>(routineAddr);
+
+		 fprintf(stderr, "%04x UnloadSeg(%08x)\n", trap, routineAddr);
+
+		 return 0;
 	}
 
 }
