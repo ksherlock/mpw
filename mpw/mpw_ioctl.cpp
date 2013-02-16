@@ -109,10 +109,10 @@ namespace MPW
 		}
 
 		memoryWriteWord(f.error, parm + 2);
-		return kEINVAL;
+		return d0;
 	}
 
-	uint32_t ftrap_iofname(uint32_t parm, uint32_t arg)
+	uint32_t ftrap_fname(uint32_t parm, uint32_t arg)
 	{
 		// return file name.
 		// AsmIIgs uses this...
@@ -120,13 +120,47 @@ namespace MPW
 		return kEINVAL;
 	}
 
+	uint32_t ftrap_refnum(uint32_t parm, uint32_t arg)
+	{
+		// returns the refnum in *arg
+		uint32_t d0;
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+		f.error = 0;
+
+		int fd = f.cookie;
+
+		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+		{
+			d0 = kEINVAL;
+		}
+		else
+		{
+			d0 = 0;
+			memoryWriteWord(fd, arg);
+		}
+
+		memoryWriteWord(f.error, parm + 2);
+		return d0;
+	}
+
+
+
 	uint32_t ftrap_lseek(uint32_t parm, uint32_t arg)
 	{
 		MPWFile f;
 		uint32_t d0;
 
 		uint32_t whence = memoryReadLong(arg);
-		int32_t offset =memoryReadLong(arg + 4);
+		int32_t offset =memoryReadLong(arg + 4); // signed value.
 		int nativeWhence = 0;
 
 		f.flags = memoryReadWord(parm);
@@ -142,7 +176,6 @@ namespace MPW
 
 		// TODO - MacOS returns eofERR and sets mark to eof
 		// if seeking past the eof.
-		// TODO - MacOS treats offset as a signed value, unix is unsigned [?]
 		switch (whence)
 		{
 			case kSEEK_CUR:
@@ -213,10 +246,13 @@ namespace MPW
 				break;
 
 			case kFIOFNAME:
-				d0 = ftrap_iofname(fd, arg);
+				d0 = ftrap_fname(fd, arg);
 				break;
 
 			case kFIOREFNUM:
+				d0 = ftrap_refnum(fd, arg);
+				break;
+
 			case kFIOSETEOF:
 				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);	
 				exit(1);
