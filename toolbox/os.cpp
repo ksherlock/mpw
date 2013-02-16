@@ -196,8 +196,11 @@ namespace OS
 			{
 				uint8_t buffer[32];
 				std::memset(buffer, 0, sizeof(buffer));
+				int rv;
+				int xerrno;
 
-				::getxattr(sname.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
+				rv = ::getxattr(sname.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
+				xerrno = errno;
 
 				// only 16 bytes copied.
 				std::memcpy(memoryPointer(parm + 32), buffer, 16);
@@ -208,9 +211,9 @@ namespace OS
 			// file reference number
 			memoryWriteWord(0, parm + 24);
 			// file attributes
-			memoryWriteWord(0, parm + 30);
+			memoryWriteByte(0, parm + 30);
 			// version (unused)
-			memoryWriteWord(0, parm + 32);
+			memoryWriteByte(0, parm + 31);
 
 			// file id
 			memoryWriteLong(0, parm + 48);
