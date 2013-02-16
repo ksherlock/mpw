@@ -66,8 +66,26 @@ namespace MPW {
 		fIOCtl,
 	};
 
+
+
+	// should add argc/argv/envp...
+	void Init();
+
+
 	void dispatch(uint16_t trap);
 
+
+
+	void ftrap_quit(uint16_t trap);
+
+	void ftrap_access(uint16_t trap);
+	void ftrap_close(uint16_t trap);
+	void ftrap_read(uint16_t trap);
+	void ftrap_write(uint16_t trap);
+	void ftrap_ioctl(uint16_t trap);
+
+	// native errno to an MPW errno.
+	int errno_to_errno(int xerrno);
 }
 
 #endif
