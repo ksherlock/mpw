@@ -116,6 +116,8 @@ namespace {
 		const char *cp = (const char *)memoryPointer(name);
 		sname.assign(cp);
 
+		fprintf(stderr, "     open(%s, %04x)\n", sname.c_str(), f.flags);
+
 		if (f.flags & kO_RSRC)
 			sname.append(_PATH_RSRCFORKSPEC);
 
@@ -440,6 +442,15 @@ namespace {
 		return kEINVAL;
 	}
 
+	uint32_t ftrap_iofname(uint32_t parm, uint32_t arg)
+	{
+		// return file name.
+		// AsmIIgs uses this...
+		memoryWriteWord(0, parm + 2);
+		return kEINVAL;
+	}
+
+
 	void ftrap_ioctl(uint16_t trap)
 	{
 		// returns an mpw_errno in d0 [???]
@@ -473,9 +484,11 @@ namespace {
 				d0 = ftrap_interactive(fd, arg);
 				break;
 
+			case kFIOFNAME:
+				d0 = ftrap_iofname(fd, arg);
+				break;
 
 			case kFIOLSEEK:
-			case kFIOFNAME:
 			case kFIOREFNUM:
 			case kFIOSETEOF:
 				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);	
