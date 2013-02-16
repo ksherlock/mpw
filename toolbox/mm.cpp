@@ -145,69 +145,8 @@ namespace MM
 	}
 
 
-	uint16_t DisposePtr(uint16_t trap)
-	{
-		/* 
-		 * on entry:
-		 * A0 Pointer to the nonrelocatable block to be disposed of
-		 *
-		 * on exit:
-		 * D0 Result code
-		 *
-		 */
 
-		uint32_t mcptr = cpuGetAReg(0);
-
-		fprintf(stderr, "%04x DisposePtr(%08x)\n", trap, mcptr);
-
-
-		auto iter = PtrMap.find(mcptr);
-
-		if (iter == PtrMap.end()) return SetMemError(memWZErr);
-		PtrMap.erase(iter);
-
-		uint8_t *ptr = mcptr + Memory;
-
-		mplite_free(&pool, ptr);
-
-		return SetMemError(0);
-	}
-
-	uint16_t DisposeHandle(uint16_t trap)
-	{
-		/* 
-		 * on entry:
-		 * A0 Handle to be disposed of
-		 *
-		 * on exit:
-		 * D0 Result code
-		 *
-		 */
-
-		uint32_t hh = cpuGetAReg(0);
-
-		fprintf(stderr, "%04x DisposeHandle(%08x)\n", trap, hh);
-
-
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
-
-		HandleInfo info = iter->second;
-
-		HandleMap.erase(iter);
-
-		uint8_t *ptr = info.address + Memory;
-
-		mplite_free(&pool, ptr);
-
-		HandleQueue.push_back(hh);
-
-		return SetMemError(0);
-	}
-
-
-
+	#pragma mark Pointers
 
 	uint16_t NewPtr(uint16_t trap)
 	{
@@ -257,6 +196,56 @@ namespace MM
 		return SetMemError(0);
 	}
 
+	uint16_t DisposePtr(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Pointer to the nonrelocatable block to be disposed of
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t mcptr = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x DisposePtr(%08x)\n", trap, mcptr);
+
+
+		auto iter = PtrMap.find(mcptr);
+
+		if (iter == PtrMap.end()) return SetMemError(memWZErr);
+		PtrMap.erase(iter);
+
+		uint8_t *ptr = mcptr + Memory;
+
+		mplite_free(&pool, ptr);
+
+		return SetMemError(0);
+	}
+
+	uint32_t GetPtrSize(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 pointer
+		 *
+		 * on exit:
+		 * D0 size (32-bit) or error code
+		 *
+		 */
+
+		uint32_t mcptr = cpuGetAReg(0);
+
+		fprintf(stderr, "%08x GetPtrSize(%08x,)\n", trap, mcptr);
+
+		auto iter = PtrMap.find(mcptr);
+
+		if (iter == PtrMap.end()) return SetMemError(memWZErr);
+
+		return iter->second;
+	}
+
 	uint16_t SetPtrSize(uint16_t trap)
 	{
 		/* 
@@ -277,7 +266,6 @@ namespace MM
 		auto iter = PtrMap.find(mcptr);
 
 		if (iter == PtrMap.end()) return SetMemError(memWZErr);
-		PtrMap.erase(iter);
 
 		uint8_t *ptr = mcptr + Memory;
 
@@ -286,8 +274,13 @@ namespace MM
 			return SetMemError(memFullErr);
 		}
 
+		// update the size.
+		iter->second = newSize;
+
 		return SetMemError(0);
 	}
+
+	#pragma mark Handles
 
 	uint16_t NewHandle(uint16_t trap)
 	{
@@ -350,6 +343,85 @@ namespace MM
 		return SetMemError(0);
 	}
 
+	uint16_t DisposeHandle(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle to be disposed of
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
 
+		uint32_t hh = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x DisposeHandle(%08x)\n", trap, hh);
+
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		HandleInfo info = iter->second;
+
+		HandleMap.erase(iter);
+
+		uint8_t *ptr = info.address + Memory;
+
+		mplite_free(&pool, ptr);
+
+		HandleQueue.push_back(hh);
+
+		return SetMemError(0);
+	}
+
+	#pragma mark Handle attributes
+
+	// these are all nops for now.
+
+	uint16_t HLock(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t hh = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x HLock(%08x)\n", trap, hh);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		return 0;
+	}
+
+	uint16_t HUnlock(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t hh = cpuGetAReg(0);
+
+		fprintf(stderr, "%04x HUnlock(%08x)\n", trap, hh);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		return 0;
+	}
 
 }

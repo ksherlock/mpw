@@ -15,14 +15,21 @@ namespace MM
 
 	uint16_t BlockMove(uint16_t trap);
 	uint32_t CompactMem(uint16_t trap);
-	uint16_t DisposePtr(uint16_t trap);
+
 	uint16_t DisposeHandle(uint16_t trap);
+	uint16_t DisposePtr(uint16_t trap);
 
-	uint16_t NewPtr(uint16_t trap);
+	uint32_t GetHandleSize(uint16_t);
+	uint32_t GetPtrSize(uint16_t);
+
 	uint16_t NewHandle(uint16_t trap);
+	uint16_t NewPtr(uint16_t trap);
 
-	uint16_t SetPtrSize(uint16_t);
 	uint16_t SetHandleSize(uint16_t);
+	uint16_t SetPtrSize(uint16_t);
+
+	uint16_t HLock(uint16_t trap);
+	uint16_t HUnlock(uint16_t trap);
 }
 
 

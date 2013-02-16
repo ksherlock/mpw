@@ -54,8 +54,21 @@ namespace ToolBox {
 				d0 = MM::SetPtrSize(trap);
 				break;
 
+			// GetPtrSize (p: Ptr) : Size
+			case 0xa021:
+				d0 = MM::GetPtrSize(trap);
+				break;
+
 			case 0xA023:
 				d0 = MM::DisposeHandle(trap);
+				break;
+
+			case 0xa029:
+				d0 = MM::HLock(trap);
+				break;
+
+			case 0xa02a:
+				d0 = MM::HUnlock(trap);
 				break;
 
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
