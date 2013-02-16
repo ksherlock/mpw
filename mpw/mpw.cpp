@@ -494,7 +494,8 @@ namespace {
 
 		fprintf(stderr, "     seek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
 
-		if (::lseek(fd, offset, nativeWhence) < 0)
+		off_t rv = ::lseek(fd, offset, nativeWhence);
+		if (rv < 0)
 		{
 			d0 = errno_to_errno(errno);
 			f.error = 0;
@@ -505,6 +506,7 @@ namespace {
 			f.error = 0;
 		}
 
+		memoryWriteLong(rv, arg + 4);
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
 	}
