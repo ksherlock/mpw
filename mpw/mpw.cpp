@@ -29,6 +29,8 @@ namespace MPW
 {
 	using namespace Internal;
 
+	bool Trace = false;
+
 	int errno_to_errno(int xerrno)
 	{
 		switch (xerrno)
@@ -90,7 +92,8 @@ namespace MPW
 
 	void ftrap_quit(uint16_t trap)
 	{
-		fprintf(stderr, "%04x Quit()\n", trap);
+		Log("%04x Quit()\n", trap);
+		//fprintf(stderr, "%04x Quit()\n", trap);
 		cpuSetStop(true);
 	}
 

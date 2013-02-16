@@ -5,6 +5,9 @@
 
 namespace MPW {
 
+	extern bool Trace;
+
+
 
 	struct MPWFile
 	{

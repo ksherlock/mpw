@@ -40,7 +40,8 @@ namespace MPW
 		f.buffer = memoryReadLong(parm + 16);
 
 
-		fprintf(stderr, "%04x Close(%08x)\n", trap, parm);
+		//fprintf(stderr, "%04x Close(%08x)\n", trap, parm);
+		Log("%04x Close(%08x)\n", trap, parm);
 
 		if (!parm)
 		{
@@ -60,6 +61,7 @@ namespace MPW
 		{
 			if (--FDTable[fd] == 0)
 			{
+				Log("     close(%02x)\n", fd);
 				::close(fd);
 				f.error = 0;
 				d0 = 0;

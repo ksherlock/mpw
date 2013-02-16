@@ -24,11 +24,14 @@ struct {
 	uint32_t ram;
 	uint32_t stack;
 	uint32_t machine;
+
 	bool traceCPU;
 	bool traceMacsbug;
 	bool traceGlobals;
+	bool traceToolBox;
+	bool traceMPW;
 
-} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false };
+} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false, false, false};
 
 
 uint8_t *Memory;
@@ -598,6 +601,8 @@ int main(int argc, char **argv)
 		kTraceCPU = 1,
 		kTraceMacsBug,
 		kTraceGlobals,
+		kTraceToolBox,
+		kTraceMPW,
 	};
 	static struct option LongOpts[] = 
 	{
@@ -607,6 +612,8 @@ int main(int argc, char **argv)
 		{ "trace-cpu", no_argument, NULL, kTraceCPU },
 		{ "trace-macsbug", no_argument, NULL, kTraceMacsBug },
 		{ "trace-globals", no_argument, NULL, kTraceGlobals },
+		{ "trace-toolbox", no_argument, NULL, kTraceToolBox },
+		{ "trace-mpw", no_argument, NULL, kTraceMPW },
 		{ "help", no_argument, NULL, 'h' },
 		{ "version", no_argument, NULL, 'V' },
 		{ NULL, 0, NULL, 0 }
@@ -627,6 +634,14 @@ int main(int argc, char **argv)
 
 			case kTraceGlobals:
 				Flags.traceGlobals = true;
+				break;
+
+			case kTraceToolBox:
+				Flags.traceToolBox = true;
+				break;
+
+			case kTraceMPW:
+				Flags.traceMPW = true;
 				break;
 
 			case 'm':
@@ -682,6 +697,9 @@ int main(int argc, char **argv)
 
 	InitializeMPW(argc, argv);
 
+	MPW::Init();
+
+	MPW::Trace = Flags.traceMPW;
 
 	if (!Flags.stack)
 	{
