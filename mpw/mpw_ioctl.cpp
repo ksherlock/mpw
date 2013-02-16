@@ -112,10 +112,11 @@ namespace MPW
 
 		fprintf(stderr, "     interactive(%02x)\n", fd);
 
-		d0 = kEINVAL;
+		//d0 = kEINVAL;
 
-
-#if 0
+		// linkgs reads from stdin and 
+		// doesn't work quite right when 
+		// this returns 0.  So, don't.
 
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
@@ -126,9 +127,6 @@ namespace MPW
 			int tty = ::isatty(fd);
 			d0 = tty ? 0 : kEINVAL;
 		}
-#endif
-
-
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -148,15 +146,11 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
-		// linkgs reads from stdin and 
-		// doesn't work quite right when 
-		// this returns 0.  So, don't.
-
 		f.error = 0;
 
 		int fd = f.cookie;
 
-		fprintf(stderr, "     interactive(%02x)\n", fd);
+		fprintf(stderr, "     fname(%02x)\n", fd);
 
 		memoryWriteWord(f.error, parm + 2);
 		return kEINVAL;
@@ -204,7 +198,7 @@ namespace MPW
 		uint32_t d0;
 
 		uint32_t whence = memoryReadLong(arg);
-		int32_t offset =memoryReadLong(arg + 4); // signed value.
+		int32_t offset = memoryReadLong(arg + 4); // signed value.
 		int nativeWhence = 0;
 
 		f.flags = memoryReadWord(parm);
