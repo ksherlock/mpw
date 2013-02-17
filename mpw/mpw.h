@@ -93,7 +93,10 @@ namespace MPW {
 
 
 	// should add argc/argv/envp...
-	void Init();
+	uint16_t Init(int argc, char **argv);
+
+	uint32_t ExitStatus();
+
 
 
 	void dispatch(uint16_t trap);

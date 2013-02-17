@@ -254,6 +254,7 @@ uint32_t load(const char *file)
     return returnAddress;
 }
 
+#if 0 
 void InitializeMPW(int argc, char **argv)
 {
 
@@ -437,6 +438,28 @@ void InitializeMPW(int argc, char **argv)
 
 	// 0x1c should have something, too .... :(
 
+
+	// 0x031a - Lo3Bytes
+	WriteLong(Memory, 0x031a, 0x00ffffff);
+	// 0x0a02 - OneOne
+	WriteLong(Memory, 0x0a02, 0x00010001);
+	// 0x0a06 - MinusOne
+	WriteLong(Memory, 0x0a06, 0xffffffff);
+
+
+	// todo -- expects high stack, low heap.
+	// the allocator currently works from the top down,
+	// so put stack at top of memory?
+	
+	// 0x0130 -- ApplLimit
+	WriteLong(Memory, 0x0130, Flags.ram - 1);
+
+}
+#endif
+
+void GlobalInit()
+{
+	// todo -- move this somewhere better.
 
 	// 0x031a - Lo3Bytes
 	WriteLong(Memory, 0x031a, 0x00ffffff);
@@ -695,12 +718,10 @@ int main(int argc, char **argv)
 
 	uint32_t address = load(argv[0]);
 
-	InitializeMPW(argc, argv);
+	//InitializeMPW(argc, argv);
+	GlobalInit();
 
-	MPW::Init();
 
-	MPW::Trace = Flags.traceMPW;
-	ToolBox::Trace = Flags.traceToolBox;
 
 	if (!Flags.stack)
 	{
@@ -736,11 +757,21 @@ int main(int argc, char **argv)
 	cpuInitializeFromNewPC(address);
 
 	MM::Init(Memory, MemorySize, HighWater);
+
+	MPW::Init(argc, argv);
+
+
+	MPW::Trace = Flags.traceMPW;
+	ToolBox::Trace = Flags.traceToolBox;
+
 	
 	if (Flags.traceCPU || Flags.traceMacsbug)
 	{
 		cpuSetInstructionLoggingFunc(InstructionLogger);
 	}
+
+
+
 
 	for (;;)
 	{
