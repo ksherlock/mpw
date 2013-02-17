@@ -753,7 +753,7 @@ int main(int argc, char **argv)
 	/// ahhh... need to set PC after memory.
 	// for pre-fetch.
 	memorySetMemory(Memory, MemorySize);
-	if (Flags.traceGlobals) memorySetGlobalLog(0x3000);
+	if (Flags.traceGlobals) memorySetGlobalLog(0x10000);
 	cpuInitializeFromNewPC(address);
 
 	MM::Init(Memory, MemorySize, HighWater);
@@ -776,13 +776,29 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		uint32_t pc = cpuGetPC();
+		uint32_t sp = cpuGetAReg(7);
+
 		if (pc == 0x00000000)
 		{
 			fprintf(stderr, "Exiting - PC = 0\n");
 			exit(1);
 		}
 
-		if (cpuGetStop()) break;
+		if (sp < StackRange.first)
+		{
+			fprintf(stderr, "Stack overflow error - please increase the stack size (--stack=size)\n");
+			fprintf(stderr, "Current stack size is 0x%06x\n", Flags.stack);
+			exit(1);
+		}
+
+		if (sp > StackRange.second)
+		{
+			fprintf(stderr, "Stack underflow error\n");
+			exit(1);
+		}
+
+
+		if (cpuGetStop()) break; // will this also be set by an interrupt?
 		cpuExecuteInstruction();
 	}
 
