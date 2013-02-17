@@ -776,12 +776,18 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		uint32_t pc = cpuGetPC();
-		if (pc == 0x00000000) break;
+		if (pc == 0x00000000)
+		{
+			fprintf(stderr, "Exiting - PC = 0\n");
+			exit(1);
+		}
 
 		if (cpuGetStop()) break;
 		cpuExecuteInstruction();
 	}
 
-	// return value in mpwblock + 0x0e?
-	exit(0);
+	uint32_t rv = MPW::ExitStatus();
+	if (rv > 0xff) rv = 0xff;
+
+	exit(rv);
 }
