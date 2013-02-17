@@ -100,6 +100,11 @@ namespace OS
 				if (ext == "c")
 					return true;
 				break;
+				
+			case 'm':
+				if (ext == "macros")
+					return true;
+				break;
 
 			case 'p':
 				if (ext == "pii")
