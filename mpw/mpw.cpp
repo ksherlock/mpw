@@ -286,6 +286,9 @@ namespace MPW
 		// io table - stdin/stdout/stderr
 		memoryWriteLong(ioptr, mpi + 0x1c);
 
+		// device table
+		memoryWriteLong(devptr, mpi + 0x20);
+
 
 		return 0;
 	}
