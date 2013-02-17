@@ -70,6 +70,46 @@ namespace
 namespace MM
 {
 
+	namespace Native {
+
+		uint16_t NewPtr(uint32_t size, uint32_t &mcptr)
+		{
+			// native pointers.
+
+			mcptr = 0;
+			if (size == 0) return 0;
+
+			uint8_t *ptr = nullptr;
+			ptr = (uint8_t *)mplite_malloc(&pool, size);
+			if (!ptr)
+			{
+				return memFullErr;
+			}
+
+			mcptr = ptr - Memory;
+			PtrMap.emplace(std::make_pair(mcptr, size));
+
+			return 0;
+		}
+		
+		uint16_t DisposePtr(uint32_t mcptr)
+		{
+
+			auto iter = PtrMap.find(mcptr);
+
+			if (iter == PtrMap.end()) return memWZErr;
+			PtrMap.erase(iter);
+
+			uint8_t *ptr = mcptr + Memory;
+
+			mplite_free(&pool, ptr);
+
+			return 0;
+		}
+
+
+	}
+
 	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved)
 	{
 		int ok;
@@ -152,6 +192,8 @@ namespace MM
 
 	#pragma mark Pointers
 
+
+
 	uint16_t NewPtr(uint16_t trap)
 	{
 		/* 
@@ -164,6 +206,7 @@ namespace MM
 		 *
 		 */
 
+
 		bool clear = trap & (1 << 9);
 		//bool sys = trap & (1 << 10);
 
@@ -174,29 +217,22 @@ namespace MM
 		// todo -- separate pools for sys vs non-sys?
 		// todo -- NewPtr(0) -- null or empty ptr?
 
-		if (size == 0)
+		uint32_t mcptr;
+		uint16_t error;
+		error = Native::NewPtr(size, mcptr);
+
+		if (!error)
 		{
-			cpuSetAReg(0, 0);
-			return SetMemError(0);
+			if (clear && mcptr)
+			{
+				uint8_t *ptr = memoryPointer(mcptr);
+				std::memset(ptr, 0, size);
+			}
+
 		}
 
-		uint8_t *ptr = nullptr;
-		ptr = (uint8_t *)mplite_malloc(&pool, size);
-		if (!ptr)
-		{
-			cpuSetAReg(0, 0);
-			return SetMemError(memFullErr);
-		}
-
-		if (clear)
-		{
-			std::memset(ptr, 0, size);
-		}
-
-		uint32_t mcptr = ptr - Memory;
-		PtrMap.emplace(std::make_pair(mcptr, size));
 		cpuSetAReg(0, mcptr);
-		return SetMemError(0);
+		return SetMemError(error);
 	}
 
 	uint16_t DisposePtr(uint16_t trap)
@@ -215,16 +251,10 @@ namespace MM
 		Log("%04x DisposePtr(%08x)\n", trap, mcptr);
 
 
-		auto iter = PtrMap.find(mcptr);
+		uint16_t error;
+		error = Native::DisposePtr(mcptr);
 
-		if (iter == PtrMap.end()) return SetMemError(memWZErr);
-		PtrMap.erase(iter);
-
-		uint8_t *ptr = mcptr + Memory;
-
-		mplite_free(&pool, ptr);
-
-		return SetMemError(0);
+		return SetMemError(error);
 	}
 
 	uint32_t GetPtrSize(uint16_t trap)

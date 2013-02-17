@@ -13,6 +13,17 @@ namespace MM
 
 	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved);
 
+	// native functions.
+	namespace Native
+	{
+		uint16_t NewHandle(uint32_t size, uint32_t &handle);
+		uint16_t NewPtr(uint32_t size, uint32_t &pointer);
+		
+		uint16_t DisposeHandle(uint32_t handle);
+		uint16_t DisposePtr(uint32_t pointer);
+	}
+
+
 	uint16_t BlockMove(uint16_t trap);
 	uint32_t CompactMem(uint16_t trap);
 
