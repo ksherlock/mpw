@@ -92,7 +92,7 @@ namespace OS
 		switch(c)
 		{
 			case 'a':
-				if (ext == "aii")
+				if (ext == "aii") // assembler
 					return true;
 				break;
 
@@ -100,19 +100,29 @@ namespace OS
 				if (ext == "c")
 					return true;
 				break;
-				
+			
+			case 'l':
+				if (ext == "lst") // asm iigs listing
+					return true;
+				break;
+
 			case 'm':
 				if (ext == "macros")
 					return true;
 				break;
 
 			case 'p':
-				if (ext == "pii")
+				if (ext == "pii") // pascal
 					return true;
 				break;
 
 			case 'r':
-				if (ext == "rii")
+				if (ext == "rii") // rez
+					return true;
+				break;
+
+			case 's':
+				if (ext == "src") // asm equates
 					return true;
 				break;
 
