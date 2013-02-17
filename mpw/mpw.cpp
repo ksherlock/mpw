@@ -3,6 +3,8 @@
 #include "mpw_internal.h"
 
 #include <vector>
+#include <string>
+#include <deque>
 
 #include <cstdint>
 #include <cstdio>
@@ -17,6 +19,8 @@
 #include <cpu/cpuModule.h>
 
 #include <toolbox/mm.h>
+
+extern char **environ;
 
 
 namespace MPW { namespace Internal {
@@ -161,11 +165,60 @@ namespace MPW
 		// scan the native environment for MPW-name variables?
 		// values are stored as key\0value\0, not key=value\0
 		{
-			uint32_t size = 4;
+
+			std::deque<std::string> e;
+			uint32_t size = 0;
+
+			for (unsigned i = 0 ; environ[i]; ++i)
+			{
+				int pos;
+
+				char *cp = environ[i];
+				if (std::strncmp("mpw_", cp, 4)) continue;
+
+
+				std::string tmp = cp + 4;
+				tmp.push_back(0);
+				if (tmp.length() & 0x01) tmp.push_back(0);
+
+				pos = tmp.find('=');
+				if (pos == tmp.npos) continue;
+				tmp[pos] = 0;
+
+				size += 4; // ptr
+				size += tmp.length();
+
+				e.push_back(std::move(tmp));
+			}
+
+
+			size += 4; // space for null terminator.
+
 			error = MM::Native::NewPtr(size, true, envptr);
 			if (error) return error;
 
-			memoryWriteLong(0, envptr);
+
+			uint8_t *xptr = memoryPointer(envptr);
+			uint32_t offset = 0;
+
+			offset = 4 * (e.size() + 1);
+			unsigned i = 0;
+			for (const std::string &s : e)
+			{
+				// ptr
+				memoryWriteLong(envptr + offset, envptr + i * 4);
+
+				int l = s.length();
+
+				std::memcpy(xptr + offset, s.data(), l);
+
+				offset += l;
+				++i;
+			}
+
+
+			// null-terminate it.
+			memoryWriteLong(0, envptr + 4 * e.size());
 		}
 
 		// ftable
