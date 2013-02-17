@@ -9,6 +9,7 @@
 #include <string>
 #include <cerrno>
 #include <cctype>
+#include <algorithm>
 
 #include <sys/xattr.h>
 #include <sys/stat.h>
@@ -93,6 +94,8 @@ namespace OS
 		{
 			case 'a':
 				if (ext == "aii") // assembler
+					return true;
+				if (ext == "asm")
 					return true;
 				break;
 
@@ -471,6 +474,62 @@ namespace OS
 		d0 = 0;
 		memoryWriteWord(d0, parm + 16);
 		return d0;
+	}
+
+
+	#pragma mark string utilities
+
+	uint16_t CmpString(uint16_t trap)
+	{
+
+		/* 
+		 * on entry:
+		 * A0 Pointer to first character of first string
+		 * A1 Pointer to first character of second string
+		 * D0 (high) length of first string 
+		 * D0 (low) length of second string
+		 *
+		 * on exit:
+		 * D0 0 if strings equal, 1 if strings not equal.
+		 *
+		 */
+
+		bool caseSens = trap & (1 << 9);
+		//bool diacSens = trap & (1 << 10); // ignore for now...
+
+		uint32_t aStr = cpuGetAReg(0);
+		uint32_t bStr = cpuGetAReg(1);
+
+		uint32_t length = cpuGetDReg(0);
+
+		uint32_t aLen = (length >> 16);
+		uint32_t bLen = (length & 0xffff);
+
+		std::string a = ToolBox::ReadString(aStr, aLen);
+		std::string b = ToolBox::ReadString(bStr, bLen);
+
+		Log("%04x CmpString(%s, %s)\n", trap, a.c_str(), b.c_str());
+
+		if (aLen != bLen) return 1; // different length...
+		if (aStr == bStr) return 0; // same ptr...
+
+		bool eq;
+		eq = std::equal(
+			a.begin(), 
+			a.end(), 
+			b.begin(), 
+			[caseSens](char a, char b){
+				if (a == b) return true;
+				if (!caseSens)
+				{
+					a = toupper(a);
+					b = toupper(b);
+				}
+				return a == b;
+			}
+		);
+
+		return eq ? 0 : 1;
 	}
 
 

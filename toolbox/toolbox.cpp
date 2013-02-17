@@ -101,6 +101,14 @@ namespace ToolBox {
 				d0 = Time::TickCount(trap);
 				break;
 
+			//_CmpString [MARKS,CASE]
+			case 0xa03c:
+			case 0xa23c:
+			case 0xa43c:
+			case 0xa63c:
+				d0 = OS::CmpString(trap);
+				break;
+
 			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
 			case 0xa11e:
 			case 0xa31e:
@@ -202,6 +210,18 @@ namespace ToolBox {
 
 		return tmp;
 	}
+
+	std::string ReadString(uint32_t address, uint32_t length)
+	{
+		std::string tmp;
+
+		if (address)
+		{
+			tmp.assign((char *)memoryPointer(address), length);
+		}
+		return tmp;
+	}
+
 
 	bool WritePString(uint32_t address, const std::string &s)
 	{

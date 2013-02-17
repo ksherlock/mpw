@@ -112,6 +112,9 @@ namespace OS
 
 	uint16_t GetEOF(uint16_t trap);
 	uint16_t GetVol(uint16_t trap);
+
+	uint16_t CmpString(uint16_t trap);
+
 }
 
 #endif

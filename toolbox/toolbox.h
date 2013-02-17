@@ -22,6 +22,9 @@ namespace ToolBox
 
 	std::string ReadCString(uint32_t address, bool fname = false);
 	std::string ReadPString(uint32_t address, bool fname = false);
+
+	std::string ReadString(uint32_t address, uint32_t length);
+
 	bool WritePString(uint32_t address, const std::string &s);
 
 }
