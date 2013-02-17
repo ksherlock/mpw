@@ -63,7 +63,7 @@ namespace MPW
 		if (f.flags & kO_EXCL) nativeFlags |= O_EXCL;
 
 
-		sname = ToolBox::ReadCString(name);
+		sname = ToolBox::ReadCString(name, true);
 
 		Log("     open(%s, %04x)\n", sname.c_str(), f.flags);
 

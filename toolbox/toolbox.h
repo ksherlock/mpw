@@ -20,8 +20,8 @@ namespace ToolBox
 	void dispatch(uint16_t trap);
 
 
-	std::string ReadCString(uint32_t address);
-	std::string ReadPString(uint32_t address);
+	std::string ReadCString(uint32_t address, bool fname = false);
+	std::string ReadPString(uint32_t address, bool fname = false);
 	bool WritePString(uint32_t address, const std::string &s);
 
 }

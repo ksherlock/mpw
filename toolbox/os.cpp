@@ -165,7 +165,7 @@ namespace OS
 		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
 		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
 
-		std::string sname = ToolBox::ReadPString(namePtr);
+		std::string sname = ToolBox::ReadPString(namePtr, true);
 
 		if (!sname.length())
 		{
@@ -205,7 +205,7 @@ namespace OS
 		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
 		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
 
-		std::string sname = ToolBox::ReadPString(namePtr);
+		std::string sname = ToolBox::ReadPString(namePtr, true);
 
 		if (!sname.length())
 		{
@@ -306,7 +306,7 @@ namespace OS
 				return bdNamErr;
 			}
 
-			sname = ToolBox::ReadPString(ioNamePtr);
+			sname = ToolBox::ReadPString(ioNamePtr, true);
 
 			Log("     GetFileInfo(%s)\n", sname.c_str());
 
@@ -427,7 +427,7 @@ namespace OS
 			return bdNamErr;
 		}
 
-		sname = ToolBox::ReadPString(ioNamePtr);
+		sname = ToolBox::ReadPString(ioNamePtr, true);
 		Log("     SetFileInfo(%s)\n", sname.c_str());
 
 		// check if the file actually exists

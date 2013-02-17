@@ -172,7 +172,7 @@ namespace ToolBox {
 		cpuSetFlagsNZ00NewW(d0);
 	}
 
-	std::string ReadCString(uint32_t address)
+	std::string ReadCString(uint32_t address, bool fname)
 	{
 		std::string tmp;
 
@@ -181,10 +181,12 @@ namespace ToolBox {
 			tmp.assign((char *)memoryPointer(address));
 		}
 
+		if (fname) std::replace(tmp.begin(), tmp.end(), ':', '/');
+
 		return tmp;
 	}
 	
-	std::string ReadPString(uint32_t address)
+	std::string ReadPString(uint32_t address, bool fname)
 	{
 		std::string tmp;
 
@@ -193,6 +195,9 @@ namespace ToolBox {
 			unsigned length = memoryReadByte(address);
 		
 			tmp.assign((char *)memoryPointer(address + 1), length);
+
+			if (fname) std::replace(tmp.begin(), tmp.end(), ':', '/');
+			
 		}
 
 		return tmp;
