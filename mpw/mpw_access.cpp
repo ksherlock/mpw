@@ -22,6 +22,10 @@
 #include <toolbox/toolbox.h>
 #include <toolbox/os.h>
 
+/*
+ * access return errors are |= 0x40000000.  Not entirely sure why...
+ * may return an errno or an oserr, too, apparently.
+ */
 
 
 namespace MPW
@@ -79,7 +83,7 @@ namespace MPW
 
 		if (fd < 0)
 		{
-			// why the 0x40... ??
+			// return an errno.
 			d0 = 0x40000000 | errno_to_errno(errno);
 			f.error = -36; // ioErr ... whatever.
 			f.cookie = 0;

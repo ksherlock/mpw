@@ -48,7 +48,7 @@ namespace MPW
 
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
-			d0 = kEINVAL; // | 0x40000000 ?
+			d0 = kEINVAL;
 		}
 		else
 		{

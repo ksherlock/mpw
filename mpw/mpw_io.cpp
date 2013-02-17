@@ -75,7 +75,7 @@ namespace MPW
 			{
 				//f.count = 0;
 				f.error = OS::ioErr; // ioErr
-				d0 = 0x40000000 | errno_to_errno(errno);
+				d0 = errno_to_errno(errno);
 			}
 			else
 			{
@@ -140,7 +140,7 @@ namespace MPW
 			{
 				//f.count = 0;
 				f.error = -36; // ioErr
-				d0 = 0x40000000 | errno_to_errno(errno);
+				d0 = errno_to_errno(errno);
 			}
 			else
 			{
