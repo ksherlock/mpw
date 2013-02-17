@@ -17,8 +17,8 @@ namespace MM
 	namespace Native
 	{
 		uint16_t NewHandle(uint32_t size, uint32_t &handle);
-		uint16_t NewPtr(uint32_t size, uint32_t &pointer);
-		
+		uint16_t NewPtr(uint32_t size, bool clear, uint32_t &pointer);
+
 		uint16_t DisposeHandle(uint32_t handle);
 		uint16_t DisposePtr(uint32_t pointer);
 	}

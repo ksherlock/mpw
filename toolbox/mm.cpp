@@ -72,7 +72,7 @@ namespace MM
 
 	namespace Native {
 
-		uint16_t NewPtr(uint32_t size, uint32_t &mcptr)
+		uint16_t NewPtr(uint32_t size, bool clear, uint32_t &mcptr)
 		{
 			// native pointers.
 
@@ -85,6 +85,9 @@ namespace MM
 			{
 				return memFullErr;
 			}
+
+			if (clear)
+				std::memset(ptr, 0, size);
 
 			mcptr = ptr - Memory;
 			PtrMap.emplace(std::make_pair(mcptr, size));
@@ -219,17 +222,7 @@ namespace MM
 
 		uint32_t mcptr;
 		uint16_t error;
-		error = Native::NewPtr(size, mcptr);
-
-		if (!error)
-		{
-			if (clear && mcptr)
-			{
-				uint8_t *ptr = memoryPointer(mcptr);
-				std::memset(ptr, 0, size);
-			}
-
-		}
+		error = Native::NewPtr(size, clear, mcptr);
 
 		cpuSetAReg(0, mcptr);
 		return SetMemError(error);
