@@ -74,7 +74,14 @@ namespace {
 		);
 
 		return tmp;
+	}
 
+	std::string basename(const std::string &s)
+	{
+		int pos = s.find_last_of("/:");
+		if (pos == s.npos) return s;
+
+		return s.substr(pos + 1);
 	}
 
 }
@@ -129,6 +136,22 @@ namespace OS
 					return true;
 				break;
 
+		}
+
+		// check for e16.xxxx or m16.xxxx
+		ext = basename(s);
+		if (ext.length() > 4)
+		{
+			switch (ext[0])
+			{
+				case 'm':
+				case 'M':
+				case 'e':
+				case 'E':
+					if (!strncmp("16.", ext.c_str() + 1, 3))
+						return true;
+					break;
+			}
 		}
 
 		return false;
