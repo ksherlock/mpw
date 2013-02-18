@@ -126,7 +126,22 @@ namespace OS
 				if (ext == "c")
 					return true;
 				break;
+
+			case 'e':
+				if (ext == "equ") // asm iigs include file.
+					return true;
+				break;
 			
+			case 'i':
+				if (ext == "i") // asmiigs include file
+					return true;
+				break;
+
+			case 'h':
+				if (ext == "h") // c header 
+					return true;
+				break;
+
 			case 'l':
 				if (ext == "lst") // asm iigs listing
 					return true;
