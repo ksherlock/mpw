@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <ctime>
 
 namespace OS
 {
@@ -100,10 +101,16 @@ namespace OS
 	};
 
 
+	bool Init();
+
 	bool IsTextFile(const std::string &s);
 	bool IsBinaryFile(const std::string &s);
 
+	time_t UnixToMac(time_t);
+	time_t MacToUnix(time_t);
 
+
+	#pragma mark FS Utilities
 	uint16_t Create(uint16_t trap);
 	uint16_t Delete(uint16_t trap);
 	
@@ -113,7 +120,15 @@ namespace OS
 	uint16_t GetEOF(uint16_t trap);
 	uint16_t GetVol(uint16_t trap);
 
+	#pragma mark String Utilities
 	uint16_t CmpString(uint16_t trap);
+
+
+	#pragma mark - Time Utilities
+	uint16_t ReadDateTime(uint16_t trap);
+	uint16_t SecondsToDate(uint16_t trap);
+
+	uint16_t TickCount(uint16_t trap);
 
 }
 

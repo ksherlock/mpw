@@ -12,7 +12,6 @@
 #include "mm.h"
 #include "os.h"
 #include "qd.h"
-#include "mpw_time.h"
 
 
 // yuck.  TST.W d0
@@ -88,17 +87,17 @@ namespace ToolBox {
 
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
-				d0 = Time::ReadDateTime(trap);
+				d0 = OS::ReadDateTime(trap);
 				break;
 
 			// SecondsToDate (s: LongInt; VAR d: DateTimeRec);
 			case 0xa9c6:
-				d0 = Time::SecondsToDate(trap);
+				d0 = OS::SecondsToDate(trap);
 				break;
 		
 			// TickCount : LONGINT;
 			case 0xa975:
-				d0 = Time::TickCount(trap);
+				d0 = OS::TickCount(trap);
 				break;
 
 			//_CmpString [MARKS,CASE]
