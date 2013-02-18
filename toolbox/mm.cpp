@@ -48,7 +48,8 @@ namespace
 
 	bool alloc_handle_block()
 	{
-		const unsigned HandleCount = 128;
+		const unsigned HandleCount = 128; // 512 bytes of handle blocks.
+
 		uint8_t *block = (uint8_t *)mplite_malloc(&pool, 
 			sizeof(uint32_t) * HandleCount);
 
@@ -70,7 +71,37 @@ namespace
 namespace MM
 {
 
+	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved)
+	{
+		int ok;
+
+		Memory = memory;
+		MemorySize = memorySize;
+
+		ok = mplite_init(&pool, 
+			memory + reserved, 
+			memorySize - reserved, 
+			32, 
+			NULL);
+
+		if (ok != MPLITE_OK) return false;
+
+		// allocate a handle master block...
+
+		if (!alloc_handle_block()) return false;
+
+		return true;
+	}
+
 	namespace Native {
+
+
+
+		void PrintMemoryStats()
+		{
+			mplite_print_stats(&pool,  std::puts);
+		}
+
 
 		uint16_t NewPtr(uint32_t size, bool clear, uint32_t &mcptr)
 		{
@@ -113,27 +144,6 @@ namespace MM
 
 	}
 
-	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved)
-	{
-		int ok;
-
-		Memory = memory;
-		MemorySize = memorySize;
-
-		ok = mplite_init(&pool, 
-			memory + reserved, 
-			memorySize - reserved, 
-			32, 
-			NULL);
-
-		if (ok != MPLITE_OK) return false;
-
-		// allocate a handle block...
-
-		if (!alloc_handle_block()) return false;
-
-		return true;
-	}
 
 
 	uint16_t BlockMove(uint16_t trap)

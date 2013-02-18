@@ -32,12 +32,14 @@ struct {
 	bool traceToolBox;
 	bool traceMPW;
 
-} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false, false, false};
+	bool memoryStats;
+
+} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false, false, false, false};
 
 
 const uint32_t kGlobalSize = 0x10000;
 // retained to make debugging easier.
-uint8_t *Memory;
+uint8_t *Memory = nullptr;
 uint32_t MemorySize = 0;
 
 #if 0
@@ -66,7 +68,6 @@ uint32_t EmulatedNewPtr(uint32_t size)
 uint8_t ReadByte(const void *data, uint32_t offset)
 {
 	offset &= 0xffffff;
-	if (offset >= MemorySize) return 0;
 	return ((uint8_t *)data)[offset];
 }
 
@@ -85,15 +86,12 @@ uint32_t ReadLong(const void *data, uint32_t offset)
 void WriteByte(void *data, uint32_t offset, uint8_t value)
 {
 	offset &= 0xffffff;
-	if (offset >= MemorySize) return;
 	((uint8_t *)data)[offset] = value;
 }
 
 void WriteWord(void *data, uint32_t offset, uint16_t value)
 {
 	offset &= 0xffffff;
-
-	if (offset + 1 >= MemorySize) return;
 
 	((uint8_t *)data)[offset++] = value >> 8;
 	((uint8_t *)data)[offset++] = value;
@@ -102,8 +100,6 @@ void WriteWord(void *data, uint32_t offset, uint16_t value)
 void WriteLong(void *data, uint32_t offset, uint32_t value)
 {
 	offset &= 0xffffff;
-
-	if (offset + 3 >= MemorySize) return;
 
 	((uint8_t *)data)[offset++] = value >> 24;
 	((uint8_t *)data)[offset++] = value >> 16;
@@ -648,6 +644,7 @@ int main(int argc, char **argv)
 		kTraceGlobals,
 		kTraceToolBox,
 		kTraceMPW,
+		kMemoryStats,
 	};
 	static struct option LongOpts[] = 
 	{
@@ -658,7 +655,11 @@ int main(int argc, char **argv)
 		{ "trace-macsbug", no_argument, NULL, kTraceMacsBug },
 		{ "trace-globals", no_argument, NULL, kTraceGlobals },
 		{ "trace-toolbox", no_argument, NULL, kTraceToolBox },
+		{ "trace-tools", no_argument, NULL, kTraceToolBox },
 		{ "trace-mpw", no_argument, NULL, kTraceMPW },
+
+		{ "memory-stats", no_argument, NULL, kMemoryStats },
+
 		{ "help", no_argument, NULL, 'h' },
 		{ "version", no_argument, NULL, 'V' },
 		{ NULL, 0, NULL, 0 }
@@ -687,6 +688,10 @@ int main(int argc, char **argv)
 
 			case kTraceMPW:
 				Flags.traceMPW = true;
+				break;
+				
+			case kMemoryStats:
+				Flags.memoryStats = true;
 				break;
 
 			case 'm':
@@ -842,6 +847,11 @@ int main(int argc, char **argv)
 
 		if (cpuGetStop()) break; // will this also be set by an interrupt?
 		cpuExecuteInstruction();
+	}
+
+	if (Flags.memoryStats)
+	{
+		MM::Native::PrintMemoryStats();
 	}
 
 	uint32_t rv = MPW::ExitStatus();
