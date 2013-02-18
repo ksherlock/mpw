@@ -18,6 +18,7 @@
 #include <toolbox/toolbox.h>
 #include <toolbox/mm.h>
 #include <mpw/mpw.h>
+
 #include <mplite/mplite.h>
 
 struct {
@@ -34,10 +35,12 @@ struct {
 } Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false, false, false};
 
 
+const uint32_t kGlobalSize = 0x10000;
+// retained to make debugging easier.
 uint8_t *Memory;
-uint32_t HighWater = 0x10000;
 uint32_t MemorySize = 0;
 
+#if 0
 uint32_t EmulatedNewPtr(uint32_t size)
 {
 	if (size & 0x01) size++;
@@ -58,6 +61,7 @@ uint32_t EmulatedNewPtr(uint32_t size)
 
 	return address;
 }
+#endif
 
 uint8_t ReadByte(const void *data, uint32_t offset)
 {
@@ -163,6 +167,8 @@ uint32_t load(const char *file)
 		Handle h;
 		const uint8_t *data;
 
+		uint16_t error;
+
 
 		h = Get1IndResource('CODE', i + 1);
 		if (!h) continue;
@@ -187,27 +193,42 @@ uint32_t load(const char *file)
 
 			uint32_t a5size = above + below;
 
-			address = EmulatedNewPtr(a5size);
+			// TODO -- verify numbers are on word boundary?
+
+
+			error = MM::Native::NewPtr(a5size, true, address);
+			if (error)
+			{
+				fprintf(stderr, "Memory allocation error.\n");
+				return 0;
+			}
 
 			a5 = address + below;
-			std::memcpy(Memory + a5 + jtOffset, data + 16 , jtSize);
+			std::memcpy(memoryPointer(a5 + jtOffset), data + 16 , jtSize);
 
 			segments[resID] = std::make_pair(address, a5size);
 
 			jtStart = a5 + jtOffset;
 			jtEnd = jtStart + jtSize;
 
+
 			// 0x0934 - CurJTOffset (16-bit)
-			WriteWord(Memory, 0x0934, jtOffset);
+			memoryWriteWord(jtOffset, 0x0934);
 
 			// 0x0904 -- CurrentA5 (32-bit)
-			WriteLong(Memory, 0x0904, a5);
+			memoryWriteLong(a5, 0x0904);
 			cpuSetAReg(5, a5);
 		}
 		else
 		{
-			address = EmulatedNewPtr(size);
-			std::memcpy(Memory + address, data, size);
+			error = MM::Native::NewPtr(size, false, address);
+			if (error)
+			{
+				fprintf(stderr, "Memory allocation error.\n");
+				return 0;
+			}
+
+			std::memcpy(memoryPointer(address), data, size);
 
 			segments[resID] = std::make_pair(address, size);
 		}
@@ -221,11 +242,11 @@ uint32_t load(const char *file)
     bool first = true;
     for (; jtStart < jtEnd; jtStart += 8)
     {
-    	uint16_t offset = ReadWord(Memory, jtStart);
-    	uint16_t seg = ReadWord(Memory, jtStart + 4);
+    	uint16_t offset = memoryReadWord(jtStart);
+    	uint16_t seg = memoryReadWord(jtStart + 4);
 
-    	assert(ReadWord(Memory, jtStart + 2) == 0x3F3C);
-    	assert(ReadWord(Memory, jtStart + 6) == 0xA9F0);
+    	assert(memoryReadWord(jtStart + 2) == 0x3F3C);
+    	assert(memoryReadWord(jtStart + 6) == 0xA9F0);
 
     	assert(seg < segments.size());
 
@@ -237,8 +258,8 @@ uint32_t load(const char *file)
     	uint32_t address = p.first + offset + 4;
 
     	// JMP absolute long
-    	WriteWord(Memory, jtStart + 2, 0x4EF9);
-    	WriteLong(Memory, jtStart + 4, address);
+    	memoryWriteWord(0x4EF9, jtStart + 2);
+    	memoryWriteLong(address, jtStart + 4);
 
     	if (first)
     	{
@@ -247,7 +268,6 @@ uint32_t load(const char *file)
     		first = false;
     	}
     }
-
 
 
     // set pc to jump table entry 0.
@@ -461,12 +481,15 @@ void GlobalInit()
 {
 	// todo -- move this somewhere better.
 
+
 	// 0x031a - Lo3Bytes
-	WriteLong(Memory, 0x031a, 0x00ffffff);
+	memoryWriteLong(0x00ffffff, 0x031a);
+
 	// 0x0a02 - OneOne
-	WriteLong(Memory, 0x0a02, 0x00010001);
+	memoryWriteLong(0x00010001, 0x0a02);
+
 	// 0x0a06 - MinusOne
-	WriteLong(Memory, 0x0a06, 0xffffffff);
+	memoryWriteLong(0xffffffff, 0x0a06);
 
 
 	// todo -- expects high stack, low heap.
@@ -474,8 +497,7 @@ void GlobalInit()
 	// so put stack at top of memory?
 	
 	// 0x0130 -- ApplLimit
-	WriteLong(Memory, 0x0130, Flags.ram - 1);
-
+	memoryWriteLong(Flags.ram - 1, 0x0130);
 }
 
 
@@ -710,16 +732,26 @@ int main(int argc, char **argv)
 		exit(EX_USAGE);
 	}
 
+	std::string command(argv[0]); // InitMPW updates argv...
+
 	Memory = new uint8_t[Flags.ram];
 	MemorySize = Flags.ram;
 
+
+	/// ahhh... need to set PC after memory.
+	// for pre-fetch.
+	memorySetMemory(Memory, MemorySize);
+
+	// should we subtract memory from the top
+	// for the stack vs allocating it?
+
+	MM::Init(Memory, MemorySize, kGlobalSize);
+
+	MPW::Init(argc, argv);
+
+
 	cpuStartup();
 	cpuSetModel(3,0);
-
-	uint32_t address = load(argv[0]);
-
-	//InitializeMPW(argc, argv);
-	GlobalInit();
 
 
 
@@ -732,33 +764,42 @@ int main(int argc, char **argv)
 	std::pair<uint32_t, uint32_t> StackRange;
 	// allocate stack, set A7...
 	{
-		Flags.stack = (Flags.stack + 3) & ~0x03;
-		uint32_t address = EmulatedNewPtr(Flags.stack);
+		uint32_t address;
+		uint16_t error;
 
+		Flags.stack = (Flags.stack + 3) & ~0x03;
+
+		error = MM::Native::NewPtr(Flags.stack, true, address);
+		if (error)
+		{
+			fprintf(stderr, "Unable to allocate stack (%08x bytes)\n", Flags.stack);
+			exit(EX_CONFIG);
+		}
 
 		StackRange.first = address;
 		StackRange.second = address + Flags.stack;
+
+		// TODO -- is there a global for the max (min) stack pointer?
 
 		// address grows down
 		// -4 is for the return address.
 		cpuSetAReg(7, address + Flags.stack - 4);
 		// return address.
-		WriteLong(Memory, address + Flags.stack - 4, 0x0a06); // MinusOne global :) 
+		memoryWriteLong(0x0a06, StackRange.second - 4); // MinusOne Global -- 0xffff ffff
 	}
+
+
+	uint32_t address = load(command.c_str());
+	if (!address) exit(EX_CONFIG);
+
+	GlobalInit();
+
 
 	cpuSetALineExceptionFunc(ToolBox::dispatch);
 	cpuSetFLineExceptionFunc(MPW::dispatch);
 
 
-	/// ahhh... need to set PC after memory.
-	// for pre-fetch.
-	memorySetMemory(Memory, MemorySize);
-	if (Flags.traceGlobals) memorySetGlobalLog(0x10000);
-	cpuInitializeFromNewPC(address);
-
-	MM::Init(Memory, MemorySize, HighWater);
-
-	MPW::Init(argc, argv);
+	if (Flags.traceGlobals) memorySetGlobalLog(kGlobalSize);
 
 
 	MPW::Trace = Flags.traceMPW;
@@ -771,6 +812,7 @@ int main(int argc, char **argv)
 	}
 
 
+	cpuInitializeFromNewPC(address);
 
 
 	for (;;)
@@ -781,20 +823,20 @@ int main(int argc, char **argv)
 		if (pc == 0x00000000)
 		{
 			fprintf(stderr, "Exiting - PC = 0\n");
-			exit(1);
+			exit(EX_SOFTWARE);
 		}
 
 		if (sp < StackRange.first)
 		{
 			fprintf(stderr, "Stack overflow error - please increase the stack size (--stack=size)\n");
 			fprintf(stderr, "Current stack size is 0x%06x\n", Flags.stack);
-			exit(1);
+			exit(EX_SOFTWARE);
 		}
 
 		if (sp > StackRange.second)
 		{
 			fprintf(stderr, "Stack underflow error\n");
-			exit(1);
+			exit(EX_SOFTWARE);
 		}
 
 
