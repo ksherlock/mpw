@@ -581,10 +581,20 @@ void InstructionLogger()
 
 }
 
+#define MPW_VERSION "0.1"
 void help()
 {
-
-
+	printf("MPW " MPW_VERSION "\n");
+	printf("Usage: mpw [options] utility ...\n");
+	printf("\n");
+	printf(" --help              display usage information\n");
+	printf(" --trace-cpu         print cpu information\n");
+	printf(" --trace-macsbug     print macsbug names\n");
+	printf(" --trace-toolbox     print toolbox calls\n");
+	printf(" --trace-mpw         print mpw calls\n");
+	printf(" --memory stats      print memory usage information\n");
+	printf(" --ram=<number>      set the ram size.  Default=16M");
+	printf(" --stack=<number>    set the stack size.  Default=8K");
 }
 
 bool parse_number(const char *input, uint32_t *dest)
@@ -721,7 +731,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 'V':
-				printf("mpw version 0");
+				printf("mpw version " MPW_VERSION "\n");
 				exit(EX_OK);
 				break;
 		}
