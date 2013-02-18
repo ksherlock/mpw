@@ -8,6 +8,7 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include <CoreServices/CoreServices.h>
 
@@ -642,6 +643,59 @@ bool parse_number(const char *input, uint32_t *dest)
 	return true;
 }
 
+bool file_exists(const std::string & name)
+{
+	struct stat st;
+
+	return ::stat(name.c_str(), &st) == 0;
+}
+
+std::string find_exe(const std::string &name)
+{
+	std::string path;
+	std::string subpath;
+
+	if (file_exists(name)) return name;
+
+	// if name is a path, then it doesn't exist.
+	if (name.find('/') != name.npos) return std::string();
+
+	// check in $MPW/name.
+
+	path = getenv("mpw_path");
+	// split on :
+
+	if (path.empty()) return std::string();
+
+	int start = 0, end = 0;
+
+	while ((end = path.find(':', start)) != path.npos)
+	{
+		subpath = path.substr(start, end - start);
+
+		if (subpath.length())
+		{
+			subpath.push_back('/');
+			subpath.append(name);
+
+			if (file_exists(subpath)) return subpath;			
+		}
+
+		start = end + 1;
+	}
+
+	subpath = path.substr(start);
+	if (subpath.length())
+	{
+		subpath.push_back('/');
+		subpath.append(name);
+
+		if (file_exists(subpath)) return subpath;
+	}
+
+	return std::string();
+}
+
 
 int main(int argc, char **argv)
 {
@@ -748,6 +802,18 @@ int main(int argc, char **argv)
 	}
 
 	std::string command(argv[0]); // InitMPW updates argv...
+
+	command = find_exe(command);
+	if (command.empty())
+	{
+		const char *path = getenv("mpw_path");
+		fprintf(stderr, "Unable to find command %s\n", argv[0]);
+		fprintf(stderr, "mpw_path = %s\n", path ? path : "<null>");
+		exit(EX_USAGE);
+	}
+	argv[0] = ::strdup(command.c_str()); // hmm.. could setenv(mpw_command) instead.
+
+
 
 	Memory = new uint8_t[Flags.ram];
 	MemorySize = Flags.ram;
