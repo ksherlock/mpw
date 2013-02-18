@@ -94,6 +94,9 @@ namespace MPW
 		FDTable[STDOUT_FILENO] = 1;
 		FDTable[STDERR_FILENO] = 1;
 
+		std::string command = argv[0];
+
+		std::replace(command.begin(), command.end(), '/', ':');
 
 		argv[0] = basename(argv[0]);
 
@@ -161,13 +164,26 @@ namespace MPW
 
 		}
 
-		// todo -- do the same for envp.
-		// scan the native environment for MPW-name variables?
+		// do the same for envp.
+		// mpw_* variables in the native environment are imported.
 		// values are stored as key\0value\0, not key=value\0
 		{
 
 			std::deque<std::string> e;
 			uint32_t size = 0;
+
+			{
+				// command name (includes path)
+				// asm iigs stores error text in the data fork,
+				// using {Command} to access it.
+				std::string tmp;
+				tmp.append("Command");
+				tmp.push_back(0);
+				tmp.append(command);
+
+				e.emplace_back(std::move(tmp));
+
+			}
 
 			for (unsigned i = 0 ; environ[i]; ++i)
 			{
@@ -176,21 +192,22 @@ namespace MPW
 				char *cp = environ[i];
 				if (std::strncmp("mpw_", cp, 4)) continue;
 
-
 				std::string tmp = cp + 4;
-				tmp.push_back(0);
-				if (tmp.length() & 0x01) tmp.push_back(0);
 
 				pos = tmp.find('=');
 				if (pos == tmp.npos) continue;
 				tmp[pos] = 0;
 
-				size += 4; // ptr
-				size += tmp.length();
-
-				e.push_back(std::move(tmp));
+				e.emplace_back(std::move(tmp));
 			}
 
+			size = 0;
+			for(const std::string &s : e)
+			{
+				int l = s.length() + 1;
+				if (l & 0x01) l++;
+				size = size + l + 4;
+			}
 
 			size += 4; // space for null terminator.
 
@@ -208,10 +225,11 @@ namespace MPW
 				// ptr
 				memoryWriteLong(envptr + offset, envptr + i * 4);
 
-				int l = s.length();
+				int l = s.length() + 1;
 
-				std::memcpy(xptr + offset, s.data(), l);
+				std::memcpy(xptr + offset, s.c_str(), l);
 
+				if (l & 0x01) l++;
 				offset += l;
 				++i;
 			}
