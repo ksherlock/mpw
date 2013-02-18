@@ -1,18 +1,33 @@
 --trace-cpu:
-- move trace-cpu code into a logger callback
-- add support for tool traps
 - add support for global vars [?]
 - improve MOVEM disassembly [?]
 
 ---
 
-- check for stack range errors
-- add memory manager code
-- add stand-alone disasm utility
-- log memory access to global vars
 - --24 flag for non-32-bit clean code
 
 - since code segments are loaded from a resource and the code may try to reload itself (ResourceByName), it really needs to be done via the emulated ResourceMgr/Memory Manager.
 
+- ftrap_delete
+- ftrap_editor_tabs
+
+- if file doesn't exist, check in $MPW/Tools/
+- include file w/ all global names
+- include file w/ all os errors
+- move time to OS::, add OS::Init to set start time global / ticks
+- use alarm / ualarm to update ticks/ time global?
+
+
+Done
+----
+
 - Use MM code for all memory allocs
 - GetFileInfo -- create fake finderinfo record from extension. 
+- check for stack range errors
+- add memory manager code
+- add stand-alone disasm utility
+- log memory access to global vars
+- --trace-cpu: add support for tool traps
+- --trace-cpu: move trace-cpu code into a logger callback
+
+
