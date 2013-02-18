@@ -661,8 +661,10 @@ std::string find_exe(const std::string &name)
 	if (name.find('/') != name.npos) return std::string();
 
 	// check in $MPW/name.
+	const char *cpath = getenv("mpw_path");
+	if (!cpath) return std::string();
 
-	path = getenv("mpw_path");
+	path = cpath; 
 	// split on :
 
 	if (path.empty()) return std::string();
