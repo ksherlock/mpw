@@ -562,15 +562,28 @@ void InstructionLogger()
 		#endif
 	}
 
-	if (opcode == 0x4E75 || opcode == 0x4ED0) // RTS or JMP (A0)
+	int mboffset = 0;
+	switch (opcode)
 	{
+		case 0x4E75: // rts
+		case 0x4ED0: // jmp (a0)
+			mboffset = 2;
+			break;
+		case 0x4E74: // rtd #
+			mboffset = 4;
+			break;
+	}
+
+	if (mboffset) // RTS or JMP (A0)
+	{
+		pc += mboffset;
 		// check for MacsBug name after rts.
 		std::string s;
-		unsigned b = memoryReadByte(pc + 2);
+		unsigned b = memoryReadByte(pc);
 		if (b > 0x80 && b < 0xa0)
 		{
 			b -= 0x80;
-			pc += 3;
+			pc++;
 			s.reserve(b);
 			for (unsigned i = 0; i < b; ++i)
 			{
