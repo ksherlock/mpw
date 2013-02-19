@@ -652,14 +652,29 @@ bool file_exists(const std::string & name)
 
 std::string find_exe(const std::string &name)
 {
-	std::string path;
-	std::string subpath;
-
 	if (file_exists(name)) return name;
 
 	// if name is a path, then it doesn't exist.
 	if (name.find('/') != name.npos) return std::string();
 
+
+	const char *mpw = getenv("MPW");
+	if (!mpw || !*mpw) return std::string();
+
+	std::string path(mpw);
+
+	if (path.back() != '/') path.push_back('/');
+	path.append("Tools/");
+	path.append(name);
+
+	if (file_exists(path)) return path;
+
+	return std::string();
+
+
+
+#if 0
+	std::string subpath;
 	// check in $MPW/name.
 	const char *cpath = getenv("mpw_path");
 	if (!cpath) return std::string();
@@ -696,6 +711,7 @@ std::string find_exe(const std::string &name)
 	}
 
 	return std::string();
+#endif
 }
 
 
@@ -808,9 +824,9 @@ int main(int argc, char **argv)
 	command = find_exe(command);
 	if (command.empty())
 	{
-		const char *path = getenv("mpw_path");
+		const char *mpw = getenv("MPW");
 		fprintf(stderr, "Unable to find command %s\n", argv[0]);
-		fprintf(stderr, "mpw_path = %s\n", path ? path : "<null>");
+		fprintf(stderr, "$MPW = %s\n", mpw ? mpw : "<null>");
 		exit(EX_USAGE);
 	}
 	argv[0] = ::strdup(command.c_str()); // hmm.. could setenv(mpw_command) instead.

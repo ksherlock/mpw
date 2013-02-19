@@ -164,6 +164,115 @@ namespace MPW
 
 		}
 
+		// environment,
+		// just use $MPW and synthesize the other ones.
+		{
+
+			std::deque<std::string> e;
+
+			{
+				// command name (includes path)
+				// asm iigs stores error text in the data fork,
+				// using {Command} to access it.
+				std::string tmp;
+				tmp.append("Command");
+				tmp.push_back(0);
+				tmp.append(command);
+
+				e.emplace_back(std::move(tmp));
+
+			}
+
+			const char *mpw = getenv("MPW");
+			if (mpw && *mpw)
+			{
+				std::string tmp;
+				std::string root(mpw);
+
+				std::replace(root.begin(), root.end(), '/', ':');
+				if (root.back() != ':') root.push_back(':');
+
+				tmp = "MPW";
+				tmp.push_back(0);
+				tmp.append(root);
+				e.emplace_back(std::move(tmp));
+
+
+				tmp = "AIIGSIncludes";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Interfaces:AIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
+				tmp = "RIIGSIncludes";
+				tmp.append(root);
+				tmp.append("Interfaces:RIIGSIncludes:");
+				e.emplace_back(std::move(tmp));				
+
+				tmp = "CIIGSIncludes";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Interfaces:CIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
+				tmp = "CIIGSLibraries";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Libraries:CIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
+				tmp = "PIIGSIncludes";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Interfaces:PIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
+				tmp = "PIIGSLibraries";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Libraries:PIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+			}
+
+			uint32_t size = 0;
+			for(const std::string &s : e)
+			{
+				int l = s.length() + 1;
+				if (l & 0x01) l++;
+				size = size + l + 4;
+			}
+
+			size += 4; // space for null terminator.
+
+			error = MM::Native::NewPtr(size, true, envptr);
+			if (error) return error;
+
+
+			uint8_t *xptr = memoryPointer(envptr);
+			uint32_t offset = 0;
+
+			offset = 4 * (e.size() + 1);
+			unsigned i = 0;
+			for (const std::string &s : e)
+			{
+				// ptr
+				memoryWriteLong(envptr + offset, envptr + i * 4);
+
+				int l = s.length() + 1;
+
+				std::memcpy(xptr + offset, s.c_str(), l);
+
+				if (l & 0x01) l++;
+				offset += l;
+				++i;
+			}
+
+
+			// null-terminate it.
+			memoryWriteLong(0, envptr + 4 * e.size());
+		}
+
+#if 0
 		// do the same for envp.
 		// mpw_* variables in the native environment are imported.
 		// values are stored as key\0value\0, not key=value\0
@@ -238,6 +347,8 @@ namespace MPW
 			// null-terminate it.
 			memoryWriteLong(0, envptr + 4 * e.size());
 		}
+#endif
+
 
 		// ftable
 		{
