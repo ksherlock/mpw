@@ -134,6 +134,11 @@ namespace ToolBox {
 
 			// resource manager stuff.
 
+			// Get1Resource (theType: ResType; thelD: INTEGER) : Handle;
+			case 0xa81f:
+				d0 = RM::Get1Resource(trap);
+				break;
+
 			// Get1NamedResource (theType: ResType; name: Str255) : Handle;
 			case 0xa820:
 				d0 = RM::Get1NamedResource(trap);
@@ -142,6 +147,11 @@ namespace ToolBox {
 			// GetResource (theType: ResType; thelD: INTEGER) : Handle;
 			case 0xa9a0:
 				d0 = RM::GetResource(trap);
+				break;
+
+			// ReleaseResource (theResource: Handle);
+			case 0xa9a3:
+				d0 = RM::ReleaseResource(trap);
 				break;
 
 			// UnloadSeg (routineAddr: Ptr);
