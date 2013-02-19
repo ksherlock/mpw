@@ -204,7 +204,20 @@ namespace MPW
 				tmp.append("Interfaces:AIIGSIncludes:");
 				e.emplace_back(std::move(tmp));
 
+				// 1.0 compatibility
+				tmp = "AIIGSInclude";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Interfaces:AIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
 				tmp = "RIIGSIncludes";
+				tmp.append(root);
+				tmp.append("Interfaces:RIIGSIncludes:");
+				e.emplace_back(std::move(tmp));	
+
+				// 1.0 compatibility
+				tmp = "RIIGSInclude";
 				tmp.append(root);
 				tmp.append("Interfaces:RIIGSIncludes:");
 				e.emplace_back(std::move(tmp));				
@@ -215,7 +228,21 @@ namespace MPW
 				tmp.append("Interfaces:CIIGSIncludes:");
 				e.emplace_back(std::move(tmp));
 
+				// 1.0 compatibility
+				tmp = "CIIGSinclude"; // lowercase include [??]
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Interfaces:CIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
 				tmp = "CIIGSLibraries";
+				tmp.push_back(0);
+				tmp.append(root);
+				tmp.append("Libraries:CIIGSIncludes:");
+				e.emplace_back(std::move(tmp));
+
+				// 1.0 compatibility
+				tmp = "CIIGSLibrary";
 				tmp.push_back(0);
 				tmp.append(root);
 				tmp.append("Libraries:CIIGSIncludes:");
@@ -232,6 +259,8 @@ namespace MPW
 				tmp.append(root);
 				tmp.append("Libraries:PIIGSIncludes:");
 				e.emplace_back(std::move(tmp));
+
+
 			}
 
 			uint32_t size = 0;
