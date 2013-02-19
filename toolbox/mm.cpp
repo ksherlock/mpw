@@ -201,6 +201,29 @@ namespace MM
 		 return 0x0f0000;
 	}
 
+	uint16_t MoveHHi(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0: Handle to move
+		 *
+		 * on exit:
+		 * D0: Result code.
+		 *
+		 */
+
+		uint32_t theHandle = cpuGetAReg(0);
+
+		 Log("%04x MoveHHi(%08x)\n", trap, theHandle);
+
+		// check if it's valid.
+
+		auto iter = HandleMap.find(theHandle);
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		return SetMemError(0);
+	}
+
 
 
 	#pragma mark Pointers

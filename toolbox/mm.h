@@ -45,6 +45,9 @@ namespace MM
 
 	uint16_t HLock(uint16_t trap);
 	uint16_t HUnlock(uint16_t trap);
+
+	uint16_t MoveHHi(uint16_t trap);
+
 }
 
 

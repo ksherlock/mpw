@@ -84,6 +84,10 @@ namespace ToolBox {
 				d0 = MM::CompactMem(trap);
 				break;
 
+			// MoveHHi (h: Handle);
+			case 0xa064:
+				d0 = MM::MoveHHi(trap);
+				break;
 
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
