@@ -12,6 +12,7 @@
 #include "mm.h"
 #include "os.h"
 #include "qd.h"
+#include "sane.h"
 
 
 // yuck.  TST.W d0
@@ -182,6 +183,11 @@ namespace ToolBox {
 				d0 = QD::GetFNum(trap);
 				break;
 
+
+			// sane
+			case 0xa9Eb:
+				d0 = SANE::fp68k(trap);
+				break;
 
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
