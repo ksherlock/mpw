@@ -95,7 +95,7 @@ void disasm(const char *name, int segment, uint32_t data_size)
 
 		uint16_t op = memoryReadWord(pc);
 
-		if (prevOP == 0x4E75  || prevOP == 0x4ED0)
+		if (prevOP == 0x4E75  || prevOP == 0x4ED0 || prevOP == 0x4E74)
 		{
 			if (op > 0x8000)
 			{
