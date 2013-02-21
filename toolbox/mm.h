@@ -18,7 +18,9 @@ namespace MM
 
 		void PrintMemoryStats();
 
-		uint16_t NewHandle(uint32_t size, uint32_t &handle);
+		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle);
+		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle, uint32_t &ptr);
+
 		uint16_t NewPtr(uint32_t size, bool clear, uint32_t &pointer);
 
 		uint16_t DisposeHandle(uint32_t handle);

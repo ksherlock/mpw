@@ -114,7 +114,7 @@ namespace MM
 			ptr = (uint8_t *)mplite_malloc(&pool, size);
 			if (!ptr)
 			{
-				return memFullErr;
+				return SetMemError(memFullErr);
 			}
 
 			if (clear)
@@ -123,7 +123,7 @@ namespace MM
 			mcptr = ptr - Memory;
 			PtrMap.emplace(std::make_pair(mcptr, size));
 
-			return 0;
+			return SetMemError(0);
 		}
 		
 		uint16_t DisposePtr(uint32_t mcptr)
@@ -131,14 +131,84 @@ namespace MM
 
 			auto iter = PtrMap.find(mcptr);
 
-			if (iter == PtrMap.end()) return memWZErr;
+			if (iter == PtrMap.end()) return SetMemError(memWZErr);
 			PtrMap.erase(iter);
 
 			uint8_t *ptr = mcptr + Memory;
 
 			mplite_free(&pool, ptr);
 
-			return 0;
+			return SetMemError(0);
+		}
+
+		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle, uint32_t &mcptr)
+		{
+			uint8_t *ptr;
+			uint32_t hh;
+
+			handle = 0;
+			mcptr = 0;
+
+			if (!HandleQueue.size())
+			{
+				if (!alloc_handle_block())
+				{
+					return SetMemError(memFullErr);
+				}
+			}
+
+			hh = HandleQueue.front();
+			HandleQueue.pop_front();
+
+			ptr = nullptr;
+
+			if (size)
+			{
+				ptr = (uint8_t *)mplite_malloc(&pool, size);
+				if (!ptr)
+				{
+					HandleQueue.push_back(hh);
+					return SetMemError(memFullErr);
+				}
+				mcptr = ptr - Memory; 
+
+				if (clear)
+					std::memset(ptr, 0, size);
+			}
+
+			// need a handle -> ptr map?
+			HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
+
+			memoryWriteLong(mcptr, hh);
+			handle = hh;
+			return SetMemError(0);
+		}
+
+		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle)
+		{
+			uint32_t ptr;
+			return NewHandle(size, clear, handle, ptr);
+		}
+
+
+
+		uint16_t DisposeHandle(uint32_t handle)
+		{
+			auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+			HandleInfo info = iter->second;
+
+			HandleMap.erase(iter);
+
+			uint8_t *ptr = info.address + Memory;
+
+			mplite_free(&pool, ptr);
+
+			HandleQueue.push_back(handle);
+
+			return SetMemError(0);
 		}
 
 
@@ -258,7 +328,7 @@ namespace MM
 		error = Native::NewPtr(size, clear, mcptr);
 
 		cpuSetAReg(0, mcptr);
-		return SetMemError(error);
+		return error; //SetMemError(error);
 	}
 
 	uint16_t DisposePtr(uint16_t trap)
@@ -280,7 +350,7 @@ namespace MM
 		uint16_t error;
 		error = Native::DisposePtr(mcptr);
 
-		return SetMemError(error);
+		return error; //SetMemError(error);
 	}
 
 	uint32_t GetPtrSize(uint16_t trap)
@@ -354,8 +424,7 @@ namespace MM
 		 */
 
 		uint32_t hh = 0;
-		uint8_t *ptr;
-		uint32_t mcptr;
+		uint16_t error;
 
 		bool clear = trap & (1 << 9);
 		//bool sys = trap & (1 << 10);
@@ -364,42 +433,10 @@ namespace MM
 
 		Log("%04x NewHandle(%08x)\n", trap, size);
 
-		if (!HandleQueue.size())
-		{
-			if (!alloc_handle_block())
-			{
-				cpuSetAReg(0, 0);
-				return SetMemError(memFullErr);
-			}
-		}
+		error = Native::NewHandle(size, clear, hh);
 
-		hh = HandleQueue.front();
-		HandleQueue.pop_front();
-
-		ptr = nullptr;
-		mcptr = 0;
-
-		if (size)
-		{
-			ptr = (uint8_t *)mplite_malloc(&pool, size);
-			if (!ptr)
-			{
-				HandleQueue.push_back(hh);
-				cpuSetAReg(0, 0);
-				return SetMemError(memFullErr);
-			}
-			mcptr = ptr - Memory; 
-
-			if (clear)
-				std::memset(ptr, 0, size);
-		}
-
-		// need a handle -> ptr map?
-		HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
-
-		memoryWriteLong(mcptr, hh);
 		cpuSetAReg(0, hh);
-		return SetMemError(0);
+		return error;
 	}
 
 	uint16_t DisposeHandle(uint16_t trap)
@@ -417,22 +454,7 @@ namespace MM
 
 		Log("%04x DisposeHandle(%08x)\n", trap, hh);
 
-
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
-
-		HandleInfo info = iter->second;
-
-		HandleMap.erase(iter);
-
-		uint8_t *ptr = info.address + Memory;
-
-		mplite_free(&pool, ptr);
-
-		HandleQueue.push_back(hh);
-
-		return SetMemError(0);
+		return Native::DisposeHandle(hh);
 	}
 
 	#pragma mark Handle attributes
