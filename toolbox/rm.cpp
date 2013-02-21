@@ -1,3 +1,12 @@
+
+#include <string>
+//#include <unordered_map>
+#include <list>
+
+
+#include <CoreServices/CoreServices.h>
+
+
 #include "rm.h"
 #include "toolbox.h"
 #include "mm.h"
@@ -6,13 +15,30 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
-#include <string>
+
 #include "stackframe.h"
 
 using ToolBox::Log;
 
 namespace
 {
+
+#if 0
+	struct ResEntry
+	{
+		ResEntry(uint32_t type = 0, uint32_t id = 0) : 
+			resType(type), resID(id)
+		{}
+		uint32_t resType;
+		uint32_t resID;
+		uint32_t handle;
+	};
+
+	std::list<ResEntry> ResourceMapList;
+#endif
+	// sigh... really need to create a resmap for every open
+	// resource file and update that with the pointer.
+
 
 	std::string TypeToString(uint32_t type)
 	{
@@ -30,6 +56,40 @@ namespace
 
 		return std::string(tmp);
 	}
+
+	uint32_t GetXResource(uint32_t type, uint16_t id)
+	{
+		uint32_t handle;
+		uint32_t ptr;
+		uint16_t error;
+
+		Handle nativeHandle;
+		uint32_t size;
+
+		switch (type)
+		{
+			case 0x76657273: // vers;
+			case 0x48455841: // HEXA
+				break;
+			default:
+				return 0;
+		}
+
+		nativeHandle = ::Get1Resource(type, id);
+		if (!nativeHandle) return 0;
+
+		size = ::GetHandleSize(nativeHandle);
+		error = MM::Native::NewHandle(size, false, handle, ptr);
+
+		if (!handle) return 0;
+
+		std::memcpy(memoryPointer(ptr), *(void **)nativeHandle, size);
+		::ReleaseResource(nativeHandle);
+
+		return handle;
+	}
+
+
 }
 namespace RM
 {
@@ -87,13 +147,19 @@ namespace RM
 		uint32_t theType;
 		uint16_t theID;
 
+		uint32_t resourceHandle;
+
 		sp = StackFrame<6>(theType, theID);
 
 		Log("%04x GetResource(%08x ('%s'), %04x)\n", trap, theType, TypeToString(theType).c_str(), theID);
 
-		ToolReturn<4>(sp, 0);
-		return -192;
+
+		resourceHandle = GetXResource(theType, theID);
+
+		ToolReturn<4>(sp, resourceHandle);
+		return resourceHandle ? 0 : -192;
 	}
+
 
 	uint16_t Get1Resource(uint16_t trap)
 	{
@@ -116,12 +182,17 @@ namespace RM
 		uint32_t theType;
 		uint16_t theID;
 
+		uint32_t resourceHandle;
+
+
 		sp = StackFrame<6>(theType, theID);
 
 		Log("%04x Get1Resource(%08x ('%s'), %04x)\n", trap, theType, TypeToString(theType).c_str(), theID);
 
-		ToolReturn<4>(sp, 0);
-		return -192;
+		resourceHandle = GetXResource(theType, theID);
+
+		ToolReturn<4>(sp, resourceHandle);
+		return resourceHandle ? 0 : -192;
 	}
 
 
@@ -136,14 +207,14 @@ namespace RM
 		 *
 		 */
 
-		 uint32_t sp;
-		 uint32_t theResource;
+		uint32_t sp;
+		uint32_t theResource;
 
-		 sp = StackFrame<4>(theResource);
+		sp = StackFrame<4>(theResource);
 
-		 Log("%04x ReleaseResource(%08x)\n", trap, theResource);
+		Log("%04x ReleaseResource(%08x)\n", trap, theResource);
 
-		 return 0;
+		return 0;
 	}
 
 
