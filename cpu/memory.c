@@ -108,15 +108,27 @@ ULO memoryReadLong(ULO address)
 
 	if (address & 0x01) memoryOddRead(address);
 
-	if (address + 1 < MemorySize)
+	if (address + 3 < MemorySize)
 		return (Memory[address++] << 24) 
 			| (Memory[address++] << 16)
 			| (Memory[address++] << 8)
 			| (Memory[address++] << 0); 
 
 	return 0;
-
 }
+
+
+uint64_t memoryReadLongLong(ULO address)
+{
+	uint64_t tmp;
+
+	tmp = memoryReadLong(address);
+	tmp <<= 32;
+	tmp |= memoryReadLong(address + 4);
+
+	return tmp;
+}
+
 void memoryWriteByte(UBY data, ULO address)
 {
 	if (address < MemoryGlobalLog)
@@ -167,4 +179,27 @@ void memoryWriteLong(ULO data, ULO address)
 	}
 }
 
+
+void memoryWriteLongLong(uint64_t data, ULO address)
+{
+	if (address < MemoryGlobalLog)
+	{
+		fprintf(stderr, "memoryWriteLongLong(%08llx, %08x)\n", data, address);
+	}
+
+	if (address & 0x01) memoryOddWrite(address);
+
+	if (address + 7 < MemorySize)
+	{
+		Memory[address++] = data >> 56;
+		Memory[address++] = data >> 48;
+		Memory[address++] = data >> 40;
+		Memory[address++] = data >> 32;
+		Memory[address++] = data >> 24;
+		Memory[address++] = data >> 16;
+		Memory[address++] = data >> 8;
+		Memory[address++] = data >> 0;
+	}
+
+}
 

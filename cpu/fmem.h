@@ -16,9 +16,11 @@ extern uint8_t *memoryPointer(uint32_t address);
 extern UBY memoryReadByte(ULO address);
 extern UWO memoryReadWord(ULO address);
 extern ULO memoryReadLong(ULO address);
+extern uint64_t memoryReadLongLong(ULO address);
 extern void memoryWriteByte(UBY data, ULO address);
 extern void memoryWriteWord(UWO data, ULO address);
 extern void memoryWriteLong(ULO data, ULO address);
+extern void memoryWriteLongLong(uint64_t data, ULO address);
 
 extern UWO memoryChipReadWord(ULO address);
 extern void memoryChipWriteWord(UWO data, ULO address);
