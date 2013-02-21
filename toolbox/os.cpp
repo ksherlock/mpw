@@ -573,7 +573,6 @@ namespace OS
 			a.end(), 
 			b.begin(), 
 			[caseSens](char a, char b){
-				if (a == b) return true;
 				if (!caseSens)
 				{
 					a = toupper(a);
