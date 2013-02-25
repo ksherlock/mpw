@@ -487,6 +487,7 @@ namespace OS
 		ssize_t count = ::read(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
 		if (count >= 0)
 		{
+			d0 = 0;
 			pos += count;
 			memoryWriteLong(count, parm + 40);
 		} 
