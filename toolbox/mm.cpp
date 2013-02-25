@@ -553,4 +553,29 @@ namespace MM
 		return 0;
 	}
 
+
+	#pragma mark -
+	uint32_t StripAddress(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * d0 Address to strip
+		 *
+		 * on exit:
+		 * D0 Address that has been stripped.
+		 *
+		 */
+
+		// TODO -- in 32-bit mode, this is a nop.
+		// have a --24 / --32 flag?
+
+		uint32_t address = cpuGetDReg(0);
+
+		Log("%04x StripAddress(%08x)\n", trap, address);
+
+		address &= 0x00ffffff;
+		return address;
+	}
+
+
 }

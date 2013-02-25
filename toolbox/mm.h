@@ -52,6 +52,8 @@ namespace MM
 	
 	uint16_t MoveHHi(uint16_t trap);
 
+	uint32_t StripAddress(uint16_t trap);
+
 }
 
 

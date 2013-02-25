@@ -101,6 +101,10 @@ namespace ToolBox {
 				d0 = MM::CompactMem(trap);
 				break;
 
+			case 0xa055:
+				d0 = MM::StripAddress(trap);
+				break;
+
 			// MoveHHi (h: Handle);
 			case 0xa064:
 				d0 = MM::MoveHHi(trap);
