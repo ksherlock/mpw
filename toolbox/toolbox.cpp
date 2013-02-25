@@ -67,6 +67,10 @@ namespace ToolBox {
 				d0 = MM::DisposeHandle(trap);
 				break;
 
+			case 0xa025:
+				d0 = MM::GetHandleSize(trap);
+				break;
+
 			case 0xa029:
 				d0 = MM::HLock(trap);
 				break;
@@ -78,6 +82,10 @@ namespace ToolBox {
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
 			case 0xa02e:
 				d0 = MM::BlockMove(trap);
+				break;
+
+			case 0xa049:
+				d0 = MM::HPurge(trap);
 				break;
 
 			// CompactMem (cbNeeded: Size) : Size;

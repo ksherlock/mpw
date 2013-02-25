@@ -457,9 +457,57 @@ namespace MM
 		return Native::DisposeHandle(hh);
 	}
 
+
+	uint32_t GetHandleSize(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 handle
+		 *
+		 * on exit:
+		 * D0 size (32-bit) or error code
+		 *
+		 */
+
+		uint32_t hh = cpuGetAReg(0);
+
+		Log("%08x GetHandleSize(%08x,)\n", trap, hh);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		return iter->second.size;
+	}
+
+
 	#pragma mark Handle attributes
 
 	// these are all nops for now.
+
+	uint16_t HPurge(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+
+		uint32_t hh = cpuGetAReg(0);
+
+		Log("%04x HPurge(%08x)\n", trap, hh);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		return 0;
+
+	}
 
 	uint16_t HLock(uint16_t trap)
 	{
