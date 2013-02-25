@@ -1,6 +1,7 @@
 #include <string>
 #include <cerrno>
 #include <cctype>
+#include <ctime>
 #include <algorithm>
 #include <chrono>
 
@@ -680,6 +681,58 @@ namespace OS
 		memoryWriteLong(t, 0x16A);
 		ToolReturn<4>(-1, t);
 
+		return 0;
+	}
+
+	uint16_t Pack6(uint16_t trap)
+	{
+		char buffer[256];
+		int length;
+		std::string out;
+
+		uint32_t dateTime;
+		uint16_t flag;
+		uint32_t result;
+		uint16_t selector;
+
+		// todo -- variable number of args.  Pop selector, act from that.
+
+		StackFrame<12>(dateTime, flag, result, selector);
+
+		Log("%04x Pack6(%08x, %04x, %08x, %04x)\n", 
+			trap, dateTime, flag, result, selector);
+
+		struct tm *tm;
+		time_t t;
+		t = MacToUnix(dateTime);
+
+		tm = ::localtime(&t);
+
+		if (selector == 0x00)
+		{
+			// void IUDateString(long dateTime,DateForm longFlag,Str255 result)
+			// DateForm doesn't seem to do anything.
+
+			// not strictly correct -- uses %d/%d/%2d form.
+			length = std::strftime(buffer, sizeof(buffer), "%m/%d/%y", tm);
+			out.assign(buffer, length);
+		}
+		else if (selector == 0x02)
+		{
+			// void IUTimeString(long dateTime,Boolean wantSeconds,Str255 result)
+			// output: 12:00:00 AM or 12:00 AM
+
+			length = std::strftime(buffer, sizeof(buffer), flag ? "%I:%M:%S %p" : "%I:%M %p", tm);
+
+			out.assign(buffer, length);
+		}
+		else
+		{
+			fprintf(stderr, "Pack6: selector %04x not supported\n", selector);
+			exit(1);
+		}
+
+		ToolBox::WritePString(result, out);
 		return 0;
 	}
 

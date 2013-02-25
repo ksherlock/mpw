@@ -113,6 +113,10 @@ namespace ToolBox {
 				d0 = OS::TickCount(trap);
 				break;
 
+			case 0xa9ed:
+				d0 = OS::Pack6(trap);
+				break;
+
 			//_CmpString [MARKS,CASE]
 			case 0xa03c:
 			case 0xa23c:
