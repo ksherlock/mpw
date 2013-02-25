@@ -249,6 +249,175 @@ namespace OS
 		return d0;
 	}
 
+	uint16_t Open(uint16_t trap)
+	{
+		uint32_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x Open(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint32_t namePtr = memoryReadLong(parm + 18);
+
+		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
+
+		uint8_t ioPermission = memoryReadByte(parm + 27); 
+		//uint32_t ioMisc = memoryReadLong(parm + 28);
+
+		std::string sname = ToolBox::ReadPString(namePtr, true);
+
+		if (!sname.length())
+		{
+			memoryWriteWord(bdNamErr, parm + 16);
+			return bdNamErr;
+		}
+		Log("     Open(%s)\n", sname.c_str());
+
+
+		int access = 0;
+		switch(ioPermission)
+		{
+			case fsWrPerm:
+			case fsRdWrPerm:
+			case fsRdWrShPerm: 		
+			case fsCurPerm:
+				access = O_RDWR;
+				break;
+			case fsRdPerm:
+				access = O_RDONLY;
+				break;
+			default:
+				d0 = paramErr;
+				memoryWriteWord(d0, parm + 16);
+				return d0;
+				break;
+		}
+
+		//todo -- FD table w/ flag for text/binary
+
+		int fd = ::open(sname.c_str(), access);
+		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
+		{
+			fd = ::open(sname.c_str(), O_RDONLY);
+		}
+
+		if (fd < 0)
+		{
+			d0 = errno_to_oserr(errno);
+		}
+		else
+		{
+			d0 = 0;
+			memoryWriteWord(fd, parm + 24);	
+		}
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
+
+	uint16_t Read(uint16_t trap)
+	{
+		uint32_t d0;
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x Read(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+		uint32_t ioBuffer = memoryReadLong(parm + 32);
+		int32_t ioReqCount = memoryReadLong(parm + 36);
+		uint16_t ioPosMode = memoryReadWord(parm + 44);
+		int32_t ioPosOffset = memoryReadLong(parm + 46);
+
+		if (ioReqCount < 0)
+		{
+			d0 = paramErr;
+			memoryWriteWord(d0, parm + 16);
+			return d0;
+		}
+
+		off_t currentPos = ::lseek(ioRefNum, 0, SEEK_CUR);
+		if (currentPos < 0)
+		{
+			if (errno != ESPIPE)
+			{
+				d0 = errno_to_oserr(errno);
+				memoryWriteWord(d0, parm + 16);
+				return d0;
+			}
+			currentPos = 0;
+		}
+		off_t pos = 0;
+
+		switch(ioPosMode)
+		{
+			case fsFromStart:
+				pos = ioPosOffset;
+				break;
+			case fsFromMark:
+				pos = currentPos + ioPosOffset;
+				break;
+			case fsFromLEOF:
+				{
+					struct stat st;
+					int rv;
+					rv = ::fstat(ioRefNum, &st);
+					if (rv < 0)
+					{
+
+					}
+					pos = st.st_size + ioPosOffset;
+				}
+				break;
+			case fsAtMark:
+				pos = currentPos;
+				break;
+			default:
+				d0 = paramErr;
+				memoryWriteWord(d0, parm + 16);
+				return d0;
+				break;
+		}
+
+		if (pos != currentPos)
+		{
+
+			int rv = ::lseek(ioRefNum, pos, SEEK_SET);
+			if (rv < 0)
+			{
+				d0 = paramErr;
+				memoryWriteWord(d0, parm + 16);
+				return d0;
+			}
+		}
+
+		ssize_t count = ::read(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
+		if (count >= 0)
+		{
+			pos += count;
+			memoryWriteLong(count, parm + 40);
+		} 
+
+		if (count == 0)
+		{
+			d0 = eofErr;
+		}
+		if (count < 0)
+		{
+			d0 = errno_to_oserr(errno);
+		}
+
+		memoryWriteLong(pos, parm + 46); // new offset.
+		memoryWriteWord(d0, parm + 16);
+		return d0;		
+
+	}
+
+
+
 	uint16_t Delete(uint16_t trap)
 	{
 		uint32_t d0;

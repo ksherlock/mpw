@@ -9,6 +9,21 @@ namespace OS
 {
 
 	enum {
+		fsCurPerm = 0,
+		fsRdPerm = 1,
+		fsWrPerm = 2,
+		fsRdWrPerm = 3,
+		fsRdWrShPerm = 4,
+	};
+
+	enum {
+		fsAtMark = 0,
+		fsFromStart = 1,
+		fsFromLEOF = 2,
+		fsFromMark = 3,
+	};
+
+	enum {
 		paramErr = -50,                                 /*error in user parameter list*/
 		noHardwareErr = -200,                           /*Sound Manager Error Returns*/
 		notEnoughHardwareErr = -201,                    /*Sound Manager Error Returns*/
@@ -120,6 +135,9 @@ namespace OS
 	uint16_t GetEOF(uint16_t trap);
 	uint16_t GetVol(uint16_t trap);
 
+	uint16_t Open(uint16_t trap);
+	uint16_t Read(uint16_t trap);
+
 	#pragma mark String Utilities
 	uint16_t CmpString(uint16_t trap);
 
@@ -131,6 +149,7 @@ namespace OS
 
 	uint16_t TickCount(uint16_t trap);
 
+	uint16_t HighLevelHFSDispatch(uint16_t trap);
 }
 
 #endif
