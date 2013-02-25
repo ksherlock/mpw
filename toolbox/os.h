@@ -126,6 +126,7 @@ namespace OS
 
 
 	#pragma mark FS Utilities
+	uint16_t Close(uint16_t trap);
 	uint16_t Create(uint16_t trap);
 	uint16_t Delete(uint16_t trap);
 	

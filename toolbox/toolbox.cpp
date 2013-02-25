@@ -34,6 +34,10 @@ namespace ToolBox {
 				d0 = OS::Open(trap);
 				break;
 
+			case 0xa001:
+				d0 = OS::Close(trap);
+				break;
+
 			case 0xa002:
 				d0 = OS::Read(trap);
 				break;

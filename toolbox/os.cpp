@@ -273,6 +273,30 @@ namespace OS
 		return false;
 	}
 
+	uint16_t Close(uint16_t trap)
+	{
+		uint32_t d0;
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x Close(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+
+		int rv = ::close(ioRefNum);
+		if (rv < 0)
+		{
+			d0 = errno_to_oserr(errno);
+		}
+		else
+		{
+			d0 = 0;
+		}
+
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
 
 
 	uint16_t Create(uint16_t trap)
