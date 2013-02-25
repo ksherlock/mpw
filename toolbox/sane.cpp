@@ -100,11 +100,10 @@ namespace SANE
 
 	uint16_t fp68k(uint16_t trap)
 	{
-
 		uint16_t op;
+		uint32_t sp;
 
-		uint32_t sp = cpuGetAReg(7);
-
+		sp = cpuGetAReg(7);
 		op = memoryReadWord(sp);
 
 		Log("%04x FP68K(%04x)\n", op);
@@ -119,4 +118,109 @@ namespace SANE
 
 		return 0;
 	}
+
+	uint16_t NumToString(void)
+	{
+		/* 
+		 * on entry:
+		 * A0 Pointer to pascal string
+		 * D0 The number
+		 *
+		 * on exit:
+		 * A0 Pointer to pascal string
+		 * D0 Result code
+		 *
+		 */
+
+		int32_t theNum = cpuGetDReg(0);
+		uint32_t theString = cpuGetAReg(0);
+
+		//std::string s = ToolBox::ReadPString(theString, false);
+		Log("     NumToString(%08x, %08x)\n", theNum, theString);
+
+		std::string s = std::to_string(theNum);
+
+		ToolBox::WritePString(theString, s);
+
+		return 0;
+	}
+
+	uint32_t StringToNum(void)
+	{
+		/* 
+		 * on entry:
+		 * A0 Pointer to pascal string
+		 *
+		 * on exit:
+		 * D0 the number
+		 *
+		 */
+
+		uint32_t theString = cpuGetAReg(0);
+
+
+		std::string s = ToolBox::ReadPString(theString, false);
+		Log("     StringToNum(%s)\n", s.c_str());
+
+		bool negative = false;
+		uint32_t tmp = 0;
+
+		if (!s.length()) return 0;
+
+		auto iter = s.begin();
+
+		// check for leading +-
+		if (*iter == '-')
+		{
+			negative = true;
+			++iter;
+		}
+		else if (*iter == '+')
+		{
+			negative = false;
+			++iter;
+		}
+
+		for ( ; iter != s.end(); ++iter)
+		{
+			// doesn't actually check if it's a number.
+			int value = *iter & 0x0f;
+			tmp = tmp * 10 + value;
+		}
+
+		if (negative) tmp = -tmp;
+
+		return tmp;
+	}
+
+	uint32_t decstr68k(uint16_t trap)
+	{
+		// this is a strange one since it may be sane or it may be the binary/decimal package.
+
+		uint16_t op;
+
+		StackFrame<2>(op);
+
+		Log("%04x DECSTR68K(%04x)\n", op);
+
+		switch (op)
+		{
+		case 0x00:
+			return NumToString();
+			break;
+			
+		case 0x01:
+			return StringToNum();
+			break;
+
+		default:
+			fprintf(stderr, "decstr68k -- op %04x is not yet supported\n", op);
+			exit(1);
+		}
+
+
+		return 0;
+	}
+
+
 }

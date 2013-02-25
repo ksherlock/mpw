@@ -217,6 +217,10 @@ namespace ToolBox {
 				d0 = SANE::fp68k(trap);
 				break;
 
+			case 0x0a9ee:
+				d0 = SANE::decstr68k(trap);
+				break;
+
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());
