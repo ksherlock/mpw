@@ -1,9 +1,10 @@
-#include <string>
 #include <cerrno>
 #include <cctype>
 #include <ctime>
 #include <algorithm>
 #include <chrono>
+#include <deque>
+#include <string>
 
 #include <sys/xattr.h>
 #include <sys/stat.h>
@@ -93,6 +94,71 @@ namespace {
 		return s.substr(pos + 1);
 	}
 
+
+	// FSSpec garbage
+	class FSSpecManager
+	{
+	public:
+
+		const std::string &pathForID(int32_t id);
+		int32_t idForPath(const std::string &path, bool insert = true);
+
+	private:
+
+		struct Entry
+		{
+			#if 0
+			Entry(std::string &&p) : path(p), hash(std::hash(path))
+			{}
+			Entry(const std::string &p) : path(p), hash(std::hash(path))
+			{} 
+			#endif
+
+			Entry(const std::string &&p, size_t h) :
+				path(p), hash(h)
+			{}
+
+			std::string path;
+			size_t hash;
+		};
+
+		std::deque<Entry> _pathQueue;
+	};
+
+
+	int32_t FSSpecManager::idForPath(const std::string &path, bool insert)
+	{
+		char buffer[PATH_MAX + 1];
+
+		char *cp = realpath(path.c_str(), buffer);
+		if (!cp) return -1;
+
+		std::string s(cp);
+		std::hash<std::string> hasher;
+		size_t hash = hasher(s);
+
+		int i = 1;
+		for (const auto &e : _pathQueue)
+		{
+			if (e.hash == hash && e.path == s) return i;
+			++i;
+		}
+
+		if (!insert) return -1;
+
+		_pathQueue.emplace_back(Entry(std::move(s), hash));
+		return _pathQueue.size();
+	}
+
+
+	const std::string &FSSpecManager::pathForID(int32_t id)
+	{
+		static std::string NullString;
+		if (id < 1) return NullString;
+		if (id > _pathQueue.size()) return NullString;
+
+		return _pathQueue[id - 1].path;
+	}
 }
 
 namespace OS

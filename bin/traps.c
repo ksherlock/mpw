@@ -610,7 +610,7 @@ const char *TrapName(uint16_t trap)
     
 */
 
-	case 0xAA52: return "_HighLevelFSDispatch";
+	case 0xAA52: return "_HighLevelHFSDispatch";
 
 /* 
     
