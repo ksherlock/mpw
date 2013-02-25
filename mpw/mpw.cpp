@@ -212,12 +212,14 @@ namespace MPW
 				e.emplace_back(std::move(tmp));
 
 				tmp = "RIIGSIncludes";
+				tmp.push_back(0);
 				tmp.append(root);
 				tmp.append("Interfaces:RIIGSIncludes:");
 				e.emplace_back(std::move(tmp));	
 
 				// 1.0 compatibility
 				tmp = "RIIGSInclude";
+				tmp.push_back(0);
 				tmp.append(root);
 				tmp.append("Interfaces:RIIGSIncludes:");
 				e.emplace_back(std::move(tmp));				
