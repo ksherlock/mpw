@@ -68,8 +68,10 @@ namespace
 
 		switch (type)
 		{
-			case 0x76657273: // vers;
-			case 0x48455841: // HEXA
+			case 0x76657273: // 'vers';
+			case 0x48455841: // 'HEXA'
+			case 0x53545220: // 'STR '
+			case 0x59414343: // 'YACC'
 				break;
 			default:
 				return 0;
