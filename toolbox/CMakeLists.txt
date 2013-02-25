@@ -9,6 +9,7 @@ set(TOOLBOX_SRC
 	rm.cpp
 	mm.cpp
 	os.cpp
+	os_internal.cpp
 	qd.cpp
 	sane.cpp
 )
