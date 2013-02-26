@@ -369,7 +369,7 @@ namespace MM
 
 		uint32_t mcptr = cpuGetAReg(0);
 
-		Log("%08x GetPtrSize(%08x,)\n", trap, mcptr);
+		Log("%08x GetPtrSize(%08x)\n", trap, mcptr);
 
 		auto iter = PtrMap.find(mcptr);
 
@@ -474,7 +474,7 @@ namespace MM
 
 		uint32_t hh = cpuGetAReg(0);
 
-		Log("%08x GetHandleSize(%08x,)\n", trap, hh);
+		Log("%08x GetHandleSize(%08x)\n", trap, hh);
 
 		auto iter = HandleMap.find(hh);
 
@@ -646,6 +646,38 @@ namespace MM
 
 		iter->second.locked = false;
 		return 0;
+	}
+
+	#pragma mark - OS Utility Routines
+
+	uint16_t PtrToHand(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 source Pointer
+		 * D0 size
+		 *
+		 * on exit:
+		 * A0 destination pointer
+		 * D0 Result code
+		 *
+		 */	
+
+		uint32_t mcptr = cpuGetAReg(0);
+		uint32_t size = cpuGetDReg(0);
+
+		Log("%04x PtrToHand(%08x, %08x)\n", trap, mcptr, size);
+
+		uint32_t destHandle;
+		uint32_t destPtr;
+		uint32_t d0 = Native::NewHandle(size, false, destHandle, destPtr);
+		if (d0 == 0)
+		{
+			std::memmove(memoryPointer(destPtr), memoryPointer(mcptr), size);
+		}
+		
+		cpuSetAReg(0, destHandle);
+		return d0;
 	}
 
 

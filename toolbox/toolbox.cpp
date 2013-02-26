@@ -118,6 +118,9 @@ namespace ToolBox {
 				d0 = MM::MoveHHi(trap);
 				break;
 
+			case 0xa9e3:
+				d0 = MM::PtrToHand(trap);
+
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
 				d0 = OS::ReadDateTime(trap);

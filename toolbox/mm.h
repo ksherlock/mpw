@@ -48,6 +48,13 @@ namespace MM
 
 	uint32_t StripAddress(uint16_t trap);
 
+	// operating system utility routines
+	uint16_t HandAndHand(uint16_t trap);
+	uint16_t HandToHand(uint16_t trap);
+	uint16_t PtrAndHand(uint16_t trap);
+	uint16_t PtrToHand(uint16_t trap);
+	uint16_t PtrToXHand(uint16_t trap);
+
 }
 
 
