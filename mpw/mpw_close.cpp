@@ -51,25 +51,19 @@ namespace MPW
 
 		int fd = f.cookie;
 
+		int rv = OS::Internal::FDEntry::close(fd);
 
-		d0 = OS::Internal::FDEntry::action(fd, 
-			// success callback.
-			[&f](int fd, OS::Internal::FDEntry &e)
-			{
-				f.error = 0;
-				if (--e.refcount == 0)
-				{
-					Log("     close(%02x)\n", fd);
-					::close(fd);
-				}
-				return 0;
-			},
-			// error callback.
-			[&f](int fd){
-				f.error = OS::notOpenErr;
-				return kEINVAL;
-			}
-		);
+		if (rv < 0)
+		{
+			f.error = OS::notOpenErr;
+			d0 = kEINVAL;
+		}
+		else
+		{
+			f.error = 0;
+			d0 = 0;
+		}
+
 
 #if 0
 		if (fd < 0 || fd >= OS::Internal::FDTable.size())

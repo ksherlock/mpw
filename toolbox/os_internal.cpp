@@ -48,6 +48,29 @@ namespace OS { namespace Internal {
 	}
 
 
+	int FDEntry::close(int fd, bool force)
+	{
+		if (fd < 0 || fd >= FDTable.size())
+		{
+			errno = EBADF;
+			return -1;
+		}
+		auto &e = FDTable[fd];
+		if (!e.refcount)
+		{
+			errno = EBADF;
+			return -1;
+		}
+
+		if (--e.refcount == 0 || force)
+		{
+			e.refcount = 0;
+			return ::close(fd);
+		}
+		return 0;
+	}
+
+
 	ssize_t FDEntry::read(int fd, void *buffer, size_t count)
 	{
 		if (fd < 0 || fd >= FDTable.size())

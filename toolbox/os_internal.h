@@ -30,6 +30,8 @@ namespace OS { namespace Internal {
 		static ssize_t read(int fd, void *buffer, size_t count);
 		static ssize_t write(int fd, const void *buffer, size_t count);
 
+		static int close(int fd, bool force = false);
+
 
 		template<class F1, class F2>
 		static int32_t action(int fd, F1 good, F2 bad)
