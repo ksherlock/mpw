@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "toolbox_errors.h"
+
 namespace ToolBox
 {
 	extern bool Trace;
