@@ -13,11 +13,11 @@
 #include <cpu/cpuModule.h>
 
 #include <toolbox/os.h>
+#include <toolbox/os_internal.h>
 
 namespace MPW
 {
 
-	using namespace Internal;
 
 	void ftrap_close(uint16_t trap)
 	{
@@ -25,7 +25,7 @@ namespace MPW
 		// close actually checks the error in the File Entry and converts that to unix.
 		// (sigh)
 
-		uint32_t d0;
+		uint32_t d0 = 0;
 
 		uint32_t sp = cpuGetAReg(7);
 		uint32_t parm  = memoryReadLong(sp + 4);
@@ -51,21 +51,52 @@ namespace MPW
 
 		int fd = f.cookie;
 
-		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+
+		d0 = OS::Internal::FDEntry::action(fd, 
+			// success callback.
+			[&f](int fd, OS::Internal::FDEntry &e)
+			{
+				f.error = 0;
+				if (--e.refcount == 0)
+				{
+					Log("     close(%02x)\n", fd);
+					::close(fd);
+				}
+				return 0;
+			},
+			// error callback.
+			[&f](int fd){
+				f.error = OS::notOpenErr;
+				return kEINVAL;
+			}
+		);
+
+#if 0
+		if (fd < 0 || fd >= OS::Internal::FDTable.size())
 		{
 			f.error = OS::notOpenErr;
 			d0 = kEINVAL;
 		}
 		else
 		{
-			if (--FDTable[fd] == 0)
+			auto &e = OS::Internal::FDTable[fd];
+			if (e.refcount == 0)
 			{
-				Log("     close(%02x)\n", fd);
-				::close(fd);
+				f.error = OS::notOpenErr;
+				d0 = kEINVAL;
+			}
+			else 
+			{
+				if (--e.refcount == 0)
+				{
+					Log("     close(%02x)\n", fd);
+					::close(fd);
+				}
 				f.error = 0;
 				d0 = 0;
 			}
 		}
+#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		cpuSetDReg(0, 0);

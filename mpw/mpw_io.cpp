@@ -14,12 +14,12 @@
 #include <cpu/cpuModule.h>
 
 #include <toolbox/os.h>
+#include <toolbox/os_internal.h>
 
 
 namespace MPW
 {
 
-	using namespace Internal;
 
 	void ftrap_read(uint16_t trap)
 	{
@@ -42,51 +42,27 @@ namespace MPW
 		Log("%04x Read(%08x)\n", parm);
 
 		d0 = 0;
+		int fd = f.cookie;
+		ssize_t size;
 
-		if (f.count)
+		size = OS::Internal::FDEntry::read(fd, memoryPointer(f.buffer), f.count);
+
+
+		if (size < 0)
 		{
-			ssize_t size;
-
-			int fd = f.cookie;
-
-			Log("     read(%02x, %08x, %08x)\n", f.cookie, f.buffer, f.count);
-
-
-			if (f.flags & kO_BINARY)
-			{
-				size = ::read(fd, memoryPointer(f.buffer), f.count);
-			}
-			else
-			{
-				std::unique_ptr<uint8_t[]> buffer(new uint8_t[f.count]);
-				uint8_t *ptr = memoryPointer(f.buffer);
-
-				size = ::read(fd, buffer.get(), f.count);
-
-				if (size > 0)
-				{
-					std::transform(buffer.get(), buffer.get() + size, ptr, 
-						[](uint8_t c) { return c == '\n' ? '\r' : c; }
-					);
-				}
-			}
-
-			if (size < 0)
-			{
-				//f.count = 0;
-				f.error = OS::ioErr; // ioErr
-				d0 = errno_to_errno(errno);
-			}
-			else
-			{
-				f.count -= size;
-				f.error = 0;
-			}
-
-			// write back...
-			memoryWriteWord(f.error, parm + 2);
-			memoryWriteLong(f.count, parm + 12);
+			//f.count = 0;
+			f.error = OS::ioErr; // ioErr
+			d0 = errno_to_errno(errno);
 		}
+		else
+		{
+			f.count -= size;
+			f.error = 0;
+		}
+
+		// write back...
+		memoryWriteWord(f.error, parm + 2);
+		memoryWriteLong(f.count, parm + 12);
 
 		cpuSetDReg(0, d0);
 	}
@@ -111,48 +87,27 @@ namespace MPW
 
 
 		d0 = 0;
-		if (f.count)
+		int fd = f.cookie;
+		ssize_t size;
+
+		size = OS::Internal::FDEntry::write(fd, memoryPointer(f.buffer), f.count);
+
+		if (size < 0)
 		{
-			ssize_t size;
-
-			int fd = f.cookie;
-
-			Log("     write(%02x, %08x, %08x)\n", f.cookie, f.buffer, f.count);
-
-
-			if (f.flags & kO_BINARY)
-			{
-				size = ::write(fd, memoryPointer(f.buffer), f.count);
-			}
-			else
-			{
-				std::unique_ptr<uint8_t[]> buffer(new uint8_t[f.count]);
-				uint8_t *ptr = memoryPointer(f.buffer);
-
-				std::transform(ptr, ptr + f.count, buffer.get(), 
-					[](uint8_t c) { return c == '\r' ? '\n' : c; }
-				);
-
-				size = ::write(fd, buffer.get(), f.count);
-			}
-
-			if (size < 0)
-			{
-				//f.count = 0;
-				f.error = -36; // ioErr
-				d0 = errno_to_errno(errno);
-			}
-			else
-			{
-				// this is, apparently, correct.
-				f.count -= size;
-				f.error = 0;
-			}
-
-			// write back...
-			memoryWriteWord(f.error, parm + 2);
-			memoryWriteLong(f.count, parm + 12);
+			//f.count = 0;
+			f.error = OS::ioErr; // ioErr
+			d0 = errno_to_errno(errno);
 		}
+		else
+		{
+			f.count -= size;
+			f.error = 0;
+		}
+
+		// write back...
+		memoryWriteWord(f.error, parm + 2);
+		memoryWriteLong(f.count, parm + 12);
+		
 		cpuSetDReg(0, d0);		
 	}
 

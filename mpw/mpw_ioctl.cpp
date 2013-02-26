@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 #include <cstdio>
 #include <cstring>
@@ -20,13 +21,13 @@
 #include <cpu/cpuModule.h>
 
 #include <toolbox/os.h>
+#include <toolbox/os_internal.h>
 
 
 
 
 namespace MPW
 {
-	using namespace Internal;
 	
 	uint32_t ftrap_dup(uint32_t parm, uint32_t arg)
 	{
@@ -46,15 +47,37 @@ namespace MPW
 
 		Log("     dup(%02x)\n", fd);
 
-		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+
+		d0 = OS::Internal::FDEntry::action(fd,
+			[](int fd, OS::Internal::FDEntry &e){
+				e.refcount++;
+				return 0;
+			},
+			[](int fd){
+				return kEINVAL;
+			}
+		);
+
+		#if 0
+		try
+		{
+			auto &e = OS::Internal::FDTable.at(fd);
+
+			if (e.refcount)
+			{
+				d0 = 0;
+				fd.refcount++;
+			} 
+			else
+			{
+				d0 = kEINVAL;
+			}
+		}
+		catch(std::out_of_range &ex)
 		{
 			d0 = kEINVAL;
 		}
-		else
-		{
-			FDTable[fd]++;
-			d0 = 0;
-		}
+		#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -111,21 +134,37 @@ namespace MPW
 
 		Log("     interactive(%02x)\n", fd);
 
-		//d0 = kEINVAL;
+		d0 = OS::Internal::FDEntry::action(fd,
+			[](int fd, OS::Internal::FDEntry &e){
 
-		// linkgs reads from stdin and 
-		// doesn't work quite right when 
-		// this returns 0.  So, don't.
+				int tty = ::isatty(fd);
+				return tty ? 0 : kEINVAL;
+			},
+			[](int fd){
+				return kEINVAL;
+			}
+		);
 
-		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
+#if 0
+		try
+		{
+			auto &e = OS::Internal::FDTable.at(fd);
+
+			if (e.refcount)
+			{
+				int tty = ::isatty(fd);
+				d0 = tty ? 0 : kEINVAL;
+			} 
+			else
+			{
+				d0 = kEINVAL;
+			}
+		}
+		catch(std::out_of_range &ex)
 		{
 			d0 = kEINVAL;
 		}
-		else
-		{
-			int tty = ::isatty(fd);
-			d0 = tty ? 0 : kEINVAL;
-		}
+#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -175,6 +214,17 @@ namespace MPW
 
 		Log("     refnum(%02x)\n", fd);
 
+		d0 = OS::Internal::FDEntry::action(fd,
+			[arg](int fd, OS::Internal::FDEntry &e){
+				memoryWriteWord(fd, arg);
+				return 0;
+			},
+			[](int fd){
+				return kEINVAL;
+			}
+		);
+		
+#if 0
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
 			d0 = kEINVAL;
@@ -184,6 +234,7 @@ namespace MPW
 			d0 = 0;
 			memoryWriteWord(fd, arg);
 		}
+#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;

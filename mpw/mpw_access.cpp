@@ -21,6 +21,7 @@
 
 #include <toolbox/toolbox.h>
 #include <toolbox/os.h>
+#include <toolbox/os_internal.h>
 
 /*
  * access return errors are |= 0x40000000.  Not entirely sure why...
@@ -30,7 +31,6 @@
 
 namespace MPW
 {
-	using namespace Internal;
 
 
 	uint32_t ftrap_open(uint32_t name, uint32_t parm)
@@ -94,11 +94,6 @@ namespace MPW
 			f.error = 0;
 			f.cookie = fd;
 
-			if (FDTable.size() <= fd)
-				FDTable.resize(fd + 1);
-
-			FDTable[fd] = 1;
-
 
 			// adjust the binary flags...
 			// most apps are good about this but dumpobj doesn't set O_BINARY (but should)
@@ -109,6 +104,9 @@ namespace MPW
 
 			if (f.flags & kO_RSRC) f.flags |= kO_BINARY;
 
+			auto &e = OS::Internal::FDEntry::allocate(fd);
+			e.text = !(f.flags & kO_BINARY);
+			e.resource = f.flags & kO_RSRC;
 		}
 
 		memoryWriteWord(f.flags, parm + 0);

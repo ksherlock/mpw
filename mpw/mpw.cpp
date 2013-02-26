@@ -19,6 +19,7 @@
 #include <cpu/cpuModule.h>
 
 #include <toolbox/mm.h>
+#include <toolbox/os_internal.h>
 
 extern char **environ;
 
@@ -26,7 +27,7 @@ extern char **environ;
 namespace MPW { namespace Internal {
 
 	// for dup counts, etc.
-	std::vector<int> FDTable;
+	//std::vector<int> FDTable;
 
 	uint32_t MacProgramInfo = 0;
 
@@ -88,11 +89,30 @@ namespace MPW
 
 	uint16_t Init(int argc, char **argv)
 	{
+		/*
 		FDTable.resize(16);
 
 		FDTable[STDIN_FILENO] = 1;
 		FDTable[STDOUT_FILENO] = 1;
 		FDTable[STDERR_FILENO] = 1;
+		*/
+
+		/*
+		OS::Internal::FDTable.resize(3);
+		FDTable[STDIN_FILENO].refcount = 1;
+		FDTable[STDIN_FILENO].text = true;
+
+		FDTable[STDOUT_FILENO].refcount = 1;
+		FDTable[STDOUT_FILENO].text = true;
+
+		FDTable[STDERR_FILENO].refcount = 1;
+		FDTable[STDERR_FILENO].text = true;		
+		*/
+
+		OS::Internal::FDEntry::allocate(STDIN_FILENO).text = true;
+		OS::Internal::FDEntry::allocate(STDOUT_FILENO).text = true;
+		OS::Internal::FDEntry::allocate(STDERR_FILENO).text = true;
+
 
 		std::string command = argv[0];
 
