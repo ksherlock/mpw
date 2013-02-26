@@ -40,6 +40,13 @@ namespace
 	// resource file and update that with the pointer.
 
 
+	inline uint16_t SetResError(uint16_t error)
+	{
+		memoryWriteWord(error, 0x0a60);
+		return error;
+	}
+
+
 	std::string TypeToString(uint32_t type)
 	{
 		char tmp[5] = { 0, 0, 0, 0, 0};
@@ -95,6 +102,19 @@ namespace
 }
 namespace RM
 {
+
+	uint16_t CloseResFile(uint16_t trap)
+	{
+		uint16_t refNum;
+
+		StackFrame<2>(refNum);
+
+		Log("%04x CloseResFile(%04x)\n", trap, refNum);
+
+		return SetResError(resFNotFound);
+	}
+
+
 	uint16_t Get1NamedResource(uint16_t trap)
 	{
 		// Get1NamedResource (theType: ResType; name: Str255) : Handle;
@@ -218,10 +238,50 @@ namespace RM
 
 		Log("%04x ReleaseResource(%08x)\n", trap, theResource);
 
+		return SetResError(0);
+	}
+
+	uint16_t ResError(uint16_t trap)
+	{
+		Log("%04x ResError()\n", trap);
+
+		return memoryReadWord(0x0a60);
+	}
+
+	// SetResLoad (load: BOOLEAN);
+	uint16_t SetResLoad(uint16_t trap)
+	{
+		uint16_t load;
+
+		StackFrame<2>(load);
+
+		Log("%04x SetResLoad(%04x)\n", trap, load);
+
+		memoryWriteByte(load ? 0xff : 0x00, 0x0a5e); // word or byte?
 		return 0;
 	}
 
 
+
+	uint16_t OpenResFile(uint16_t trap)
+	{
+		// OpenResFile (fileName: Str255) : INTEGER;
+
+		uint32_t sp;
+		uint32_t fileName;
+
+		sp = StackFrame<4>(fileName);
+
+		std::string sname = ToolBox::ReadPString(fileName);
+
+		Log("%04x OpenResFile(%s)\n", trap, sname.c_str());
+
+		ToolReturn<2>(sp, (uint16_t)-1);
+		return SetResError(resFNotFound);
+	}
+
+
+	// todo -- move since it's not RM related.
 	uint16_t UnloadSeg(uint16_t trap)
 	{
 		// UnloadSeg (routineAddr: Ptr);	

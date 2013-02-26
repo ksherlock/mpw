@@ -5,6 +5,7 @@
 
 namespace RM
 {
+	uint16_t CloseResFile(uint16_t trap);
 	uint16_t GetNamedResource(uint16_t trap);
 	uint16_t Get1NamedResource(uint16_t trap);
 	
@@ -14,6 +15,11 @@ namespace RM
 	uint16_t UnloadSeg(uint16_t trap);
 
 	uint16_t ReleaseResource(uint16_t trap);
+	uint16_t ResError(uint16_t trap);
+
+	uint16_t OpenResFile(uint16_t trap);
+
+	uint16_t SetResLoad(uint16_t trap);
 }
 
 

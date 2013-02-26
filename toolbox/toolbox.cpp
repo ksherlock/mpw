@@ -180,6 +180,18 @@ namespace ToolBox {
 				d0 = RM::Get1NamedResource(trap);
 				break;
 
+			case 0xA997:
+				d0 = RM::OpenResFile(trap);
+				break;
+
+			case 0xa99a:
+				d0 = RM::CloseResFile(trap);
+				break;
+
+			case 0xa99b:
+				d0 = RM::SetResLoad(trap);
+				break;
+
 			// GetResource (theType: ResType; thelD: INTEGER) : Handle;
 			case 0xa9a0:
 				d0 = RM::GetResource(trap);
@@ -188,6 +200,11 @@ namespace ToolBox {
 			// ReleaseResource (theResource: Handle);
 			case 0xa9a3:
 				d0 = RM::ReleaseResource(trap);
+				break;
+
+			// ResError : INTEGER;
+			case 0xa9af:
+				d0 = RM::ResError(trap);
 				break;
 
 			// UnloadSeg (routineAddr: Ptr);
