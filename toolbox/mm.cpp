@@ -32,9 +32,11 @@ namespace
 	{
 		uint32_t address;
 		uint32_t size;
+		bool locked;
+		bool purgeable;
 
 		HandleInfo(uint32_t a = 0, uint32_t s = 0) : 
-			address(a), size(s)
+			address(a), size(s), locked(false), purgeable(false)
 		{}
 	};
 
@@ -481,6 +483,96 @@ namespace MM
 		return iter->second.size;
 	}
 
+	uint16_t SetHandleSize(uint16_t trap)
+	{
+
+		/* 
+		 * on entry:
+		 * A0 pointer
+		 * D0 new size
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+
+		uint32_t hh = cpuGetAReg(0);
+		uint32_t newSize = cpuGetDReg(0);
+
+		Log("%04x SetHandleSize(%08x, %08x)\n", hh, newSize);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		// todo -- if handle ptr is null, other logic?
+		// todo -- if locked, can't move.
+
+		auto &info = iter->second;
+
+		// 0 - no change in size.
+		if (info.size == newSize) return SetMemError(0);
+
+		uint32_t mcptr = info.address;
+		uint8_t *ptr = mcptr + Memory;
+
+
+		// 1. - resizing to 0.
+		if (!newSize)
+		{
+			if (info.locked) return SetMemError(memLockedErr);
+
+			mplite_free(&pool, ptr);
+			info.address = 0;
+			info.size = 0;
+			return SetMemError(0);
+		}
+
+		// 2. - resizing from 0.
+
+		if (!ptr)
+		{
+			ptr = (uint8_t *)mplite_malloc(&pool, newSize);
+			if (!ptr) return SetMemError(memFullErr);
+
+			mcptr = ptr - Memory;
+			info.address = mcptr;
+			info.size = newSize;
+
+			return SetMemError(0);
+		}
+
+		// 3. - locked
+		if (info.locked)
+		{
+			if (mplite_resize(&pool, ptr, newSize) == MPLITE_OK)
+			{
+				info.size = newSize;
+				return SetMemError(0);
+			}
+			return SetMemError(memFullErr);
+		}
+
+		// 4. - resize.
+
+		ptr = (uint8_t *)mplite_realloc(&pool, ptr, newSize);
+
+		if (ptr)
+		{
+			mcptr = ptr - Memory;
+			info.address = mcptr;
+			info.size = newSize;
+
+			return SetMemError(0);
+		}
+		else
+		{
+			return SetMemError(memFullErr);
+		}
+
+
+	}
+
 
 	#pragma mark Handle attributes
 
@@ -505,9 +597,9 @@ namespace MM
 		auto iter = HandleMap.find(hh);
 
 		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		iter->second.purgeable = true;
 
 		return 0;
-
 	}
 
 	uint16_t HLock(uint16_t trap)
@@ -529,6 +621,7 @@ namespace MM
 
 		if (iter == HandleMap.end()) return SetMemError(memWZErr);
 
+		iter->second.locked = true;
 		return 0;
 	}
 
@@ -551,6 +644,7 @@ namespace MM
 
 		if (iter == HandleMap.end()) return SetMemError(memWZErr);
 
+		iter->second.locked = false;
 		return 0;
 	}
 

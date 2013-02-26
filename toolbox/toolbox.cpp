@@ -79,6 +79,10 @@ namespace ToolBox {
 				d0 = MM::DisposeHandle(trap);
 				break;
 
+			case 0xa024:
+				d0 = MM::SetHandleSize(trap);
+				break;
+
 			case 0xa025:
 				d0 = MM::GetHandleSize(trap);
 				break;
