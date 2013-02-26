@@ -221,6 +221,10 @@ namespace OS
 				break;
 
 			case 'p':
+				if (ext == "p") // pascal
+					return true;
+				if (ext == "pas") // pascal
+					return true;
 				if (ext == "pii") // pascal
 					return true;
 				break;
@@ -266,8 +270,11 @@ namespace OS
 		switch(c)
 		{
 			case 'o':
+				if (ext == "o")
+					return true;
 				if (ext == "obj")
 					return true;
+
 				break;
 		}
 
