@@ -68,6 +68,7 @@ namespace MPW
 
 
 		sname = ToolBox::ReadCString(name, true);
+		std::string xname = sname;
 
 		Log("     open(%s, %04x)\n", sname.c_str(), f.flags);
 
@@ -104,7 +105,7 @@ namespace MPW
 
 			if (f.flags & kO_RSRC) f.flags |= kO_BINARY;
 
-			auto &e = OS::Internal::FDEntry::allocate(fd);
+			auto &e = OS::Internal::FDEntry::allocate(fd, std::move(xname));
 			e.text = !(f.flags & kO_BINARY);
 			e.resource = f.flags & kO_RSRC;
 		}
