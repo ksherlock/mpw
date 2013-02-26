@@ -116,14 +116,16 @@ namespace RM
 		uint32_t theType;
 		uint32_t name;
 
+		uint32_t resourceHandle = 0;
+
 		sp = StackFrame<8>(theType, name);
 
 		std::string sname = ToolBox::ReadPString(name);
 
 		Log("%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
 
-		ToolReturn<4>(sp, 0);
-		return -192;
+		ToolReturn<4>(sp, resourceHandle);
+		return SetResError(resourceHandle ? 0 : resNotFound);
 	}
 
 
@@ -159,7 +161,7 @@ namespace RM
 		resourceHandle = GetXResource(theType, theID);
 
 		ToolReturn<4>(sp, resourceHandle);
-		return resourceHandle ? 0 : -192;
+		return SetResError(resourceHandle ? 0 : resNotFound);
 	}
 
 
@@ -194,7 +196,7 @@ namespace RM
 		resourceHandle = GetXResource(theType, theID);
 
 		ToolReturn<4>(sp, resourceHandle);
-		return resourceHandle ? 0 : -192;
+		return SetResError(resourceHandle ? 0 : resNotFound);
 	}
 
 

@@ -13,6 +13,7 @@
 #include <mplite/mplite.h>
 
 using ToolBox::Log;
+using namespace ToolBox::Errors;
 
 namespace 
 {

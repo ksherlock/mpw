@@ -5,12 +5,6 @@
 
 namespace MM
 {
-	enum
-	{
-		memFullErr = -108,
-		memWZErr = -111,
-	};
-
 	// native functions.
 	namespace Native
 	{
