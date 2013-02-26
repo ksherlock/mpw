@@ -20,6 +20,7 @@
 #include <cpu/fmem.h>
 
 #include "os.h"
+#include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
 
@@ -283,16 +284,10 @@ namespace OS
 		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint16_t ioRefNum = memoryReadWord(parm + 24);
 
-		int rv = ::close(ioRefNum);
-		if (rv < 0)
-		{
-			d0 = errno_to_oserr(errno);
-		}
-		else
-		{
-			d0 = 0;
-		}
 
+		int rv = OS::Internal::FDEntry::close(ioRefNum, true);
+		if (rv < 0) d0 = errno_to_oserr(errno);
+		else d0 = 0;
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
@@ -399,6 +394,10 @@ namespace OS
 		}
 		else
 		{
+			auto &e = OS::Internal::FDEntry::allocate(fd, sname);
+			e.resource = false;
+			e.text = IsTextFile(sname);
+
 			d0 = 0;
 			memoryWriteWord(fd, parm + 24);	
 		}
@@ -484,7 +483,7 @@ namespace OS
 			}
 		}
 
-		ssize_t count = ::read(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
+		ssize_t count = OS::Internal::FDEntry::read(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
 		if (count >= 0)
 		{
 			d0 = 0;
