@@ -65,6 +65,11 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
+
+			case 0xaa52:
+				d0 = OS::HighLevelHFSDispatch(trap);
+				break;
+
 			// SetPtrSize (p: Ptr; newSize: Size);
 			case 0xa020:
 				d0 = MM::SetPtrSize(trap);
