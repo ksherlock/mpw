@@ -1,11 +1,46 @@
 #include "os_internal.h"
+#include "toolbox.h"
+
 #include <stdexcept>
 #include <cerrno>
 
 #include <unistd.h>
 #include <fcntl.h>
 
+
 namespace OS { namespace Internal {
+
+
+	uint16_t errno_to_oserr(int xerrno)
+	{
+		using namespace ToolBox::Errors;
+		
+		switch (xerrno)
+		{
+			case 0: return 0;
+			case EBADF: return rfNumErr;
+			case EIO: return ioErr;
+			case EACCES: return permErr;
+			case ENOENT: return fnfErr;
+			case ENOTDIR: return dirNFErr;
+			case EISDIR: return notAFileErr;
+			case ENOTSUP: return extFSErr;
+			case EROFS: return wPrErr;
+
+			case EEXIST: return dupFNErr;
+
+			case EBUSY: return fBsyErr;
+
+			case EDQUOT: return dskFulErr;
+			case ENOSPC: return dskFulErr;
+
+
+			default:
+				return ioErr;
+		}
+
+	}
+
 
 	//std::deque<FDEntry> FDTable;
 

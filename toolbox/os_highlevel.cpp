@@ -25,6 +25,7 @@
 #include "stackframe.h"
 
 using ToolBox::Log;
+using OS::Internal::errno_to_oserr;
 
 namespace {
 

@@ -26,6 +26,7 @@
 
 
 using ToolBox::Log;
+using OS::Internal::errno_to_oserr;
 
 namespace {
 
@@ -36,35 +37,6 @@ namespace {
 	std::chrono::time_point<std::chrono::steady_clock> BootTime;
 
 
-
-	// should make this public since it's needed by mpw/*
-	uint16_t errno_to_oserr(int xerrno)
-	{
-		switch (xerrno)
-		{
-			case 0: return 0;
-			case EBADF: return rfNumErr;
-			case EIO: return ioErr;
-			case EACCES: return permErr;
-			case ENOENT: return fnfErr;
-			case ENOTDIR: return dirNFErr;
-			case EISDIR: return notAFileErr;
-			case ENOTSUP: return extFSErr;
-			case EROFS: return wPrErr;
-
-			case EEXIST: return dupFNErr;
-
-			case EBUSY: return fBsyErr;
-
-			case EDQUOT: return dskFulErr;
-			case ENOSPC: return dskFulErr;
-
-
-			default:
-				return ioErr;
-		}
-
-	}
 
 
 	std::string extension(const std::string &s)

@@ -6,6 +6,7 @@
 
 namespace OS { namespace Internal {
 
+	uint16_t errno_to_oserr(int xerrno);
 
 	struct FDEntry
 	{
