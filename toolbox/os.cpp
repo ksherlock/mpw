@@ -203,6 +203,8 @@ namespace OS
 			case 'i':
 				if (ext == "i") // asmiigs include file
 					return true;
+				if (ext == "inc")
+					return true;
 				break;
 
 			case 'h':
