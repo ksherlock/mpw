@@ -218,6 +218,12 @@ namespace MPW
 				e.emplace_back(std::move(tmp));
 
 
+				// SysErrs.err
+				tmp = "ShellDirectory";
+				tmp.push_back(0);
+				tmp.append(root);
+				e.emplace_back(std::move(tmp));				
+
 				tmp = "AIIGSIncludes";
 				tmp.push_back(0);
 				tmp.append(root);
