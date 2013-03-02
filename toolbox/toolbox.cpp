@@ -65,7 +65,10 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
-
+			case 0xa260:
+				d0 = OS::HFSDispatch(trap);
+				break;
+				
 			case 0xaa52:
 				d0 = OS::HighLevelHFSDispatch(trap);
 				break;
@@ -255,6 +258,13 @@ namespace ToolBox {
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());
 				exit(255);
 		}
+
+		if (d0)
+		{
+			int16_t v = (int16_t)d0;
+			Log("     -> %d\n", v);
+		}
+
 
 		cpuSetDReg(0, d0);
 		cpuSetFlagsNZ00NewW(d0);
