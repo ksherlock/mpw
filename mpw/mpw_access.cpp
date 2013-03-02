@@ -97,8 +97,9 @@ namespace MPW
 
 
 			// adjust the binary flags...
-			// most apps are good about this but dumpobj doesn't set O_BINARY (but should)
-			// and MPW Assembler sets O_BINARY (but shouldn't)
+			// some apps are good about this but 
+			// dumpobj, makelib, linkiigs don't set O_BINARY (but should)
+			// MPW Assembler sets O_BINARY (but shouldn't)
 
 			if (OS::IsTextFile(sname)) f.flags &= ~kO_BINARY;
 			if (OS::IsBinaryFile(sname)) f.flags |= kO_BINARY;

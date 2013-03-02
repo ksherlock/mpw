@@ -174,12 +174,43 @@ namespace OS
 	// known binary file extensions
 	bool IsBinaryFile(const std::string &s)
 	{
+
+		// first -- check for a finder info extension.
+		{
+			uint8_t buffer[32];
+			int rv;
+
+			rv = ::getxattr(s.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
+
+			if (rv >= 8 && ::memcmp(buffer + 4, "pdos",4) == 0)
+			{
+				// Bx__ ?
+				if (buffer[0] == 'B' && buffer[2] == ' ' && buffer[3] == ' ')
+					return true;
+
+				// "p" $uv $wx $yz 
+				if (buffer[0] == 'p')
+				{
+					uint8_t fileType = buffer[1];
+					//uint16_t auxType = buffer[2] | (buffer[3] << 8);
+
+					if (fileType >= 0xb1 && fileType <= 0xbf)
+						return true;
+				}
+			}
+		}
+
 		std::string ext = extension(s);
 		if (ext.empty()) return false;
 
 		char c = ext[0];
 		switch(c)
 		{
+			case 'l':
+				if (ext == "lib")
+					return true;
+				break;
+
 			case 'o':
 				if (ext == "o")
 					return true;
