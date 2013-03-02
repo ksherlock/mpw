@@ -8,6 +8,11 @@ namespace OS { namespace Internal {
 
 	uint16_t errno_to_oserr(int xerrno);
 
+	uint16_t GetFinderInfo(const std::string &pathname, void *info);
+	uint16_t SetFinderInfo(const std::string &pathname, void *info);
+
+	uint16_t GetFileType(const std::string &pathname, uint16_t *fileType, uint32_t *auxType);
+
 	struct FDEntry
 	{
 		int refcount;
