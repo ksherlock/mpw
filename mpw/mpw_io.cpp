@@ -39,14 +39,15 @@ namespace MPW
 		f.buffer = memoryReadLong(parm + 16);
 
 
-		Log("%04x Read(%08x)\n", parm);
+		Log("%04x Read(%08x)\n", trap, parm);
 
 		d0 = 0;
 		int fd = f.cookie;
 		ssize_t size;
 
+		Log("     read(%04x, %08x, %08x)", fd, f.buffer, f.count);
 		size = OS::Internal::FDEntry::read(fd, memoryPointer(f.buffer), f.count);
-
+		//Log(" -> %ld\n", size);
 
 		if (size < 0)
 		{
@@ -90,6 +91,7 @@ namespace MPW
 		int fd = f.cookie;
 		ssize_t size;
 
+		Log("     write(%04x, %08x, %08x)\n", fd, f.buffer, f.count);
 		size = OS::Internal::FDEntry::write(fd, memoryPointer(f.buffer), f.count);
 
 		if (size < 0)
