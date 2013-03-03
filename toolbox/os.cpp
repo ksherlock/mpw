@@ -26,6 +26,8 @@
 
 
 using ToolBox::Log;
+using namespace ToolBox::Errors;
+
 using OS::Internal::errno_to_oserr;
 
 namespace {
