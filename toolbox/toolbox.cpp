@@ -30,7 +30,8 @@ namespace ToolBox {
 		uint32_t d0 = 0;
 		switch (trap)
 		{
-			case 0xa000:
+			case 0xa000: // open
+			case 0xa00a: // openrf
 				d0 = OS::Open(trap);
 				break;
 

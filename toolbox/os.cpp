@@ -283,13 +283,25 @@ namespace OS
 		return d0;
 	}
 
+
 	uint16_t Open(uint16_t trap)
 	{
 		uint32_t d0;
 
 		uint32_t parm = cpuGetAReg(0);
 
-		Log("%04x Open(%08x)\n", trap, parm);
+		bool rf = trap == 0xa00a;
+
+		switch(trap)
+		{
+			case 0xa000:
+				Log("%04x Open(%08x)\n", trap, parm);
+				break;
+			case 0xa00a:
+				Log("%04x OpenRF(%08x)\n", trap, parm);
+				break;
+		}
+
 
 		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t namePtr = memoryReadLong(parm + 18);
@@ -330,6 +342,11 @@ namespace OS
 		}
 
 		//todo -- FD table w/ flag for text/binary
+
+		std::string xname = sname;
+		if (rf) 
+			sname.append(_PATH_RSRCFORKSPEC);
+
 
 		int fd = ::open(sname.c_str(), access);
 		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
