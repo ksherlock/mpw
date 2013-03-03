@@ -141,6 +141,10 @@ namespace OS
 				break;
 
 			case 'r':
+				if (ext == "r")
+					return true;
+				if (ext == "rez")
+					return true;
 				if (ext == "rii") // rez
 					return true;
 				break;
