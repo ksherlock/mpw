@@ -364,9 +364,9 @@ namespace OS
 		}
 		else
 		{
-			auto &e = OS::Internal::FDEntry::allocate(fd, sname);
-			e.resource = false;
-			e.text = IsTextFile(sname);
+			auto &e = OS::Internal::FDEntry::allocate(fd, std::move(xname));
+			e.resource = rf;
+			e.text = rf ? false : IsTextFile(sname);
 
 			d0 = 0;
 			memoryWriteWord(fd, parm + 24);	
