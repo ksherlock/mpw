@@ -281,6 +281,19 @@ namespace RM
 	}
 
 
+	uint16_t CurResFile(uint16_t trap)
+	{
+
+		Log("%04x CurResFile()\n", trap);
+
+		ResFileRefNum refNum = ::CurResFile();
+
+		ToolReturn<2>(-1, refNum);
+		return SetResError(::ResError());
+	}
+
+
+
 	// todo -- move since it's not RM related.
 	uint16_t UnloadSeg(uint16_t trap)
 	{

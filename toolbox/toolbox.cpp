@@ -188,6 +188,10 @@ namespace ToolBox {
 				d0 = RM::Get1NamedResource(trap);
 				break;
 
+			case 0xa994:
+				d0 = RM::CurResFile(trap);
+				break;
+
 			case 0xA997:
 				d0 = RM::OpenResFile(trap);
 				break;

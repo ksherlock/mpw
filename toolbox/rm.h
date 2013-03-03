@@ -20,6 +20,8 @@ namespace RM
 	uint16_t OpenResFile(uint16_t trap);
 
 	uint16_t SetResLoad(uint16_t trap);
+
+	uint16_t CurResFile(uint16_t trap);
 }
 
 
