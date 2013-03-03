@@ -78,7 +78,8 @@ namespace
 			case 0x76657273: // 'vers';
 			case 0x48455841: // 'HEXA'
 			case 0x53545220: // 'STR '
-			case 0x59414343: // 'YACC'
+			case 0x53545223: // 'STR#' (reziigs)
+			case 0x59414343: // 'YACC' (pascaliigs)
 				break;
 			default:
 				return 0;
