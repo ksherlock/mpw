@@ -201,7 +201,7 @@ namespace SANE
 
 		StackFrame<2>(op);
 
-		Log("%04x DECSTR68K(%04x)\n", op);
+		Log("%04x DECSTR68K(%04x)\n", trap, op);
 
 		switch (op)
 		{
