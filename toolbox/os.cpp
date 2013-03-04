@@ -471,7 +471,7 @@ namespace OS
 
 		}
 
-
+		Log("     write(%04x, %08x, %08x)\n", ioRefNum, ioBuffer, ioReqCount);
 		ssize_t count = OS::Internal::FDEntry::write(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
 		if (count >= 0)
 		{
