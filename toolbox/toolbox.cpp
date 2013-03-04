@@ -177,6 +177,14 @@ namespace ToolBox {
 				d0 = MM::NewHandle(trap);
 				break;
 
+			case 0xA027:
+				d0 = MM::ReallocHandle(trap);
+				break;
+				
+			case 0xA02B:
+				d0 = MM::EmptyHandle(trap);
+				break;
+
 			// resource manager stuff.
 
 			// Get1Resource (theType: ResType; thelD: INTEGER) : Handle;

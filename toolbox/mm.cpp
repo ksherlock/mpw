@@ -460,6 +460,107 @@ namespace MM
 		return Native::DisposeHandle(hh);
 	}
 
+	uint16_t EmptyHandle(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle to be disposed of
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t hh = cpuGetAReg(0);
+		Log("%04x EmptyHandle(%08x)\n", trap, hh);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		auto &info = iter->second;
+		if (info.address == 0) return SetMemError(0);
+		if (info.locked) return SetMemError(memLockedErr); // ?
+
+		void *address = Memory + info.address;
+
+		mplite_free(&pool, address);
+
+		info.address = 0;
+		info.size = 0;
+
+		memoryWriteLong(0, hh);
+		return 0;
+	}
+
+	/*
+	 * ReallocHandle (h: Handle; logicalSize: Size);
+	 * 
+	 * ReallocHandle allocates a new relocatable block with a logical
+	 * size of logicalSize bytes. It then updates handle h by setting
+	 * its master pointer to point to the new block. The main use of
+	 * this procedure is to reallocate space for a block that has
+	 * been purged. Normally h is an empty handle, but it need not
+	 * be: If it points to an existing block, that block is released
+	 * before the new block is created.
+	 *
+	 * In case of an error, no new block is allocated and handle h is 
+	 * left unchanged.
+	 */
+	uint16_t ReallocHandle(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle to be disposed of
+		 * D0 Logical Size
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t hh = cpuGetAReg(0);
+		uint32_t logicalSize = cpuGetDReg(0);
+
+		Log("%04x ReallocHandle(%08x, %08x)\n", trap, hh, logicalSize);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+
+		auto& info = iter->second;
+
+		if (info.locked) return SetMemError(memLockedErr);
+
+		if (info.address)
+		{
+			void *address = Memory + info.address;
+
+			mplite_free(&pool, address);
+
+			info.address = 0;
+			info.size = 0;
+			memoryWriteLong(0, hh);
+		}
+
+		// allocate a new block...
+		if (logicalSize == 0) return SetMemError(0);
+
+		void *address = mplite_malloc(&pool, logicalSize);
+		if (!address) return SetMemError(memFullErr);
+
+		uint32_t mcptr = (uint8_t *)address - Memory;
+
+		info.size = logicalSize;
+		info.address = mcptr;
+
+		memoryWriteLong(mcptr, hh);
+
+		// lock?  clear purged flag?
+
+		return 0;
+	}
+
 
 	uint32_t GetHandleSize(uint16_t trap)
 	{

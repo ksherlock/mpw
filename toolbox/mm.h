@@ -30,6 +30,9 @@ namespace MM
 	uint16_t DisposeHandle(uint16_t trap);
 	uint16_t DisposePtr(uint16_t trap);
 
+	uint16_t EmptyHandle(uint16_t trap);
+	uint16_t ReallocHandle(uint16_t trap);
+
 	uint32_t GetHandleSize(uint16_t);
 	uint32_t GetPtrSize(uint16_t);
 
