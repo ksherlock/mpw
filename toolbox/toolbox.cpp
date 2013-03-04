@@ -205,6 +205,10 @@ namespace ToolBox {
 				d0 = RM::OpenResFile(trap);
 				break;
 
+			case 0xA998:
+				d0 = RM::UseResFile(trap);
+				break;
+
 			case 0xa99a:
 				d0 = RM::CloseResFile(trap);
 				break;

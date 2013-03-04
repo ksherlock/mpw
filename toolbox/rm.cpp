@@ -294,6 +294,17 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+	uint16_t UseResFile(uint16_t trap)
+	{
+		uint16_t resFile;
+
+		StackFrame<2>(resFile);
+
+		Log("%04x UseResFile(%04x)\n", trap, resFile);
+
+		::UseResFile(resFile);
+		return SetResError(::ResError());
+	}
 
 
 	// todo -- move since it's not RM related.
