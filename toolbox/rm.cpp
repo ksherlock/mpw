@@ -80,6 +80,7 @@ namespace
 			case 0x53545220: // 'STR '
 			case 0x53545223: // 'STR#' (reziigs)
 			case 0x59414343: // 'YACC' (pascaliigs)
+			case 0x72547970: // rTyp (rezIIgs)
 				break;
 			default:
 				return 0;
