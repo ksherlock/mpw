@@ -13,6 +13,8 @@ namespace OS { namespace Internal {
 
 	uint16_t GetFileType(const std::string &pathname, uint16_t *fileType, uint32_t *auxType);
 
+	int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset);
+
 	struct FDEntry
 	{
 		int refcount;

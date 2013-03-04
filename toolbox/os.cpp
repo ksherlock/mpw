@@ -298,16 +298,15 @@ namespace OS
 
 		bool rf = trap == 0xa00a;
 
+		const char *modifier = nullptr;
 		switch(trap)
 		{
-			case 0xa000:
-				Log("%04x Open(%08x)\n", trap, parm);
-				break;
 			case 0xa00a:
-				Log("%04x OpenRF(%08x)\n", trap, parm);
+				modifier = "RF";
 				break;
 		}
 
+		Log("%04x Open%s(%08x)\n", trap, modifier, parm);
 
 		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t namePtr = memoryReadLong(parm + 18);
@@ -325,7 +324,6 @@ namespace OS
 			memoryWriteWord(bdNamErr, parm + 16);
 			return bdNamErr;
 		}
-		Log("     Open(%s)\n", sname.c_str());
 
 
 		int access = 0;
@@ -354,6 +352,7 @@ namespace OS
 			sname.append(_PATH_RSRCFORKSPEC);
 
 
+		Log("     open(%s, %04x)\n", xname.c_str(), access);
 		int fd = ::open(sname.c_str(), access);
 		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
 		{
@@ -381,6 +380,7 @@ namespace OS
 	uint16_t Read(uint16_t trap)
 	{
 		uint32_t d0;
+		int32_t pos;
 		uint32_t parm = cpuGetAReg(0);
 
 		Log("%04x Read(%08x)\n", trap, parm);
@@ -400,61 +400,18 @@ namespace OS
 			return d0;
 		}
 
-		off_t currentPos = ::lseek(ioRefNum, 0, SEEK_CUR);
-		if (currentPos < 0)
+		pos = Internal::mac_seek(ioRefNum, ioPosMode, ioPosOffset);
+		if (pos < 0)
 		{
-			if (errno != ESPIPE)
-			{
-				d0 = errno_to_oserr(errno);
-				memoryWriteWord(d0, parm + 16);
-				return d0;
-			}
-			currentPos = 0;
-		}
-		off_t pos = 0;
+			d0 = pos;
+			pos = 0;
 
-		switch(ioPosMode)
-		{
-			case fsFromStart:
-				pos = ioPosOffset;
-				break;
-			case fsFromMark:
-				pos = currentPos + ioPosOffset;
-				break;
-			case fsFromLEOF:
-				{
-					struct stat st;
-					int rv;
-					rv = ::fstat(ioRefNum, &st);
-					if (rv < 0)
-					{
-
-					}
-					pos = st.st_size + ioPosOffset;
-				}
-				break;
-			case fsAtMark:
-				pos = currentPos;
-				break;
-			default:
-				d0 = paramErr;
-				memoryWriteWord(d0, parm + 16);
-				return d0;
-				break;
+			memoryWriteLong(pos, parm + 46); // new offset.
+			memoryWriteWord(d0, parm + 16);
+			return d0;
 		}
 
-		if (pos != currentPos)
-		{
-
-			int rv = ::lseek(ioRefNum, pos, SEEK_SET);
-			if (rv < 0)
-			{
-				d0 = paramErr;
-				memoryWriteWord(d0, parm + 16);
-				return d0;
-			}
-		}
-
+		Log("     read(%04x, %08x, %08x)\n", ioRefNum, ioBuffer, ioReqCount);
 		ssize_t count = OS::Internal::FDEntry::read(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
 		if (count >= 0)
 		{
@@ -474,9 +431,66 @@ namespace OS
 
 		memoryWriteLong(pos, parm + 46); // new offset.
 		memoryWriteWord(d0, parm + 16);
-		return d0;		
+		return d0;
 
 	}
+
+
+	uint16_t Write(uint16_t trap)
+	{
+		uint32_t d0;
+		int32_t pos;
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x Write(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+		uint32_t ioBuffer = memoryReadLong(parm + 32);
+		int32_t ioReqCount = memoryReadLong(parm + 36);
+		uint16_t ioPosMode = memoryReadWord(parm + 44);
+		int32_t ioPosOffset = memoryReadLong(parm + 46);
+
+		if (ioReqCount < 0)
+		{
+			d0 = paramErr;
+			memoryWriteWord(d0, parm + 16);
+			return d0;
+		}
+
+		pos = Internal::mac_seek(ioRefNum, ioPosMode, ioPosOffset);
+		if (pos < 0)
+		{
+			d0 = pos;
+			pos = 0;
+
+			memoryWriteLong(pos, parm + 46); // new offset.
+			memoryWriteWord(d0, parm + 16);
+			return d0;
+
+		}
+
+
+		ssize_t count = OS::Internal::FDEntry::write(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
+		if (count >= 0)
+		{
+			d0 = 0;
+			pos += count;
+			memoryWriteLong(count, parm + 40);
+		} 
+
+		if (count < 0)
+		{
+			d0 = errno_to_oserr(errno);
+		}
+
+		memoryWriteLong(pos, parm + 46); // new offset.
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+
+	}
+
 
 
 
@@ -544,6 +558,52 @@ namespace OS
 		return d0;
 	}
 
+	uint16_t SetEOF(uint16_t trap)
+	{
+		uint32_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x SetEOF(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+		uint32_t ioMisc = memoryReadLong(parm + 28);
+
+		int rv = ::ftruncate(ioRefNum, ioMisc);
+
+		d0 = rv < 0  ? errno_to_oserr(errno) : 0;
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
+
+	uint16_t SetFPos(uint16_t trap)
+	{
+		uint32_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x SetFPos(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+		uint16_t ioPosMode = memoryReadWord(parm + 44);
+		int32_t ioPosOffset = memoryReadLong(parm + 46);
+
+
+		ioPosOffset = Internal::mac_seek(ioRefNum, ioPosMode, ioPosOffset);
+		d0 = 0;
+		if (ioPosOffset < 0)
+		{
+			d0 = ioPosOffset;
+			ioPosOffset = 0;
+		}
+
+		memoryWriteLong(ioPosOffset, parm + 46); // new offset.
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
 
 
 	// return the name of the default volume.

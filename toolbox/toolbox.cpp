@@ -43,6 +43,10 @@ namespace ToolBox {
 				d0 = OS::Read(trap);
 				break;
 
+			case 0xa003:
+				d0 = OS::Write(trap);
+				break;
+
 			case 0xa008:
 				d0 = OS::Create(trap);
 				break;
@@ -61,14 +65,21 @@ namespace ToolBox {
 			case 0xa011:
 				d0 = OS::GetEOF(trap);
 				break;
+			case 0xa012:
+				d0 = OS::SetEOF(trap);
+				break;
 
 			case 0xa014:
 				d0 = OS::GetVol(trap);
 				break;
 
-			case 0xa260:
-				d0 = OS::HFSDispatch(trap);
+			case 0xa044:
+				d0 = OS::SetFPos(trap);
 				break;
+
+			//case 0xa260:
+			//	d0 = OS::HFSDispatch(trap);
+			//	break;
 				
 			case 0xaa52:
 				d0 = OS::HighLevelHFSDispatch(trap);

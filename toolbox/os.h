@@ -43,10 +43,15 @@ namespace OS
 	uint16_t SetFileInfo(uint16_t trap);
 
 	uint16_t GetEOF(uint16_t trap);
+	uint16_t SetEOF(uint16_t trap);
+
+	uint16_t SetFPos(uint16_t trap);
+
 	uint16_t GetVol(uint16_t trap);
 
 	uint16_t Open(uint16_t trap);
 	uint16_t Read(uint16_t trap);
+	uint16_t Write(uint16_t trap);
 
 	#pragma mark String Utilities
 	uint16_t CmpString(uint16_t trap);

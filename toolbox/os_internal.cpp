@@ -1,4 +1,5 @@
 #include "os_internal.h"
+#include "os.h"
 #include "toolbox.h"
 
 #include <stdexcept>
@@ -41,6 +42,30 @@ namespace OS { namespace Internal {
 
 	}
 
+	int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset)
+	{
+		off_t rv;
+		switch (mode & 0x03)
+		{
+		case OS::fsAtMark:
+			mode = SEEK_CUR;
+			offset = 0;
+			break;
+		case OS::fsFromStart:
+			mode = SEEK_SET;
+			break;
+		case OS::fsFromLEOF:
+			mode = SEEK_END;
+			break;
+		case OS::fsFromMark:
+			mode = SEEK_CUR;
+			break;
+		}
+
+		rv = ::lseek(refNum, offset, mode);
+		if (rv < 0) return errno_to_oserr(errno);
+		return rv;
+	}
 
 	//std::deque<FDEntry> FDTable;
 
