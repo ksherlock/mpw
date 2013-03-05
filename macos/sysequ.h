@@ -15,8 +15,17 @@ Created: Sunday, January 6, 1991 at 10:07 PM
 #define __macos_sysequ__
 
 #ifdef __cplusplus
+extern "C" {
+#endif
+const char *GlobalName(uint32_t address);
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
 namespace MacOS {
 #endif
+
 
 enum {
 
