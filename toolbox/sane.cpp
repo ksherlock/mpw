@@ -238,7 +238,7 @@ namespace SANE
 	}
 
 
-	template<class SRCTYPE>
+	template<class SrcType, class DestType = extended>
 	uint16_t fadd(const char *name)
 	{
 		// faddi, etc.
@@ -251,8 +251,8 @@ namespace SANE
 
 		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
 
-		SRCTYPE s = readnum<SRCTYPE>(src);
-		extended d = readnum<extended>(dest);
+		SrcType s = readnum<SrcType>(src);
+		DestType d = readnum<DestType>(dest);
 
 		if (ToolBox::Trace)
 		{
@@ -263,7 +263,32 @@ namespace SANE
 
 		d = d + s;
 
-		writenum<extended>((extended)d, dest);
+		writenum<DestType>(d, dest);
+		return 0;
+	}
+
+	template<class SrcType, class DestType>
+	uint16_t fconvert(const char *name)
+	{
+		// type conversion.
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SrcType s = readnum<SrcType>(src);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(s);
+			Log("     %s\n", tmp1.c_str());
+		}
+
+		writenum<DestType>((DestType)s, dest);
+
 		return 0;
 	}
 
@@ -280,16 +305,56 @@ namespace SANE
 
 		if (op == 0x0006) return fdivx();
 		if (op == 0x000b) return fx2dec();
-		if (op == 0x280e) return fl2x();
 
 		if (op == 0x0004) return fmulx();
 
 		switch(op)
 		{
+			// fadd...
+			case 0x0000: // faddx
+				return fadd<extended>("FADDX");
+				break;
 
 			case 0x2000: // faddi
 				return fadd<int16_t>("FADDI");
 				break;
+
+			// conversion
+			case 0x000e: // 2 versions for completeness.
+			case 0x0010:
+				return fconvert<extended, extended>("FX2X");
+				break;
+
+			case 0x0810:
+				return fconvert<extended, double>("FX2D");
+				break;
+
+			case 0x1010:
+				return fconvert<extended, float>("FX2S");
+				break;
+
+			// 0x3010 - x to comp
+			case 0x2010:
+				return fconvert<extended, int16_t>("FX2I");
+				break;
+
+			case 0x2810:
+				return fconvert<extended, int32_t>("FX2L");
+				break;
+
+			case 0x080e:
+				return fconvert<double, extended>("FD2X");
+				break;
+			case 0x100e:
+				return fconvert<float, extended>("FS2X");
+				break;
+			// 0x300e - comp to x
+			case 0x200e:
+				return fconvert<int16_t, extended>("FI2X");
+				break;
+			case 0x280e:
+				return fconvert<int32_t, extended>("FL2X");
+				break; 
 
 		}
 
