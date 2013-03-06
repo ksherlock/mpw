@@ -6,6 +6,7 @@
 #include <cpu/fmem.h>
 
 #include <stdlib.h>
+#include <string>
 
 #include "stackframe.h"
 
@@ -15,14 +16,113 @@ using ToolBox::Log;
 namespace SANE
 {
 
-	double to_double(uint64_t x)
+	// long double is an 80-bit extended with an extra 48-bits of 0 padding.
+	typedef long double extended;
+
+	template <class T>
+	T readnum(uint32_t address);
+
+	template<>
+	int16_t readnum<int16_t>(uint32_t address)
 	{
+		return memoryReadWord(address);
+	}
+
+	template<>
+	int32_t readnum<int32_t>(uint32_t address)
+	{
+		return memoryReadLong(address);
+	}
+
+	template<>
+	float readnum<float>(uint32_t address)
+	{
+		static_assert(sizeof(float) == 4, "unexpected long double size");
+
+		uint32_t x = memoryReadLong(address);
+		return *((float *)&x);
+	}
+
+	template<>
+	double readnum<double>(uint32_t address)
+	{
+		static_assert(sizeof(double) == 8, "unexpected long double size");
+
+		uint64_t x = memoryReadLongLong(address);
 		return *((double *)&x);
 	}
-	uint64_t to_int64(double d)
+
+	template<>
+	long double readnum<long double>(uint32_t address)
 	{
-		return *((uint64_t *)&d);
+		char buffer[16];
+
+		static_assert(sizeof(long double) == 16, "unexpected long double size");
+
+
+		// read and swap 10 bytes
+		// this is very much little endian.
+
+		for (unsigned i = 0; i < 10; ++i)
+		{
+			buffer[9 - i] = memoryReadByte(address + i);
+		}
+		// remainder are 0-filled.
+		for (unsigned i = 10; i < 16; ++i)
+			buffer[i] = 0;
+
+		// now cast...
+
+		return *((long double *)buffer);		
 	}
+
+	template<class T>
+	void writenum(T value, uint32_t address);
+
+	template<>
+	void writenum<int16_t>(int16_t value, uint32_t address)
+	{
+		memoryWriteWord(value, address);
+	}
+
+	template<>
+	void writenum<int32_t>(int32_t value, uint32_t address)
+	{
+		memoryWriteLong(value, address);
+	}
+
+	template<>
+	void writenum<float>(float value, uint32_t address)
+	{
+		static_assert(sizeof(value) == 4, "unexpected float size");
+
+		memoryWriteLong(*((uint32_t *)&value), address);
+	}	
+
+	template<>
+	void writenum<double>(double value, uint32_t address)
+	{
+		static_assert(sizeof(value) == 8, "unexpected double size");
+
+		memoryWriteLongLong(*((uint64_t *)&value), address);
+	}	
+
+	template<>
+	void writenum<long double>(long double value, uint32_t address)
+	{
+		static_assert(sizeof(value) == 16, "unexpected long double size");
+
+		char buffer[16];
+
+		std::memcpy(buffer, &value, sizeof(value));
+
+		// copy 10 bytes over
+		// little-endian specific.
+		for(unsigned i = 0; i < 10; ++i)
+			memoryWriteByte(buffer[9 - i], address + i);
+	}	
+
+
 
 	uint16_t fl2x()
 	{
@@ -32,17 +132,18 @@ namespace SANE
 		uint32_t src;
 
 		StackFrame<10>(src, dest, op);
-		//80-bit isn't popular anymore, so convert to double (64-bit)
 
-		Log("     FL2X(%08x, %08x, %084x)\n", src, dest, op);
+		Log("     FL2X(%08x, %08x, %04x)\n", src, dest, op);
 
-		int32_t i = memoryReadLong(src);
-		double d = (double)i;
+		int32_t i = readnum<int32_t>(src);
 
-		int64_t i64 = to_int64(d);
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(i);
+			Log("     %s\n", tmp1.c_str());
+		}
 
-		memoryWriteLongLong(i64, dest); 
-		memoryWriteWord(0, dest + 8);
+		writenum<extended>((extended)i, dest);
 
 		return 0;
 	}
@@ -55,24 +156,53 @@ namespace SANE
 		uint32_t src;
 
 		StackFrame<10>(src, dest, op);
-		//80-bit isn't popular anymore, so convert to double (64-bit)
 
-		Log("     FDIVX(%08x, %08x, %084x)\n", src, dest, op);
+		Log("     FDIVX(%08x, %08x, %04x)\n", src, dest, op);
 
-		uint64_t si = memoryReadLongLong(src);
-		uint64_t di = memoryReadLongLong(dest);
+		extended s = readnum<extended>(src);
+		extended d = readnum<extended>(dest);
 
-
-		double sd = to_double(si);
-		double dd = to_double(di);
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s / %s\n", tmp1.c_str(), tmp2.c_str());
+		}
 
 		// dest = dest / src
-		dd = dd / sd;
+		d = d / s;
 
-		di = to_int64(dd);
-		memoryWriteLongLong(di, dest);
-		memoryWriteWord(0, dest + 8);
+		writenum<extended>((extended)d, dest);
 
+		return 0;
+	}
+
+	uint16_t fmulx()
+	{
+		// multiply extended (80-bit fp)
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     FMULX(%08x, %08x, %04x)\n", src, dest, op);
+
+		extended s = readnum<extended>(src);
+		extended d = readnum<extended>(dest);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s * %s\n", tmp1.c_str(), tmp2.c_str());
+		}
+
+		d = d * s;
+
+		writenum<extended>((extended)d, dest);
+
+		return 0;
 		return 0;
 	}
 
@@ -87,8 +217,17 @@ namespace SANE
 
 		StackFrame<14>(f_adr, a_adr, d_adr, op);
 
-		uint64_t si = memoryReadLongLong(a_adr);
-		double sd = to_double(si);
+		Log("     FX2DEC(%08x, %08x, %08x, %04x)\n", f_adr, a_adr, d_adr, op);
+
+		fprintf(stderr, "warning: FX2DEC not yet implemented\n");
+
+		extended s = readnum<extended>(a_adr);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(s);
+			Log("     %s\n", tmp1.c_str());
+		}
 
 		// ugh, really don't want to write this code right now.
 		memoryWriteWord(0, d_adr);
@@ -97,6 +236,37 @@ namespace SANE
 
 		return 0;
 	}
+
+
+	template<class SRCTYPE>
+	uint16_t fadd(const char *name)
+	{
+		// faddi, etc.
+		// destination is always extended.
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SRCTYPE s = readnum<SRCTYPE>(src);
+		extended d = readnum<extended>(dest);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s + %s\n", tmp1.c_str(), tmp2.c_str());
+		}
+
+		d = d + s;
+
+		writenum<extended>((extended)d, dest);
+		return 0;
+	}
+
 
 	uint16_t fp68k(uint16_t trap)
 	{
@@ -111,6 +281,17 @@ namespace SANE
 		if (op == 0x0006) return fdivx();
 		if (op == 0x000b) return fx2dec();
 		if (op == 0x280e) return fl2x();
+
+		if (op == 0x0004) return fmulx();
+
+		switch(op)
+		{
+
+			case 0x2000: // faddi
+				return fadd<int16_t>("FADDI");
+				break;
+
+		}
 
 
 		fprintf(stderr, "fp68k -- op %04x is not yet supported\n", op);
