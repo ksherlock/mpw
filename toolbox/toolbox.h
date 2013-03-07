@@ -29,6 +29,9 @@ namespace ToolBox
 
 	bool WritePString(uint32_t address, const std::string &s);
 
+
+	std::string UnixToMac(const std::string &path);
+	std::string MacToUnix(const std::string &path);
 }
 
 

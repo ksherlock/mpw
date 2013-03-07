@@ -307,7 +307,7 @@ namespace ToolBox {
 			tmp.assign((char *)memoryPointer(address));
 		}
 
-		if (fname) std::replace(tmp.begin(), tmp.end(), ':', '/');
+		if (fname) tmp = MacToUnix(tmp);
 
 		return tmp;
 	}
@@ -322,7 +322,7 @@ namespace ToolBox {
 		
 			tmp.assign((char *)memoryPointer(address + 1), length);
 
-			if (fname) std::replace(tmp.begin(), tmp.end(), ':', '/');
+			if (fname) tmp = MacToUnix(tmp);
 			
 		}
 
@@ -356,5 +356,84 @@ namespace ToolBox {
 		return true;
 	}
 
+	/*
+	 * MacOS basically does the absolute/relative paths backwards vs unix.
+	 *
+	 * file -> file
+	 * :dir -> dir
+	 * :dir:file -> dir/file
+	 * volume:file -> /volume/file
+	 */
+	std::string UnixToMac(const std::string &path)
+	{
+		// ./..., //... etc.
 
+		std::string tmp;
+		int sep;
+
+		if (path.empty()) return path;
+
+		sep = path.find_first_of('/');
+
+		if (sep == path.npos)
+		{
+			// no sep -- relative file.  treat as-is
+			return path; 
+		}
+		if (sep == 0)
+		{
+			// absolute path -- drop the leading /
+			// '/' doesn't make sense.
+			tmp = path.substr(1);
+		}
+		else
+		{
+			// relative path.
+			tmp = '/';
+			tmp.append(path);
+		}
+
+		std::replace(tmp.begin(), tmp.end(), '/', ':');
+
+		return tmp;
+	}
+
+
+	std::string MacToUnix(const std::string &path)
+	{
+		std::string tmp;
+		int sep;
+		int slash;
+
+		if (path.empty()) return path;
+
+		sep = path.find_first_of(':');
+		slash = path.find_first_of('/');
+
+		// if there's a / prior to the :, assume it's a unix prefix.
+		if (sep == path.npos) return path;
+
+		if (slash == path.npos || slash > sep)
+		{
+			if (sep == 0)
+			{
+				// :directory... -> directory
+				tmp = path.substr(1);
+			}
+			else
+			{
+				// volume:path...
+				tmp = '/';
+				tmp.append(path);
+			}
+		}
+		else // assume a unix prefix.
+		{
+			tmp = path;
+		}	
+
+		std::replace(tmp.begin(), tmp.end(), ':', '/');
+
+		return tmp;
+	}
 }

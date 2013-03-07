@@ -18,6 +18,7 @@
 #include <cpu/fmem.h>
 #include <cpu/cpuModule.h>
 
+#include <toolbox/toolbox.h>
 #include <toolbox/mm.h>
 #include <toolbox/os_internal.h>
 
@@ -116,7 +117,8 @@ namespace MPW
 
 		std::string command = argv[0];
 
-		std::replace(command.begin(), command.end(), '/', ':');
+		command = ToolBox::UnixToMac(command);
+		//std::replace(command.begin(), command.end(), '/', ':');
 
 		argv[0] = basename(argv[0]);
 
@@ -209,7 +211,8 @@ namespace MPW
 				std::string tmp;
 				std::string root(mpw);
 
-				std::replace(root.begin(), root.end(), '/', ':');
+				root = ToolBox::UnixToMac(root);
+				//std::replace(root.begin(), root.end(), '/', ':');
 				if (root.back() != ':') root.push_back(':');
 
 				tmp = "MPW";
