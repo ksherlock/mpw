@@ -595,7 +595,7 @@ void InstructionLogger()
 
 }
 
-#define MPW_VERSION "0.1"
+#define MPW_VERSION "0.4"
 void help()
 {
 	printf("MPW " MPW_VERSION "\n");
