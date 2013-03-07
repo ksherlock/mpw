@@ -139,6 +139,10 @@ namespace MPW
 		case kF_OPEN:
 			d0 = ftrap_open(name, parm);
 			break;
+		case kF_GTABINFO:
+			d0 = 0x40000000 | kEINVAL;
+			break;
+			
 		default:
 			d0 = 0x40000000 | kEINVAL;
 			fprintf(stderr, "faccess - unsupported op %04x\n", op);		
