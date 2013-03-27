@@ -286,6 +286,9 @@ namespace ToolBox {
 			case 0xa906:
 				d0 = Utility::NewString(trap);
 				break;
+			case 0xa9ba:
+				d0 = Utility::GetString(trap);
+				break;
 				
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
