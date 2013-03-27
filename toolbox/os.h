@@ -38,6 +38,7 @@ namespace OS
 	uint16_t Close(uint16_t trap);
 	uint16_t Create(uint16_t trap);
 	uint16_t Delete(uint16_t trap);
+	uint16_t FlushVol(uint16_t trap);
 	
 	uint16_t GetFileInfo(uint16_t trap);
 	uint16_t SetFileInfo(uint16_t trap);

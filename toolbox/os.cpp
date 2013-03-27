@@ -605,6 +605,17 @@ namespace OS
 		return d0;
 	}
 
+	uint16_t FlushVol(uint16_t trap)
+	{
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x FlushVol(%08x)\n", trap, parm);		
+
+		// ioResult
+		memoryWriteWord(0, parm + 16);
+
+		return 0;
+	}
 
 	// return the name of the default volume.
 	// this does not translate well.

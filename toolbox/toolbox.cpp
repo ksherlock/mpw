@@ -68,6 +68,9 @@ namespace ToolBox {
 			case 0xa012:
 				d0 = OS::SetEOF(trap);
 				break;
+			case 0xa013:
+				d0 = OS::FlushVol(trap);
+				break;
 
 			case 0xa014:
 				d0 = OS::GetVol(trap);
@@ -289,7 +292,7 @@ namespace ToolBox {
 			case 0xa9ba:
 				d0 = Utility::GetString(trap);
 				break;
-				
+
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());
