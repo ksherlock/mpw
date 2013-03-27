@@ -5,6 +5,12 @@
 
 namespace RM
 {
+
+	namespace Native 
+	{
+		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle);
+	}
+
 	uint16_t CloseResFile(uint16_t trap);
 	uint16_t GetNamedResource(uint16_t trap);
 	uint16_t Get1NamedResource(uint16_t trap);
