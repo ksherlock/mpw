@@ -13,6 +13,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <sys/paths.h>
 
 #include <cpu/defs.h>
@@ -31,6 +32,24 @@
 
 namespace MPW
 {
+
+
+	uint32_t ftrap_delete(uint32_t name)
+	{
+
+		std::string sname;
+		int rv;
+
+		sname = ToolBox::ReadCString(name, true);
+
+		Log("     delete(%s)\n", sname.c_str());
+
+		rv = ::unlink(sname.c_str());
+		if (rv < 0) return 0x40000000 | errno_to_errno(errno);
+		
+		return 0;
+	}
+
 
 
 	uint32_t ftrap_open(uint32_t name, uint32_t parm)
@@ -118,6 +137,7 @@ namespace MPW
 		return d0;
 	}
 
+
 	void ftrap_access(uint16_t trap)
 	{
 		// open a file, rename a file, or delete a file.
@@ -139,13 +159,19 @@ namespace MPW
 		case kF_OPEN:
 			d0 = ftrap_open(name, parm);
 			break;
+
+		case kF_DELETE:
+			d0 = ftrap_delete(name);
+			break;
+
 		case kF_GTABINFO:
 			d0 = 0x40000000 | kEINVAL;
 			break;
 			
 		default:
 			d0 = 0x40000000 | kEINVAL;
-			fprintf(stderr, "faccess - unsupported op %04x\n", op);		
+			fprintf(stderr, "faccess - unsupported op %04x\n", op);	
+			exit(1);	
 		}
 
 		cpuSetDReg(0, d0);				
