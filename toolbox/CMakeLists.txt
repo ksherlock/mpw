@@ -14,6 +14,7 @@ set(TOOLBOX_SRC
 	os_highlevel.cpp
 	qd.cpp
 	sane.cpp
+	utility.cpp
 )
 
 

@@ -13,7 +13,7 @@
 #include "os.h"
 #include "qd.h"
 #include "sane.h"
-
+#include "utility.h"
 
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
@@ -281,6 +281,12 @@ namespace ToolBox {
 				d0 = SANE::decstr68k(trap);
 				break;
 
+			// utility
+
+			case 0xa906:
+				d0 = Utility::NewString(trap);
+				break;
+				
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());
