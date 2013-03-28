@@ -298,7 +298,7 @@ namespace OS
 
 		bool rf = trap == 0xa00a;
 
-		const char *modifier = nullptr;
+		const char *modifier = "";
 		switch(trap)
 		{
 			case 0xa00a:
