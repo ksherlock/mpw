@@ -607,8 +607,9 @@ void help()
 	printf(" --trace-toolbox     print toolbox calls\n");
 	printf(" --trace-mpw         print mpw calls\n");
 	printf(" --memory stats      print memory usage information\n");
-	printf(" --ram=<number>      set the ram size.  Default=16M");
-	printf(" --stack=<number>    set the stack size.  Default=8K");
+	printf(" --ram=<number>      set the ram size.  Default=16M\n");
+	printf(" --stack=<number>    set the stack size.  Default=8K\n");
+	printf("\n");
 }
 
 bool parse_number(const char *input, uint32_t *dest)
