@@ -18,6 +18,11 @@ namespace ToolBox
 		if (Trace) fprintf(stderr, format, args...);
 	}
 
+	inline void Log(const char *format)
+	{
+		if (Trace) fputs(format, stderr);
+	}
+
 
 	void dispatch(uint16_t trap);
 
