@@ -220,6 +220,13 @@ MPLITE_API void mplite_print_stats(const mplite_t * const handle,
  */
 #define mplite_alloc_count(handle)    (((handle) != NULL)? (handle)->nAlloc : 0)
 
+
+/* return the largest available block size */
+MPLITE_API int mplite_maxmem(mplite_t *handle);
+
+/* return the total available memory */
+MPLITE_API int mplite_freemem(mplite_t *handle);
+
 #ifdef __cplusplus
 }
 #endif

@@ -189,6 +189,54 @@ MPLITE_API int mplite_resize(mplite_t *handle, const void *pPrior,
     return MPLITE_ERR_INVPAR; // not really, but ok.
 }
 
+/* return the largest available block size */
+MPLITE_API int mplite_maxmem(mplite_t *handle)
+{
+    unsigned i;
+
+    if (NULL == handle) return 0;
+
+    mplite_enter(handle);
+    for (i = MPLITE_LOGMAX + 1; i; --i)
+    {
+        if (handle->aiFreelist[i - 1] != -1) break;
+    }
+    mplite_leave(handle);
+    if (i) return (1 << (i - 1)) * handle->szAtom;
+    else return 0;
+}
+
+/* return the total available memory */
+MPLITE_API int mplite_freemem(mplite_t *handle)
+{
+    int total;
+    int blocksize;
+    int i;
+
+    if (NULL == handle) return 0;
+
+    total = 0;
+    mplite_enter(handle);
+    for (i = 0, blocksize = 1; i <= MPLITE_LOGMAX; ++i, blocksize <<= 1)
+    {
+        int index = handle->aiFreelist[i];
+
+        while (index != -1)
+        {
+            mplite_link_t *link = mplite_getlink(handle, index);
+            total += blocksize;
+
+            index = link->next;
+        }
+    }
+    mplite_leave(handle);
+
+    return total * handle->szAtom;
+
+    //return handle->szAtom * handle->nBlock - handle->currentOut;
+}
+
+
 MPLITE_API int mplite_roundup(mplite_t *handle, const int n)
 {
     int iFullSz;
