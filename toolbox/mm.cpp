@@ -270,9 +270,44 @@ namespace MM
 
 		 Log("%04x CompactMem(%08x)\n", trap, cbNeeded);
 
-		 // todo -- add mplite call to return total free mem, largest block.
-		 return 0x0f0000;
+
+		 return mplite_maxmem(&pool);
 	}
+
+	uint32_t MaxMem(uint16_t trap)
+	{
+		// return largest contiguous free block size.
+		/* 
+		 * on entry:
+		 * (nothing)
+		 *
+		 * on exit:
+		 * D0: function result (long word)
+		 *
+		 */
+
+		Log("%04x MaxMem()\n", trap);
+
+		return mplite_maxmem(&pool);
+	}
+
+	uint32_t FreeMem(uint16_t trap)
+	{
+		// total free memory.
+		/* 
+		 * on entry:
+		 * (nothing)
+		 *
+		 * on exit:
+		 * D0: function result (long word)
+		 *
+		 */
+
+		Log("%04x FreeMem()\n", trap);
+
+		return mplite_freemem(&pool);
+	}
+
 
 	uint16_t MoveHHi(uint16_t trap)
 	{

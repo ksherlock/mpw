@@ -128,6 +128,14 @@ namespace ToolBox {
 				d0 = MM::HPurge(trap);
 				break;
 
+			case 0xA11D:
+				d0 = MM::MaxMem(trap);
+				break;
+
+			case 0xA01C:
+				d0 = MM::FreeMem(trap);
+				break;
+				
 			// CompactMem (cbNeeded: Size) : Size;
 			case 0xa04c:
 				d0 = MM::CompactMem(trap);
