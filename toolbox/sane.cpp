@@ -148,6 +148,7 @@ namespace SANE
 		return 0;
 	}
 
+#if 0
 	uint16_t fdivx()
 	{
 		// div extended (80-bit fp)
@@ -205,7 +206,8 @@ namespace SANE
 		return 0;
 		return 0;
 	}
-
+#endif
+	
 	uint16_t fx2dec()
 	{
 		// extended (80-bit fp) to decimal
@@ -267,6 +269,95 @@ namespace SANE
 		return 0;
 	}
 
+	template<class SrcType, class DestType = extended>
+	uint16_t fsub(const char *name)
+	{
+		// fsub, etc.
+		// destination is always extended.
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SrcType s = readnum<SrcType>(src);
+		DestType d = readnum<DestType>(dest);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s - %s\n", tmp1.c_str(), tmp2.c_str());
+		}
+
+		d = d - s;
+
+		writenum<DestType>(d, dest);
+		return 0;
+	}
+
+	template<class SrcType, class DestType = extended>
+	uint16_t fmul(const char *name)
+	{
+		// multiply extended (80-bit fp)
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SrcType s = readnum<SrcType>(src);
+		DestType d = readnum<DestType>(dest);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s * %s\n", tmp1.c_str(), tmp2.c_str());
+		}
+
+		d = d * s;
+
+		writenum<DestType>((extended)d, dest);
+
+		return 0;
+	}
+
+	template<class SrcType, class DestType = extended>
+	uint16_t fdiv(const char *name)
+	{
+		// div extended (80-bit fp)
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SrcType s = readnum<SrcType>(src);
+		DestType d = readnum<DestType>(dest);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s / %s\n", tmp1.c_str(), tmp2.c_str());
+		}
+
+		// dest = dest / src
+		d = d / s;
+
+		writenum<DestType>(d, dest);
+
+		return 0;
+	}
+
+
 	template<class SrcType, class DestType>
 	uint16_t fconvert(const char *name)
 	{
@@ -303,21 +394,44 @@ namespace SANE
 
 		Log("%04x FP68K(%04x)\n", op);
 
-		if (op == 0x0006) return fdivx();
 		if (op == 0x000b) return fx2dec();
-
-		if (op == 0x0004) return fmulx();
 
 		switch(op)
 		{
-			// fadd...
-			case 0x0000: // faddx
-				return fadd<extended>("FADDX");
-				break;
+			// addition
+			case 0x0000: return fadd<extended>("FADDX");
+			case 0x0800: return fadd<double>("FADDD");
+			case 0x1000: return fadd<float>("FADDS");
+			//case 0x3000: return fadd<complex>("FADDC");
+			case 0x2000: return fadd<int16_t>("FADDI");
+			case 0x2800: return fadd<int32_t>("FADDL");
 
-			case 0x2000: // faddi
-				return fadd<int16_t>("FADDI");
-				break;
+			// subtraction
+			case 0x0002: return fsub<extended>("FSUBX");
+			case 0x0802: return fsub<double>("FSUBD");
+			case 0x1002: return fsub<float>("FSUBS");
+			//case 0x3002: return fsub<complex>("FSUBC");
+			case 0x2002: return fsub<int16_t>("FSUBI");
+			case 0x2802: return fsub<int32_t>("FSUBL");			
+
+			// multiplication
+			case 0x0004: return fmul<extended>("FMULX");
+			case 0x0804: return fmul<double>("FMULD");
+			case 0x1004: return fmul<float>("FMULS");
+			//case 0x3004: return fmul<complex>("FMUlC");
+			case 0x2004: return fmul<int16_t>("FMULI");
+			case 0x2804: return fmul<int32_t>("FMULL");
+
+			// division
+			case 0x0006: return fdiv<extended>("FDIVX");
+			case 0x0806: return fdiv<double>("FDIVD");
+			case 0x1006: return fdiv<float>("FDIVS");
+			//case 0x3006: return fdiv<complex>("FDIVC");
+			case 0x2006: return fdiv<int16_t>("FDIVI");
+			case 0x2806: return fdiv<int32_t>("FDIVL");
+
+
+
 
 			// conversion
 			case 0x000e: // 2 versions for completeness.
