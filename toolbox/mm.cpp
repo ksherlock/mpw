@@ -271,6 +271,7 @@ namespace MM
 		 Log("%04x CompactMem(%08x)\n", trap, cbNeeded);
 
 
+		 SetMemError(0);
 		 return mplite_maxmem(&pool);
 	}
 
@@ -288,6 +289,7 @@ namespace MM
 
 		Log("%04x MaxMem()\n", trap);
 
+		SetMemError(0);
 		return mplite_maxmem(&pool);
 	}
 
@@ -305,7 +307,31 @@ namespace MM
 
 		Log("%04x FreeMem()\n", trap);
 
+		SetMemError(0);
 		return mplite_freemem(&pool);
+	}
+
+	uint16_t ReserveMem(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0: cbNeeded (long word)
+		 *
+		 * on exit:
+		 * D0: Result code.
+		 *
+		 */
+
+		uint32_t cbNeeded = cpuGetDReg(0);
+		uint32_t available;
+
+		Log("%04x ReserveMem($%08x)\n", trap, cbNeeded);
+
+		available = mplite_maxmem(&pool);
+		// TODO -- if available < cbNeeded, purge handle and retry?
+		if (available < cbNeeded) return SetMemError(memFullErr);
+
+		return SetMemError(0);
 	}
 
 

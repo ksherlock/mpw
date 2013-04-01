@@ -141,6 +141,10 @@ namespace ToolBox {
 				d0 = MM::CompactMem(trap);
 				break;
 
+			case 0xa040:
+				d0 = MM::ReserveMem(trap);
+				break;
+
 			case 0xa055:
 				d0 = MM::StripAddress(trap);
 				break;
