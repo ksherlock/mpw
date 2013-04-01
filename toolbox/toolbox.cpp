@@ -291,6 +291,8 @@ namespace ToolBox {
 			// sane
 			case 0xa9Eb:
 				d0 = SANE::fp68k(trap);
+				cpuSetDReg(0, d0);
+				return; // SANE sets the flags.
 				break;
 
 			case 0x0a9ee:

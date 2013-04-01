@@ -207,7 +207,7 @@ namespace SANE
 		return 0;
 	}
 #endif
-	
+
 	uint16_t fx2dec()
 	{
 		// extended (80-bit fp) to decimal
@@ -383,7 +383,58 @@ namespace SANE
 		return 0;
 	}
 
+	extern "C" void cpuSetFlagsShift(BOOLE z, BOOLE n, BOOLE c, BOOLE v);
+	template<class SrcType, class DestType = extended>
+	uint16_t fcmp(const char *name)
+	{
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
 
+		// TODO op & 0x0f == 0x08 vs 0x0a
+		// for signaling unordered & NaN
+
+		StackFrame<10>(src, dest, op);
+
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SrcType s = readnum<SrcType>(src);
+		DestType d = readnum<DestType>(dest);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = std::to_string(d);
+			std::string tmp2 = std::to_string(s);
+			Log("     %s <> %s\n", tmp1.c_str(), tmp2.c_str());
+		}
+
+		//
+		// check if ordered...
+
+		if (d > s)
+		{
+			cpuSetFlagsShift(false, false, false, false);
+			return 0;
+		}
+		if (d < s)
+		{
+			cpuSetFlagsShift(false, true, true, false);
+			return 0;
+		}
+		if (d == s)
+		{
+			cpuSetFlagsShift(true, false, false, false);
+			return 0;
+		}
+
+		// unorderable?
+		// signal?
+		cpuSetFlagsShift(false, false, false, true);
+		return 0;
+	}
+
+
+	extern "C" void cpuSetFlagsAbs(UWO f);
 	uint16_t fp68k(uint16_t trap)
 	{
 		uint16_t op;
@@ -393,6 +444,8 @@ namespace SANE
 		op = memoryReadWord(sp);
 
 		Log("%04x FP68K(%04x)\n", op);
+
+		cpuSetFlagsAbs(0x4);
 
 		if (op == 0x000b) return fx2dec();
 
@@ -430,7 +483,20 @@ namespace SANE
 			case 0x2006: return fdiv<int16_t>("FDIVI");
 			case 0x2806: return fdiv<int32_t>("FDIVL");
 
+			// comparison
+			case 0x0008: return fcmp<extended>("FCMPX");
+			case 0x0808: return fcmp<double>("FCMPD");
+			case 0x1008: return fcmp<float>("FCMPS");
+			//case 0x3008: return fcmp<complex>("FCMPC");
+			case 0x2008: return fcmp<int16_t>("FCMPI");
+			case 0x2808: return fcmp<int32_t>("FCMPL");
 
+			case 0x000a: return fcmp<extended>("FCPXX");
+			case 0x080a: return fcmp<double>("FCPXD");
+			case 0x100a: return fcmp<float>("FCPXS");
+			//case 0x300a: return fcmp<complex>("FCPXC");
+			case 0x200a: return fcmp<int16_t>("FCPXI");
+			case 0x280a: return fcmp<int32_t>("FCPXL");
 
 
 			// conversion
@@ -469,6 +535,7 @@ namespace SANE
 			case 0x280e:
 				return fconvert<int32_t, extended>("FL2X");
 				break; 
+
 
 		}
 
