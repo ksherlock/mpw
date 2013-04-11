@@ -246,6 +246,7 @@ namespace OS {
 
 		uint32_t spec;
 		uint32_t finderInfo;
+		uint16_t d0;
 
 		StackFrame<8>(spec, finderInfo);
 
@@ -259,30 +260,9 @@ namespace OS {
 		Log("     FSpSetFInfo(%s, %08x)\n",  path.c_str(), finderInfo);
 
 
+		d0 = Internal::SetFinderInfo(path, memoryPointer(finderInfo), false);
 
-		// todo -- move to separate function? used in multiple places.
-		uint8_t buffer[32];
-		std::memset(buffer, 0, sizeof(buffer));
-		int rv;
-
-		rv = ::getxattr(path.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-		if (rv < 0)
-		{
-			switch (errno)
-			{
-				case ENOENT:
-				case EACCES:
-					return errno_to_oserr(errno);
-			}
-		}
-
-		std::memmove(buffer, memoryPointer(finderInfo), 16);
-
-		rv = ::setxattr(path.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-
-		return rv < 0 ? errno_to_oserr(errno) : 0;
+		return d0;
 	}
 
 

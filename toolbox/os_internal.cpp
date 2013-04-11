@@ -147,7 +147,12 @@ namespace OS { namespace Internal {
 		std::memset(buffer, 0, sizeof(buffer));
 		int rv;
 
-		if (!extended)
+		if (extended)
+		{
+			std::memmove(buffer, info, 32);
+
+		}
+		else
 		{
 			rv = ::getxattr(pathName.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
 
@@ -160,12 +165,9 @@ namespace OS { namespace Internal {
 						return errno_to_oserr(errno);
 				}
 			}
-		}
-
-		if (extended)
 			std::memmove(buffer, info, 16);
-		else
-			std::memmove(buffer, info, 32);
+
+		}
 
 		// convert pdos types.
 		if (::memcmp(buffer + 2, "  pdos", 6) == 0)

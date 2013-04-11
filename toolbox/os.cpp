@@ -806,29 +806,8 @@ namespace OS
 
 		}
 
-		// finder info is actually 32 bytes, so read and update the first 16.
-		{
-			uint8_t buffer[32];
-			int ok;
+		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + 32), false);
 
-			std::memset(buffer, 0, sizeof(buffer));
-
-			ok = ::getxattr(sname.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-			// only 16 bytes copied.
-			std::memcpy(buffer, memoryPointer(parm + 32), 16);
-
-			ok = ::setxattr(sname.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);	
-
-			if (ok < 0)
-			{
-				d0 = errno_to_oserr(errno);
-				memoryWriteWord(d0, parm + 16);
-				return d0; 				
-			}
-		} 
-
-		d0 = 0;
 		memoryWriteWord(d0, parm + 16);
 		return d0;
 	}
