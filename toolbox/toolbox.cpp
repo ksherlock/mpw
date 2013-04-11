@@ -277,9 +277,17 @@ namespace ToolBox {
 				break;
 
 
+			case 0xa834:
+				d0 = QD::SetFScaleDisable(trap);
+				break;
+
 			//SetCursor (crsr: Cursor)
 			case 0xA851:
 				d0 = QD::SetCursor(trap);
+				break;
+
+			case 0xa86e:
+				d0 = QD::InitGraf(trap);
 				break;
 
 			// GetFNum (fontName: Str255; VAR theNum: INTEGER);

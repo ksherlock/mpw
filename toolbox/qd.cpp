@@ -5,6 +5,8 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <macos/sysequ.h>
+
 #include "stackframe.h"
 
 using ToolBox::Log;
@@ -61,5 +63,31 @@ namespace QD {
 		if (theNum) memoryWriteWord(0, theNum);
 		return 0;
 	}
+
+	uint16_t InitGraf(uint16_t trap)
+	{
+		// PROCEDURE InitGraf (globalPtr: Ptr);
+
+		uint32_t globalPtr;
+
+		StackFrame<4>(globalPtr);
+
+		Log("%04x InitGraf($%08x)\n", trap, globalPtr);
+
+
+		return 0;
+	}
+
+	uint16_t SetFScaleDisable(uint16_t trap)
+	{
+		uint16_t value;
+		StackFrame<2>(value);
+
+		Log("%04x SetFScaleDisable($%04x)\n", trap, value);
+		// sets FScaleDisable global variable
+		
+		return 0;
+	}	
+
 
 }
