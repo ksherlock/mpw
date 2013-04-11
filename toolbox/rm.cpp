@@ -90,7 +90,8 @@ namespace RM
 				case 0x53545220: // 'STR '
 				case 0x53545223: // 'STR#' (reziigs)
 				case 0x59414343: // 'YACC' (pascaliigs)
-				case 0x72547970: // rTyp (rezIIgs)
+				case 0x72547970: // 'rTyp' (rezIIgs)
+				case 0x756e6974: // 'unit' (Pascal)
 					break;
 				default:
 					return SetResError(resNotFound);
