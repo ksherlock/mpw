@@ -22,6 +22,8 @@
 #include <toolbox/mm.h>
 #include <toolbox/os_internal.h>
 
+#include <macos/sysequ.h>
+
 extern char **environ;
 
 
@@ -134,7 +136,7 @@ namespace MPW
 			std::memcpy(str32 + 1, name, l);
 			while (l < 32) str32[l++] = 0;
 
-			std::memcpy(memoryPointer(0x0910), str32, 32);
+			std::memcpy(memoryPointer(MacOS::CurApName), str32, 32);
 		}
 
 

@@ -15,6 +15,8 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <macos/sysequ.h>
+
 
 #include "stackframe.h"
 
@@ -42,7 +44,7 @@ namespace
 
 	inline uint16_t SetResError(uint16_t error)
 	{
-		memoryWriteWord(error, 0x0a60);
+		memoryWriteWord(error, MacOS::ResErr);
 		return error;
 	}
 
@@ -261,7 +263,7 @@ namespace RM
 	{
 		Log("%04x ResError()\n", trap);
 
-		return memoryReadWord(0x0a60);
+		return memoryReadWord(MacOS::ResErr);
 	}
 
 	// SetResLoad (load: BOOLEAN);
@@ -273,7 +275,7 @@ namespace RM
 
 		Log("%04x SetResLoad(%04x)\n", trap, load);
 
-		memoryWriteByte(load ? 0xff : 0x00, 0x0a5e); // word or byte?
+		memoryWriteByte(load ? 0xff : 0x00, MacOS::ResLoad); // word or byte?
 		return 0;
 	}
 

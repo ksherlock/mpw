@@ -11,6 +11,7 @@
 #include <map>
 
 #include <mplite/mplite.h>
+#include <macos/sysequ.h>
 
 using ToolBox::Log;
 using namespace ToolBox::Errors;
@@ -45,7 +46,7 @@ namespace
 
 	inline uint16_t SetMemError(uint16_t error)
 	{
-		memoryWriteWord(error, 0x0220);
+		memoryWriteWord(error, MacOS::MemErr);
 		return error;
 	}
 

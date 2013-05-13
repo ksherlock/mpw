@@ -19,6 +19,8 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <macos/sysequ.h>
+
 #include "os.h"
 #include "os_internal.h"
 #include "toolbox.h"
@@ -79,7 +81,7 @@ namespace OS
 	bool Init()
 	{
 		BootTime = std::chrono::steady_clock::now();
-		memoryWriteLong(0, 0x16A); // 0 ticks since boot.
+		memoryWriteLong(0, MacOS::Ticks); // 0 ticks since boot.
 
 		return true;
 	}
@@ -905,7 +907,7 @@ namespace OS
 		if (secsPtr) memoryWriteLong(now, secsPtr);
 
 		// also set global variable Time.
-		memoryWriteLong(now, 0x020c);
+		memoryWriteLong(now, MacOS::TimeLM);
 		return 0;
 	}
 
@@ -959,7 +961,7 @@ namespace OS
 
 
 		// global Ticks
-		memoryWriteLong(t, 0x16A);
+		memoryWriteLong(t, MacOS::Ticks);
 		ToolReturn<4>(-1, t);
 
 		return 0;
