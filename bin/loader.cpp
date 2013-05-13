@@ -4,6 +4,8 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <chrono>
+
 #include <sysexits.h>
 #include <getopt.h>
 #include <libgen.h>
@@ -761,6 +763,8 @@ int main(int argc, char **argv)
 		{ NULL, 0, NULL, 0 }
 	};
 
+	//auto start_time = std::chrono::high_resolution_clock::now();
+
 	int c;
 	while ((c = getopt_long(argc, argv, "+hVm:r:s:", LongOpts, NULL)) != -1)
 	{
@@ -921,13 +925,21 @@ int main(int argc, char **argv)
 	
 	if (Flags.traceCPU || Flags.traceMacsbug)
 	{
+		#ifdef CPU_INSTRUCTION_LOGGING
 		cpuSetInstructionLoggingFunc(InstructionLogger);
+		#endif
+		// else do it manually below.
 	}
 
 
 	cpuInitializeFromNewPC(address);
 
+	#if 0
+	auto begin_emu_time = std::chrono::high_resolution_clock::now();
+	fprintf(stderr, "Begin Emulation Time: %20lld\n", (begin_emu_time - start_time).count());
+	#endif
 
+	uint64_t cycles = 0;
 	for (;;)
 	{
 		uint32_t pc = cpuGetPC();
@@ -954,8 +966,14 @@ int main(int argc, char **argv)
 
 
 		if (cpuGetStop()) break; // will this also be set by an interrupt?
-		cpuExecuteInstruction();
+		cycles += cpuExecuteInstruction();
 	}
+
+	#if 0
+	auto end_emu_time = std::chrono::high_resolution_clock::now();
+	fprintf(stderr, "  End Emulation Time: %20lld\n", (end_emu_time - start_time).count());
+	fprintf(stderr, "              Cycles: %20lld\n", cycles);
+	#endif
 
 	if (Flags.memoryStats)
 	{
@@ -965,5 +983,7 @@ int main(int argc, char **argv)
 	uint32_t rv = MPW::ExitStatus();
 	if (rv > 0xff) rv = 0xff;
 
+
+	
 	exit(rv);
 }

@@ -12,7 +12,7 @@ extern void cpuSetFLineExceptionFunc(cpuLineExceptionFunc func);
 
 // This header file defines the internal interfaces of the CPU module.
 
-#define CPU_INSTRUCTION_LOGGING
+//#define CPU_INSTRUCTION_LOGGING
 
 // Function to check if there are any external interrupt sources wanting to issue interrupts
 typedef BOOLE (*cpuCheckPendingInterruptsFunc)(void);
