@@ -8,12 +8,9 @@
 
 - since code segments are loaded from a resource and the code may try to reload itself (ResourceByName), it really needs to be done via the emulated ResourceMgr/Memory Manager.
 
-- ftrap_delete
 - ftrap_editor_tabs
 
-- if file doesn't exist, check in $MPW/Tools/
-- include file w/ all global names
-- include file w/ all os errors
+
 - move time to OS::, add OS::Init to set start time global / ticks
 - use alarm / ualarm to update ticks/ time global?
 
@@ -30,4 +27,8 @@ Done
 - --trace-cpu: add support for tool traps
 - --trace-cpu: move trace-cpu code into a logger callback
 
+- ftrap_delete
+- if file doesn't exist, check in $MPW/Tools/
 
+- include file w/ all global names
+- include file w/ all os errors
