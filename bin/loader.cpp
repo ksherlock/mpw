@@ -24,6 +24,8 @@
 
 #include <mplite/mplite.h>
 
+#include <macos/sysequ.h>
+
 struct {
 	uint32_t ram;
 	uint32_t stack;
@@ -192,10 +194,10 @@ uint32_t load(const char *file)
 
 
 			// 0x0934 - CurJTOffset (16-bit)
-			memoryWriteWord(jtOffset, 0x0934);
+			memoryWriteWord(jtOffset, MacOS::CurJTOffset);
 
 			// 0x0904 -- CurrentA5 (32-bit)
-			memoryWriteLong(a5, 0x0904);
+			memoryWriteLong(a5, MacOS::CurrentA5);
 			cpuSetAReg(5, a5);
 		}
 		else
@@ -261,13 +263,13 @@ void GlobalInit()
 
 
 	// 0x031a - Lo3Bytes
-	memoryWriteLong(0x00ffffff, 0x031a);
+	memoryWriteLong(0x00ffffff, MacOS::Lo3Bytes);
 
 	// 0x0a02 - OneOne
-	memoryWriteLong(0x00010001, 0x0a02);
+	memoryWriteLong(0x00010001, MacOS::OneOne);
 
 	// 0x0a06 - MinusOne
-	memoryWriteLong(0xffffffff, 0x0a06);
+	memoryWriteLong(0xffffffff, MacOS::MinusOne);
 
 
 	// todo -- expects high stack, low heap.
@@ -275,7 +277,7 @@ void GlobalInit()
 	// so put stack at top of memory?
 	
 	// 0x0130 -- ApplLimit
-	memoryWriteLong(Flags.ram - 1, 0x0130);
+	memoryWriteLong(Flags.ram - 1, MacOS::ApplLimit);
 }
 
 
@@ -681,7 +683,7 @@ int main(int argc, char **argv)
 		// -4 is for the return address.
 		cpuSetAReg(7, address + Flags.stack - 4);
 		// return address.
-		memoryWriteLong(0x0a06, StackRange.second - 4); // MinusOne Global -- 0xffff ffff
+		memoryWriteLong(MacOS::MinusOne, StackRange.second - 4); // MinusOne Global -- 0xffff ffff
 	}
 
 
