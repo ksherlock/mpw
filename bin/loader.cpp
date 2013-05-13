@@ -661,7 +661,7 @@ bool file_exists(const std::string & name)
 {
 	struct stat st;
 
-	return ::stat(name.c_str(), &st) == 0;
+	return ::stat(name.c_str(), &st) == 0 && S_ISREG(st.st_mode);
 }
 
 std::string find_exe(const std::string &name)
