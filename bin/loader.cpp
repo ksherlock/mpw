@@ -747,6 +747,17 @@ int main(int argc, char **argv)
 
 
 		if (cpuGetStop()) break; // will this also be set by an interrupt?
+
+	
+		#ifndef CPU_INSTRUCTION_LOGGING
+		if (Flags.traceCPU || Flags.traceMacsbug)
+		{
+			InstructionLogger();
+		}
+		#endif
+
+
+
 		cycles += cpuExecuteInstruction();
 	}
 
