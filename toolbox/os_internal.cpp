@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <sys/xattr.h>
 
-
+#include <machine/endian.h>
 
 namespace OS { namespace Internal {
 
@@ -98,6 +98,80 @@ namespace OS { namespace Internal {
 				case EACCES:
 					return errno_to_oserr(errno);
 			}
+
+			// check for prodos ftype/auxtype
+			uint8_t ftype;
+			uint16_t atype;
+
+			int rv1, rv2;
+
+			rv1 = ::getxattr(pathName.c_str(), "prodos.FileType", &ftype, 1, 0, 0);
+			rv2 = ::getxattr(pathName.c_str(), "prodos.AuxType", &atype, 2, 0, 0);
+
+			if (rv1 == 1 && rv2 == 2)
+			{
+				#if BYTE_ORDER == BIG_ENDIAN
+				ftype = (ftype >> 8) | (ftype << 8)
+				#endif
+
+				char tmp[8] = {
+					'p', ' ', ' ', ' ', 
+					'p', 'd', 'o', 's'
+				};
+				tmp[1] = (char)ftype;
+				tmp[2] = (char)((atype >> 8) & 0xff);
+				tmp[3] = (char)(atype & 0xff);
+
+				switch (atype)
+				{
+					case 0x00:
+						std::memcpy(tmp, "BINA", 4);
+						break;
+
+					case 0x04:
+					case 0xb0:
+						std::memcpy(tmp, "TEXT", 4);
+						break;
+
+					case 0xff:
+						std::memcpy(tmp, "PSYS", 4);
+						break;
+
+					case 0xd7:
+						std::memcpy(tmp, "MIDI", 4);
+						break;
+
+					case 0xd8:
+						switch (atype)
+						{
+							case 0x0000:
+								std::memcpy(tmp, "AIFF", 4);
+								break;
+							case 0x0001:
+								std::memcpy(tmp, "AIFC", 4);
+								break;
+						}
+						break;
+
+					case 0xe0:
+						switch (atype)
+						{
+							case 0x0005:
+								std::memcpy(tmp, "dImgdCpy", 8);
+								break;
+
+						}
+
+					case 0xb3:
+						if (atype == 0)
+						{
+							std::memcpy(tmp, "PS16", 4); // verify dumpobj.
+							break;
+						}
+
+				}
+				std::memcpy(buffer, tmp, 8);
+			}
 		}
 
 		// override for source files.
@@ -114,6 +188,8 @@ namespace OS { namespace Internal {
 			// mpw expects 'xx  ' where
 			// xx are the ascii-encode hex value of the file type.
 			// the hfs fst uses 'p' ftype8 auxtype16
+			
+			// todo -- but only if auxtype is $0000 ??
 			if (buffer[0] == 'p')
 			{
 				static char Hex[] = "0123456789ABCDEF";

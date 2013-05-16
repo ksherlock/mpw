@@ -685,26 +685,8 @@ namespace OS
 				return d0;
 			}
 
-			// finder info
-			{
-				uint8_t buffer[32];
-				std::memset(buffer, 0, sizeof(buffer));
-				int rv;
-				int xerrno;
 
-				rv = ::getxattr(sname.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-				xerrno = errno;
-
-				// override for source files.
-				if (IsTextFile(sname))
-				{
-					std::memcpy(buffer, "TEXTMPS ", 8);
-				}
-
-				// only 16 bytes copied.
-				std::memcpy(memoryPointer(parm + 32), buffer, 16);
-
-			}
+			Internal::GetFinderInfo(sname, memoryPointer(parm + 32), false); 
 
 
 			// file reference number

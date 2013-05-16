@@ -214,29 +214,7 @@ namespace OS {
 
 
 
-		// todo -- move to separate function? used in multiple places.
-		uint8_t buffer[32];
-		std::memset(buffer, 0, sizeof(buffer));
-		int rv;
-
-		rv = ::getxattr(path.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-		if (rv < 0)
-		{
-			switch (errno)
-			{
-				case ENOENT:
-				case EACCES:
-					return errno_to_oserr(errno);
-			}
-		}
-		// override for source files.
-		if (IsTextFile(path))
-		{
-			std::memcpy(buffer, "TEXTMPS ", 8);
-		}		
-
-		std::memmove(memoryPointer(finderInfo), buffer, 16);
+		Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
 		return 0;
 	}
 
