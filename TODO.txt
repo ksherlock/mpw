@@ -14,6 +14,12 @@
 - move time to OS::, add OS::Init to set start time global / ticks
 - use alarm / ualarm to update ticks/ time global?
 
+- duplicate / duplicate iigs replacement
+
+- stdout -- convert macroman to utf8 on output?
+
+-- orca/c - symfile support.
+
 
 Done
 ----
