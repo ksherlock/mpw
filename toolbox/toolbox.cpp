@@ -89,6 +89,16 @@ namespace ToolBox {
 				d0 = OS::HighLevelHFSDispatch(trap);
 				break;
 
+
+			case 0xA746:
+				d0 = OS::GetToolTrapAddress(trap);
+				break;
+
+			case 0xA346:
+				d0 = OS::GetOSTrapAddress(trap);
+				break;
+
+
 			// SetPtrSize (p: Ptr; newSize: Size);
 			case 0xa020:
 				d0 = MM::SetPtrSize(trap);

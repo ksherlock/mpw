@@ -67,6 +67,11 @@ namespace OS
 
 	uint16_t HFSDispatch(uint16_t trap);
 	uint16_t HighLevelHFSDispatch(uint16_t trap);
+
+	#pragma mark - Trap Manager
+
+	uint16_t GetToolTrapAddress(uint16_t trap);
+	uint16_t GetOSTrapAddress(uint16_t trap);
 }
 
 #endif

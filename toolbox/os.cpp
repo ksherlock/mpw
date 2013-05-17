@@ -20,6 +20,7 @@
 #include <cpu/fmem.h>
 
 #include <macos/sysequ.h>
+#include <macos/errors.h>
 
 #include "os.h"
 #include "os_internal.h"
@@ -1000,6 +1001,44 @@ namespace OS
 		ToolBox::WritePString(result, out);
 		return 0;
 	}
+
+
+	#pragma mark - Trap Manager
+
+	uint16_t GetToolTrapAddress(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0 trap number
+		 *
+		 * on exit:
+		 * A0 Address of patch
+		 *
+		 */
+		uint16_t trapNumber = cpuGetDReg(0);
+		Log("%04x GetToolTrapAddress($%04x)\n", trap, trapNumber);
+
+		cpuSetAReg(0, 0);
+		return MacOS::dsCoreErr;
+	}
+
+	uint16_t GetOSTrapAddress(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0 trap number
+		 *
+		 * on exit:
+		 * A0 Address of patch
+		 *
+		 */
+		uint16_t trapNumber = cpuGetDReg(0);
+		Log("%04x GetOSTrapAddress($%04x)\n", trap, trapNumber);
+
+		cpuSetAReg(0, 0);
+		return MacOS::dsCoreErr;
+	}
+
 
 
 }
