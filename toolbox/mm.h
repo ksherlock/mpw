@@ -27,6 +27,7 @@ namespace MM
 	uint16_t BlockMove(uint16_t trap);
 	uint32_t CompactMem(uint16_t trap);
 	uint32_t MaxMem(uint16_t trap);
+	uint32_t MaxBlock(uint16_t trap);
 	uint32_t FreeMem(uint16_t trap);
 	uint16_t ReserveMem(uint16_t trap);
 	

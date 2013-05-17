@@ -294,6 +294,29 @@ namespace MM
 		return mplite_maxmem(&pool);
 	}
 
+	uint32_t MaxBlock(uint16_t trap)
+	{
+		/*
+		 * The MaxBlock function returns the maximum contiguous space, in bytes, that you 
+		 * could obtain after compacting the current heap zone. MaxBlock does not actually 
+		 * do the compaction.
+		 */
+		 
+		/* 
+		 * on entry:
+		 * (nothing)
+		 *
+		 * on exit:
+		 * D0: function result (long word)
+		 *
+		 */
+
+		Log("%04x MaxBlock()\n", trap);
+
+		SetMemError(0);
+		return mplite_maxmem(&pool);
+	}
+
 	uint32_t FreeMem(uint16_t trap)
 	{
 		// total free memory.
@@ -311,6 +334,9 @@ namespace MM
 		SetMemError(0);
 		return mplite_freemem(&pool);
 	}
+
+
+
 
 	uint16_t ReserveMem(uint16_t trap)
 	{
