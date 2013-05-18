@@ -46,6 +46,7 @@ namespace OS
 	uint16_t GetEOF(uint16_t trap);
 	uint16_t SetEOF(uint16_t trap);
 
+	uint16_t GetFPos(uint16_t trap);
 	uint16_t SetFPos(uint16_t trap);
 
 	uint16_t GetVol(uint16_t trap);

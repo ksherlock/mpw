@@ -581,6 +581,35 @@ namespace OS
 		return d0;
 	}
 
+	uint16_t GetFPos(uint16_t trap)
+	{
+		uint32_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x GetFPos(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint16_t ioRefNum = memoryReadWord(parm + 24);
+
+		int rv = ::lseek(ioRefNum, 0, SEEK_CUR);
+		if (rv < 0)
+		{
+			d0 = errno_to_oserr(errno);
+		}
+		else
+		{
+			memoryWriteLong(0, parm + 36); // ioReqCount
+			memoryWriteLong(0, parm + 40); // ioActCount
+			memoryWriteWord(0, parm + 44); // ioPosMode
+			memoryWriteLong(rv, parm + 46); // ioPosOffset
+			d0 = 0;
+		}
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
+
 	uint16_t SetFPos(uint16_t trap)
 	{
 		uint32_t d0;

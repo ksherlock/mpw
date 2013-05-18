@@ -80,6 +80,10 @@ namespace ToolBox {
 				d0 = OS::HGetVol(trap);
 				break;
 
+			case 0xa018:
+				d0 = OS::GetFPos(trap);
+				break;
+
 			case 0xa044:
 				d0 = OS::SetFPos(trap);
 				break;
