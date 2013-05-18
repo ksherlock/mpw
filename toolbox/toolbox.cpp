@@ -85,10 +85,13 @@ namespace ToolBox {
 				break;
 
 			case 0xa060:
-			// also a260 for async
-				d0 = OS::HFSDispatch(trap);
+				d0 = OS::FSDispatch(trap);
 				break;
 				
+			case 0xa260:
+				d0 = OS::HFSDispatch(trap);
+				break;
+
 			case 0xaa52:
 				d0 = OS::HighLevelHFSDispatch(trap);
 				break;

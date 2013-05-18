@@ -66,6 +66,7 @@ namespace OS
 
 	uint16_t TickCount(uint16_t trap);
 
+	uint16_t FSDispatch(uint16_t trap);
 	uint16_t HFSDispatch(uint16_t trap);
 	uint16_t HighLevelHFSDispatch(uint16_t trap);
 
