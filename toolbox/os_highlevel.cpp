@@ -19,10 +19,13 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <macos/errors.h>
+
 #include "os.h"
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
+
 
 using ToolBox::Log;
 using namespace ToolBox::Errors;
@@ -37,6 +40,8 @@ namespace {
 
 		static const std::string &pathForID(int32_t id);
 		static int32_t idForPath(const std::string &path, bool insert = true);
+
+		static void Init();
 
 	private:
 
@@ -65,6 +70,19 @@ namespace {
 	};
 
 	std::deque<FSSpecManager::Entry> FSSpecManager::_pathQueue;
+
+	void FSSpecManager::Init()
+	{
+		static bool initialized = false;
+
+		if (!initialized)
+		{
+			// "/" is item #1
+			idForPath("/", true);
+			initialized = true;
+		}
+
+	}
 
 	int32_t FSSpecManager::idForPath(const std::string &path, bool insert)
 	{
@@ -116,6 +134,9 @@ namespace OS {
 	};
 	*/	
 
+	// MacOS: -> { -1, 1, "MacOS" }
+	// MacOS:dumper -> {-1, 2 "dumper"}
+
 	uint16_t FSMakeFSSpec(void)
 	{
 		// FSMakeFSSpec(vRefNum: Integer; dirID: LongInt; fileName: Str255; VAR spec: FSSpec): OSErr;
@@ -140,16 +161,36 @@ namespace OS {
 		Log("     FSMakeFSSpec(%04x, %08x, %s, %08x)\n", 
 			vRefNum, dirID, sname.c_str(), spec);
 
+		if (vRefNum == 0 && dirID > 0 && sname.length())
+		{
+			// SC uses dirID + relative path.
+
+			std::string root = FSSpecManager::pathForID(dirID);
+			if (root.empty())
+			{
+				std::memset(memoryPointer(spec), 0, 8);
+				return MacOS::dirNFErr;
+			}
+
+			sname = root + sname;
+			dirID = 0;
+		}
+
 		bool absolute = sname.length() ? sname[0] == '/' : false;
 		if (absolute || (vRefNum == 0 && dirID == 0))
 		{
 			char buffer[PATH_MAX + 1];
 
+			// TODO -- FSSpecs are valid for non-existant files
+			// but not non-existant directories.
+			// realpath does not behave in such a manner.
+
 			// expand the path.  Also handles relative paths.
 			char *cp = realpath(sname.c_str(), buffer);
 			if (!cp)
 			{
-				return mFulErr;
+				std::memset(memoryPointer(spec), 0, 8);
+				return MacOS::mFulErr;
 			}
 
 			std::string leaf;
@@ -180,8 +221,10 @@ namespace OS {
 			// write the filename...
 			ToolBox::WritePString(spec + 6, leaf);
 
+			// TODO -- return fnf if file does not exist.
 			return 0;
 		}
+
 		else
 		{
 			fprintf(stderr, "FSMakeFSSpec(%04x, %08x) not yet supported\n", vRefNum, dirID);
@@ -286,6 +329,8 @@ namespace OS {
 	{
 
 		uint16_t selector;
+
+		FSSpecManager::Init();
 
 		selector = cpuGetDReg(0) & 0xffff;
 		Log("%04x HighLevelHFSDispatch(%04x)\n", trap, selector);
