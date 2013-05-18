@@ -244,6 +244,44 @@ namespace OS {
 	}
 
 
+
+	uint16_t ResolveAliasFile()
+	{
+		uint32_t spec;
+		uint16_t resolveAliasChains;
+		uint32_t targetIsFolder;
+		uint32_t wasAliased;
+
+		StackFrame<14>(spec, resolveAliasChains, targetIsFolder, wasAliased);
+
+		int parentID = memoryReadLong(spec + 2);
+
+		std::string leaf = ToolBox::ReadPString(spec + 6, false);
+		std::string path = FSSpecManager::pathForID(parentID);
+
+		path += leaf;
+
+		Log("    ResolveAliasFile(%s)\n", path.c_str());
+
+		struct stat st;
+		int rv;
+
+		rv = ::stat(path.c_str(), &st);
+		if (rv < 0) return errno_to_oserr(errno);
+
+		if (targetIsFolder)
+		{
+			memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
+		}
+
+		// don't bother pretending a soft link is an alias.
+		if (wasAliased) memoryWriteWord(0, wasAliased);
+
+		return 0;
+	}
+
+
+
 	uint16_t HighLevelHFSDispatch(uint16_t trap)
 	{
 
@@ -274,6 +312,38 @@ namespace OS {
 
 	}
 
+	uint16_t HGetVol(uint16_t trap)
+	{
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x HGetVol(%08x)\n", trap, parm);
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint32_t namePtr = memoryReadLong(parm + 18);
+
+		// ioResult
+		memoryWriteWord(0, parm + 16);
+		// ioVRefNum
+		memoryWriteWord(0, parm + 22);
+
+		// ioWDProcID
+		memoryWriteLong(0, parm + 28);
+
+		// ioWDVRefNum
+		memoryWriteWord(0, parm + 32);
+
+
+		// todo -- this should create an FSSpec entry for
+		// the current wd and return the id.
+		// (FSMakeSpec handles 0 as a dir, so ok for now)
+		// ioWDDirID
+		memoryWriteLong(0, parm + 48);
+
+		std::string tmp = "MacOS";
+		ToolBox::WritePString(namePtr, tmp);
+
+		return 0;
+	}
 
 
 

@@ -76,6 +76,10 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
+			case 0xa214:
+				d0 = OS::HGetVol(trap);
+				break;
+
 			case 0xa044:
 				d0 = OS::SetFPos(trap);
 				break;
@@ -96,6 +100,10 @@ namespace ToolBox {
 
 			case 0xA346:
 				d0 = OS::GetOSTrapAddress(trap);
+				break;
+
+			case 0xA823:
+				d0 = OS::AliasDispatch(trap);
 				break;
 
 

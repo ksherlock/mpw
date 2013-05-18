@@ -49,6 +49,7 @@ namespace OS
 	uint16_t SetFPos(uint16_t trap);
 
 	uint16_t GetVol(uint16_t trap);
+	uint16_t HGetVol(uint16_t trap);
 
 	uint16_t Open(uint16_t trap);
 	uint16_t Read(uint16_t trap);
@@ -72,6 +73,12 @@ namespace OS
 
 	uint16_t GetToolTrapAddress(uint16_t trap);
 	uint16_t GetOSTrapAddress(uint16_t trap);
+
+	#pragma mark - Alias Manager
+
+	uint16_t ResolveAliasFile();
+	uint16_t AliasDispatch(uint16_t trap);
+
 }
 
 #endif
