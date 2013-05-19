@@ -35,6 +35,10 @@ namespace ToolBox {
 				d0 = OS::Open(trap);
 				break;
 
+			case 0xa200:
+				d0 = OS::HOpen(trap);
+				break;
+
 			case 0xa001:
 				d0 = OS::Close(trap);
 				break;

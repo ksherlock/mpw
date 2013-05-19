@@ -391,5 +391,48 @@ namespace OS {
 	}
 
 
+	uint16_t HOpen(uint16_t trap)
+	{
+
+		int fd;
+		int d0;
+
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x HOpen(%08x)\n", trap, parm);
+
+		uint32_t ioNamePtr = memoryReadLong(parm + 18);
+		uint8_t ioPermission = memoryReadByte(parm + 27); 
+		uint32_t ioDirID = memoryReadLong(parm + 48);
+
+		std::string sname = ToolBox::ReadPString(ioNamePtr, true);
+		bool absolute = sname.length() ? sname[0] == '/' : 0;
+
+		if (ioDirID && !absolute)
+		{
+			std::string dir = FSSpecManager::pathForID(ioDirID);
+			if (dir.empty())
+			{
+				d0 = MacOS::dirNFErr;
+				memoryWriteWord(d0, parm + 16);
+
+				return d0;
+			}
+			sname = dir + sname;
+		}
+
+		fd = Internal::FDEntry::open(sname, ioPermission, false);
+
+		d0 = fd < 0 ? fd : 0;
+		if (fd >= 0)
+		{
+			memoryWriteWord(fd, parm + 24);
+		}
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
+
 
 }

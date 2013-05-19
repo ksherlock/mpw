@@ -2,44 +2,48 @@
 #include "os.h"
 #include "toolbox.h"
 
+#include <macos/errors.h>
+
 #include <stdexcept>
 #include <cerrno>
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/xattr.h>
+#include <sys/paths.h>
 
 #include <machine/endian.h>
+
+using ToolBox::Log;
 
 namespace OS { namespace Internal {
 
 
 	uint16_t errno_to_oserr(int xerrno)
 	{
-		using namespace ToolBox::Errors;
 		
 		switch (xerrno)
 		{
 			case 0: return 0;
-			case EBADF: return rfNumErr;
-			case EIO: return ioErr;
-			case EACCES: return permErr;
-			case ENOENT: return fnfErr;
-			case ENOTDIR: return dirNFErr;
-			case EISDIR: return notAFileErr;
-			case ENOTSUP: return extFSErr;
-			case EROFS: return wPrErr;
+			case EBADF: return MacOS::rfNumErr;
+			case EIO: return MacOS::ioErr;
+			case EACCES: return MacOS::permErr;
+			case ENOENT: return MacOS::fnfErr;
+			case ENOTDIR: return MacOS::dirNFErr;
+			case EISDIR: return MacOS::notAFileErr;
+			case ENOTSUP: return MacOS::extFSErr;
+			case EROFS: return MacOS::wPrErr;
 
-			case EEXIST: return dupFNErr;
+			case EEXIST: return MacOS::dupFNErr;
 
-			case EBUSY: return fBsyErr;
+			case EBUSY: return MacOS::fBsyErr;
 
-			case EDQUOT: return dskFulErr;
-			case ENOSPC: return dskFulErr;
+			case EDQUOT: return MacOS::dskFulErr;
+			case ENOSPC: return MacOS::dskFulErr;
 
 
 			default:
-				return ioErr;
+				return MacOS::ioErr;
 		}
 
 	}
@@ -430,6 +434,56 @@ namespace OS { namespace Internal {
 			size = ::write(fd, buffer, count);
 		}
 		return size;
+	}
+
+
+	int FDEntry::open(const std::string &filename, int ioPermission, int fork)
+	{
+		int fd;
+
+		if (filename.empty()) return MacOS::bdNamErr;
+
+		int access = 0;
+		switch(ioPermission)
+		{
+			case fsWrPerm:
+			case fsRdWrPerm:
+			case fsRdWrShPerm:
+			case fsCurPerm:
+				access = O_RDWR;
+				break;
+			case fsRdPerm:
+				access = O_RDONLY;
+				break;
+			default:
+				return MacOS::paramErr;
+				break;
+		}
+
+		std::string xname = filename;
+		if (fork) 
+			xname.append(_PATH_RSRCFORKSPEC);
+
+		Log("     open(%s, %04x)\n", xname.c_str(), access);
+
+		fd = ::open(xname.c_str(), access);
+		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
+		{
+			fd = ::open(xname.c_str(), O_RDONLY);
+		}
+
+		if (fd < 0)
+		{
+			return errno_to_oserr(errno);
+		}
+
+		// allocate the fd entry
+
+		auto &e = OS::Internal::FDEntry::allocate(fd, filename);
+		e.resource = fork;
+		e.text = fork ? false : IsTextFile(filename);
+
+		return fd;
 	}
 
 

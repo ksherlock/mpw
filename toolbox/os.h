@@ -53,6 +53,7 @@ namespace OS
 	uint16_t HGetVol(uint16_t trap);
 
 	uint16_t Open(uint16_t trap);
+	uint16_t HOpen(uint16_t trap);
 	uint16_t Read(uint16_t trap);
 	uint16_t Write(uint16_t trap);
 

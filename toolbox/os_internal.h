@@ -40,6 +40,8 @@ namespace OS { namespace Internal {
 
 		static int close(int fd, bool force = false);
 
+		static int open(const std::string &filename, int permission, int fork);
+
 
 		template<class F1, class F2>
 		static int32_t action(int fd, F1 good, F2 bad)
