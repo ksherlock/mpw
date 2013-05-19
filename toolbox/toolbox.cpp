@@ -31,8 +31,11 @@ namespace ToolBox {
 		switch (trap)
 		{
 			case 0xa000: // open
-			case 0xa00a: // openrf
 				d0 = OS::Open(trap);
+				break;
+
+			case 0xa00a: // openrf
+				d0 = OS::OpenRF(trap);
 				break;
 
 			case 0xa200:

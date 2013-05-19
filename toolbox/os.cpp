@@ -292,93 +292,62 @@ namespace OS
 	}
 
 
-	// todo -- call FDEntry::open instead of this...
 	uint16_t Open(uint16_t trap)
 	{
 		uint32_t d0;
 
+		int fd;
+
 		uint32_t parm = cpuGetAReg(0);
 
-		bool rf = trap == 0xa00a;
 
-		const char *modifier = "";
-		switch(trap)
-		{
-			case 0xa00a:
-				modifier = "RF";
-				break;
-		}
+		Log("%04x Open(%08x)\n", trap, parm);
 
-		Log("%04x Open%s(%08x)\n", trap, modifier, parm);
-
-		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint32_t namePtr = memoryReadLong(parm + 18);
 
-		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
-
 		uint8_t ioPermission = memoryReadByte(parm + 27); 
-		//uint32_t ioMisc = memoryReadLong(parm + 28);
 
 		std::string sname = ToolBox::ReadPString(namePtr, true);
 
-		if (!sname.length())
+		fd = Internal::FDEntry::open(sname, ioPermission, false);
+		d0 = fd < 0 ? fd : 0;
+		if (fd >= 0)
 		{
-			memoryWriteWord(MacOS::bdNamErr, parm + 16);
-			return MacOS::bdNamErr;
-		}
-
-
-		int access = 0;
-		switch(ioPermission)
-		{
-			case fsWrPerm:
-			case fsRdWrPerm:
-			case fsRdWrShPerm:
-			case fsCurPerm:
-				access = O_RDWR;
-				break;
-			case fsRdPerm:
-				access = O_RDONLY;
-				break;
-			default:
-				d0 = MacOS::paramErr;
-				memoryWriteWord(d0, parm + 16);
-				return d0;
-				break;
-		}
-
-		//todo -- FD table w/ flag for text/binary
-
-		std::string xname = sname;
-		if (rf) 
-			sname.append(_PATH_RSRCFORKSPEC);
-
-
-		Log("     open(%s, %04x)\n", xname.c_str(), access);
-		int fd = ::open(sname.c_str(), access);
-		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
-		{
-			fd = ::open(sname.c_str(), O_RDONLY);
-		}
-
-		if (fd < 0)
-		{
-			d0 = errno_to_oserr(errno);
-		}
-		else
-		{
-			auto &e = OS::Internal::FDEntry::allocate(fd, std::move(xname));
-			e.resource = rf;
-			e.text = rf ? false : IsTextFile(sname);
-
-			d0 = 0;
-			memoryWriteWord(fd, parm + 24);	
+			memoryWriteWord(fd, parm + 24);				
 		}
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
 	}
+
+	uint16_t OpenRF(uint16_t trap)
+	{
+		uint32_t d0;
+
+		int fd;
+
+		uint32_t parm = cpuGetAReg(0);
+
+
+		Log("%04x OpenRF(%08x)\n", trap, parm);
+
+		uint32_t namePtr = memoryReadLong(parm + 18);
+
+		uint8_t ioPermission = memoryReadByte(parm + 27); 
+
+		std::string sname = ToolBox::ReadPString(namePtr, true);
+
+		fd = Internal::FDEntry::open(sname, ioPermission, true);
+		d0 = fd < 0 ? fd : 0;
+		if (fd >= 0)
+		{
+			memoryWriteWord(fd, parm + 24);				
+		}
+
+		memoryWriteWord(d0, parm + 16);
+		return d0;
+	}
+
 
 	uint16_t Read(uint16_t trap)
 	{
