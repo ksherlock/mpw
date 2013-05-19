@@ -335,7 +335,7 @@ void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::
 
 		if (iter == end || iter == begin)
 		{
-			fprintf(stderr, "Invalid Environment entry: %.*s\n", length, begin);
+			fprintf(stderr, "Invalid Environment entry: %.*s\n", (int)length, begin);
 			continue;
 		}
 
