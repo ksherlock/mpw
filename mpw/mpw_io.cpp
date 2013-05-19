@@ -13,6 +13,8 @@
 #include <cpu/fmem.h>
 #include <cpu/cpuModule.h>
 
+#include <macos/errors.h>
+
 #include <toolbox/os.h>
 #include <toolbox/os_internal.h>
 
@@ -52,7 +54,7 @@ namespace MPW
 		if (size < 0)
 		{
 			//f.count = 0;
-			f.error = OS::ioErr; // ioErr
+			f.error = MacOS::ioErr; // ioErr
 			d0 = errno_to_errno(errno);
 		}
 		else
@@ -97,7 +99,7 @@ namespace MPW
 		if (size < 0)
 		{
 			//f.count = 0;
-			f.error = OS::ioErr; // ioErr
+			f.error = MacOS::ioErr; // ioErr
 			d0 = errno_to_errno(errno);
 		}
 		else

@@ -29,7 +29,6 @@
 
 
 using ToolBox::Log;
-using namespace ToolBox::Errors;
 
 using OS::Internal::errno_to_oserr;
 
@@ -270,8 +269,8 @@ namespace OS
 
 		if (!sname.length())
 		{
-			memoryWriteWord(bdNamErr, parm + 16);
-			return bdNamErr;
+			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			return MacOS::bdNamErr;
 		}
 		Log("     Create(%s)\n", sname.c_str());
 
@@ -293,6 +292,7 @@ namespace OS
 	}
 
 
+	// todo -- call FDEntry::open instead of this...
 	uint16_t Open(uint16_t trap)
 	{
 		uint32_t d0;
@@ -324,8 +324,8 @@ namespace OS
 
 		if (!sname.length())
 		{
-			memoryWriteWord(bdNamErr, parm + 16);
-			return bdNamErr;
+			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			return MacOS::bdNamErr;
 		}
 
 
@@ -334,7 +334,7 @@ namespace OS
 		{
 			case fsWrPerm:
 			case fsRdWrPerm:
-			case fsRdWrShPerm: 		
+			case fsRdWrShPerm:
 			case fsCurPerm:
 				access = O_RDWR;
 				break;
@@ -342,7 +342,7 @@ namespace OS
 				access = O_RDONLY;
 				break;
 			default:
-				d0 = paramErr;
+				d0 = MacOS::paramErr;
 				memoryWriteWord(d0, parm + 16);
 				return d0;
 				break;
@@ -398,7 +398,7 @@ namespace OS
 
 		if (ioReqCount < 0)
 		{
-			d0 = paramErr;
+			d0 = MacOS::paramErr;
 			memoryWriteWord(d0, parm + 16);
 			return d0;
 		}
@@ -425,7 +425,7 @@ namespace OS
 
 		if (count == 0)
 		{
-			d0 = eofErr;
+			d0 = MacOS::eofErr;
 		}
 		if (count < 0)
 		{
@@ -457,7 +457,7 @@ namespace OS
 
 		if (ioReqCount < 0)
 		{
-			d0 = paramErr;
+			d0 = MacOS::paramErr;
 			memoryWriteWord(d0, parm + 16);
 			return d0;
 		}
@@ -515,8 +515,8 @@ namespace OS
 
 		if (!sname.length())
 		{
-			memoryWriteWord(bdNamErr, parm + 16);
-			return bdNamErr;
+			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			return MacOS::bdNamErr;
 		}
 		Log("     Delete(%s)\n", sname.c_str());
 
@@ -694,8 +694,8 @@ namespace OS
 
 			if (!ioNamePtr)
 			{
-				memoryWriteWord(bdNamErr, parm + 16);
-				return bdNamErr;
+				memoryWriteWord(MacOS::bdNamErr, parm + 16);
+				return MacOS::bdNamErr;
 			}
 
 			sname = ToolBox::ReadPString(ioNamePtr, true);
@@ -797,8 +797,8 @@ namespace OS
 
 		if (!ioNamePtr)
 		{
-			memoryWriteWord(bdNamErr, parm + 16);
-			return bdNamErr;
+			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			return MacOS::bdNamErr;
 		}
 
 		sname = ToolBox::ReadPString(ioNamePtr, true);

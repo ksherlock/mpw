@@ -12,6 +12,8 @@
 #include <cpu/fmem.h>
 #include <cpu/cpuModule.h>
 
+#include <macos/errors.h>
+
 #include <toolbox/os.h>
 #include <toolbox/os_internal.h>
 
@@ -55,7 +57,7 @@ namespace MPW
 
 		if (rv < 0)
 		{
-			f.error = OS::notOpenErr;
+			f.error = MacOS::notOpenErr;
 			d0 = kEINVAL;
 		}
 		else

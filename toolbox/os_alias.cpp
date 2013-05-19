@@ -25,7 +25,6 @@
 #include "stackframe.h"
 
 using ToolBox::Log;
-using namespace ToolBox::Errors;
 
 namespace OS {
 

@@ -12,9 +12,9 @@
 
 #include <mplite/mplite.h>
 #include <macos/sysequ.h>
+#include <macos/errors.h>
 
 using ToolBox::Log;
-using namespace ToolBox::Errors;
 
 namespace 
 {
@@ -118,7 +118,7 @@ namespace MM
 			ptr = (uint8_t *)mplite_malloc(&pool, size);
 			if (!ptr)
 			{
-				return SetMemError(memFullErr);
+				return SetMemError(MacOS::memFullErr);
 			}
 
 			if (clear)
@@ -135,7 +135,7 @@ namespace MM
 
 			auto iter = PtrMap.find(mcptr);
 
-			if (iter == PtrMap.end()) return SetMemError(memWZErr);
+			if (iter == PtrMap.end()) return SetMemError(MacOS::memWZErr);
 			PtrMap.erase(iter);
 
 			uint8_t *ptr = mcptr + Memory;
@@ -157,7 +157,7 @@ namespace MM
 			{
 				if (!alloc_handle_block())
 				{
-					return SetMemError(memFullErr);
+					return SetMemError(MacOS::memFullErr);
 				}
 			}
 
@@ -172,7 +172,7 @@ namespace MM
 				if (!ptr)
 				{
 					HandleQueue.push_back(hh);
-					return SetMemError(memFullErr);
+					return SetMemError(MacOS::memFullErr);
 				}
 				mcptr = ptr - Memory; 
 
@@ -200,7 +200,7 @@ namespace MM
 		{
 			auto iter = HandleMap.find(handle);
 
-			if (iter == HandleMap.end()) return SetMemError(memWZErr);
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 			HandleInfo info = iter->second;
 
@@ -356,7 +356,7 @@ namespace MM
 
 		available = mplite_maxmem(&pool);
 		// TODO -- if available < cbNeeded, purge handle and retry?
-		if (available < cbNeeded) return SetMemError(memFullErr);
+		if (available < cbNeeded) return SetMemError(MacOS::memFullErr);
 
 		return SetMemError(0);
 	}
@@ -380,7 +380,7 @@ namespace MM
 		// check if it's valid.
 
 		auto iter = HandleMap.find(theHandle);
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		return SetMemError(0);
 	}
@@ -461,7 +461,7 @@ namespace MM
 
 		auto iter = PtrMap.find(mcptr);
 
-		if (iter == PtrMap.end()) return SetMemError(memWZErr);
+		if (iter == PtrMap.end()) return SetMemError(MacOS::memWZErr);
 
 		return iter->second;
 	}
@@ -485,13 +485,13 @@ namespace MM
 
 		auto iter = PtrMap.find(mcptr);
 
-		if (iter == PtrMap.end()) return SetMemError(memWZErr);
+		if (iter == PtrMap.end()) return SetMemError(MacOS::memWZErr);
 
 		uint8_t *ptr = mcptr + Memory;
 
 		if (mplite_resize(&pool, ptr, newSize) < 0)
 		{
-			return SetMemError(memFullErr);
+			return SetMemError(MacOS::memFullErr);
 		}
 
 		// update the size.
@@ -564,11 +564,11 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		auto &info = iter->second;
 		if (info.address == 0) return SetMemError(0);
-		if (info.locked) return SetMemError(memLockedErr); // ?
+		if (info.locked) return SetMemError(MacOS::memLockedErr); // ?
 
 		void *address = Memory + info.address;
 
@@ -614,11 +614,11 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		auto& info = iter->second;
 
-		if (info.locked) return SetMemError(memLockedErr);
+		if (info.locked) return SetMemError(MacOS::memLockedErr);
 
 		if (info.address)
 		{
@@ -635,7 +635,7 @@ namespace MM
 		if (logicalSize == 0) return SetMemError(0);
 
 		void *address = mplite_malloc(&pool, logicalSize);
-		if (!address) return SetMemError(memFullErr);
+		if (!address) return SetMemError(MacOS::memFullErr);
 
 		uint32_t mcptr = (uint8_t *)address - Memory;
 
@@ -667,7 +667,7 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		return iter->second.size;
 	}
@@ -693,7 +693,7 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 		// todo -- if handle ptr is null, other logic?
 		// todo -- if locked, can't move.
 
@@ -709,7 +709,7 @@ namespace MM
 		// 1. - resizing to 0.
 		if (!newSize)
 		{
-			if (info.locked) return SetMemError(memLockedErr);
+			if (info.locked) return SetMemError(MacOS::memLockedErr);
 
 			mplite_free(&pool, ptr);
 			info.address = 0;
@@ -722,7 +722,7 @@ namespace MM
 		if (!ptr)
 		{
 			ptr = (uint8_t *)mplite_malloc(&pool, newSize);
-			if (!ptr) return SetMemError(memFullErr);
+			if (!ptr) return SetMemError(MacOS::memFullErr);
 
 			mcptr = ptr - Memory;
 			info.address = mcptr;
@@ -739,7 +739,7 @@ namespace MM
 				info.size = newSize;
 				return SetMemError(0);
 			}
-			return SetMemError(memFullErr);
+			return SetMemError(MacOS::memFullErr);
 		}
 
 		// 4. - resize.
@@ -756,7 +756,7 @@ namespace MM
 		}
 		else
 		{
-			return SetMemError(memFullErr);
+			return SetMemError(MacOS::memFullErr);
 		}
 
 
@@ -785,7 +785,7 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 		iter->second.purgeable = true;
 
 		return 0;
@@ -808,7 +808,7 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		iter->second.locked = true;
 		return 0;
@@ -831,7 +831,7 @@ namespace MM
 
 		auto iter = HandleMap.find(hh);
 
-		if (iter == HandleMap.end()) return SetMemError(memWZErr);
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		iter->second.locked = false;
 		return 0;
