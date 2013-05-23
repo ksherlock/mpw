@@ -167,6 +167,9 @@ namespace MPW
 		case kF_GTABINFO:
 			d0 = 0x40000000 | kEINVAL;
 			break;
+		case kF_STABINFO:
+			d0 = 0x40000000 | kEINVAL;
+			break;
 			
 		default:
 			d0 = 0x40000000 | kEINVAL;
