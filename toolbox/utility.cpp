@@ -78,5 +78,34 @@ namespace Utility {
 		return d0;
 	}
 
+	// FUNCTION BitTst (bytePtr: Ptr; bitNum: LONGINT) : BOOLEAN;
+	uint16_t BitTst(uint16_t trap)
+	{
+		/* 
+		 * BitTst tests whether a given bit is set and returns TRUE if so or 
+		 * FALSE if not. The bit is specified by bitNum, an offset from the 
+		 * high-order bit of the byte pointed to by bytePtr.
+		 */
+
+		uint32_t bytePtr;
+		uint32_t bitNum;
+		uint16_t rv;
+		uint32_t sp;
+
+		sp = StackFrame<8>(bytePtr, bitNum);
+		Log("%04x BitTst($%08x, $%08x)\n", trap, bytePtr, bitNum);
+
+
+		 uint32_t offset = bitNum >> 3;
+		 int mask = 0x80 >> (bitNum & 0x07);
+
+		 uint32_t value = memoryReadByte(bytePtr + offset);
+
+		 rv = value & mask ? 1 : 0;
+		 ToolReturn<2>(sp, rv);
+
+		 return 0;
+	}
+
 
 }

@@ -352,6 +352,10 @@ namespace ToolBox {
 				d0 = Utility::GetString(trap);
 				break;
 
+			case 0xa85d:
+				d0 = Utility::BitTst(trap);
+				break;
+
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());

@@ -8,6 +8,8 @@ namespace Utility
 
 	uint16_t NewString(uint16_t trap);
 	uint16_t GetString(uint16_t trap);
+
+	uint16_t BitTst(uint16_t trap);
 }
 
 #endif
