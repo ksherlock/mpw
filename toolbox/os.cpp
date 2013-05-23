@@ -641,6 +641,7 @@ namespace OS
 		return 0;
 	}
 
+#if 0
 	uint16_t GetFileInfo(uint16_t trap)
 	{
 
@@ -794,7 +795,7 @@ namespace OS
 		memoryWriteWord(d0, parm + 16);
 		return d0;
 	}
-
+#endif
 
 	#pragma mark - String Utilities
 

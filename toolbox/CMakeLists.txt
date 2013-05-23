@@ -13,6 +13,7 @@ set(TOOLBOX_SRC
 	os_hfs_dispatch.cpp
 	os_highlevel.cpp
 	os_alias.cpp
+	os_fileinfo.cpp
 	qd.cpp
 	sane.cpp
 	utility.cpp
