@@ -52,6 +52,10 @@ namespace OS
 	uint16_t GetVol(uint16_t trap);
 	uint16_t HGetVol(uint16_t trap);
 
+	uint16_t SetVol(uint16_t trap);
+
+
+
 	uint16_t Open(uint16_t trap);
 	uint16_t OpenRF(uint16_t trap);
 	uint16_t HOpen(uint16_t trap);

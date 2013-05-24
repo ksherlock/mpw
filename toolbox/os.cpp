@@ -641,6 +641,50 @@ namespace OS
 		return 0;
 	}
 
+
+	uint16_t SetVol(uint16_t trap)
+	{
+
+		enum { // WDPBRec
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+
+			_ioWDDirID = 48,
+		};
+
+		uint16_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x SetVol(%08x)\n", trap, parm);
+
+
+		uint32_t ioNamePtr = memoryReadLong(parm + _ioNamePtr);
+		uint32_t ioVRefNum = memoryReadWord(parm + _ioVRefNum);
+		uint32_t ioWDDirID = trap & 0x0200 ? memoryReadLong(parm + _ioWDDirID) : 0;
+
+
+		std::string name = ToolBox::ReadPString(ioNamePtr);
+
+		Log("    SetVol(%s, %d, %d)\n", name.c_str(), ioVRefNum, ioWDDirID);
+
+		if (name.length() || ioVRefNum || ioWDDirID)
+		{
+			fprintf(stderr, "SetVol(%s, %d, %d) is not supported yet.\n", name.c_str(), ioVRefNum, ioWDDirID);
+			exit(1);
+		}
+		d0 = 0;
+		memoryWriteWord(d0, parm + _ioResult);
+		return d0;
+	}
+
+
 #if 0
 	uint16_t GetFileInfo(uint16_t trap)
 	{
