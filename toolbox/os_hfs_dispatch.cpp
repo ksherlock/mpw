@@ -32,6 +32,64 @@ using OS::Internal::errno_to_oserr;
 
 namespace OS {
 
+	uint16_t PBGetWDInfo(uint32_t parm)
+	{
+
+		enum { // WDPBRec
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_filler1 = 24,
+			_ioWDIndex = 26,
+			_ioWDProcID = 28,
+			_ioWDVRefNum = 32,
+			_filler2 = 34,
+			_ioWDDirID = 48,
+		};
+
+		/*
+		 * TODO - this is a Massive hack.
+		 * MPW returns this: for a 0/0 entry.  
+		 * PBGetWDInfo
+		 * 0
+		 * ioNamePtr: MacOS
+		 * ioVRefNum: -1
+		 * ioWDProcID: 0
+		 * ioWDVRefNum: -1
+		 * ioWDDirID: 2 << Root volume is always entry #2.
+		 */
+
+		uint16_t d0 = 0;
+
+		uint32_t ioNamePtr = memoryReadLong(parm + _ioNamePtr);
+		uint16_t ioVRefNum = memoryReadWord(parm + _ioVRefNum);
+		uint16_t ioWDIndex = memoryReadWord(parm + _ioWDIndex);
+		//uint32_t ioWDProcID = memoryReadLong(parm + _ioWDProcID);
+		uint16_t ioWDVRefNum = memoryReadWord(parm + _ioWDVRefNum);
+
+		Log("    PBGetWDInfo($%04x, $%04x, $%04x)\n", ioVRefNum, ioWDIndex, ioWDVRefNum);
+
+		// todo -- need to  expand the fsspec code to give a id #
+		// to all filse and directories.
+		// and move to common internal code.
+
+
+		ToolBox::WritePString(ioNamePtr, std::string("MacOS"));
+		memoryWriteWord(-1, parm + _ioVRefNum);
+		memoryWriteLong(0, parm + _ioWDProcID);
+		memoryWriteWord(-1, parm + _ioWDVRefNum);
+		memoryWriteLong(2, parm + _ioWDDirID);
+
+		d0 = 0;
+		memoryWriteWord(d0, parm + _ioResult);
+		return d0;
+	}
+
 	uint16_t PBGetCatInfo(uint32_t parm)
 	{
 		uint16_t d0;
@@ -187,9 +245,16 @@ namespace OS {
 
 		switch (selector)
 		{
+			case 0x0007:
+				return PBGetWDInfo(paramBlock);
+				break;
+
 			case 0x0009:
 				return PBGetCatInfo(paramBlock);
 				break;
+
+			case 0x001a:
+				return PBHOpenDF(paramBlock);
 
 			default:
 				fprintf(stderr, "HFSDispatch: selector %08x not implemented\n", 
