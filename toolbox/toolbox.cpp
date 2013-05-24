@@ -30,17 +30,16 @@ namespace ToolBox {
 		uint32_t d0 = 0;
 		switch (trap)
 		{
-			case 0xa000: // open
+			case 0xa000: // Open
+			case 0xa200: // HOpen
 				d0 = OS::Open(trap);
 				break;
 
-			case 0xa00a: // openrf
+			case 0xa00a: // OpenRF
+			case 0xa20a: // HOpenRF
 				d0 = OS::OpenRF(trap);
 				break;
 
-			case 0xa200:
-				d0 = OS::HOpen(trap);
-				break;
 
 			case 0xa001:
 				d0 = OS::Close(trap);
@@ -54,24 +53,30 @@ namespace ToolBox {
 				d0 = OS::Write(trap);
 				break;
 
-			case 0xa008:
+			case 0xa008: // Create
+			case 0xa208: // HCreate
 				d0 = OS::Create(trap);
 				break;
+
 			case 0xa009:
 				d0 = OS::Delete(trap);
 				break;
 
-			case 0xA00C:
+			case 0xa00c: // GetFInfo
+			case 0xa20c: // HGetFInfo
 				d0 = OS::GetFileInfo(trap);
 				break;
 
-			case 0xa00d:
+
+			case 0xa00d: // SetFileInfo
+			case 0xa20d: // HSetFileInfo
 				d0 = OS::SetFileInfo(trap);
 				break;
 
 			case 0xa011:
 				d0 = OS::GetEOF(trap);
 				break;
+				
 			case 0xa012:
 				d0 = OS::SetEOF(trap);
 				break;
