@@ -204,6 +204,18 @@ namespace OS {
 		return OS::Open(0xa000);
 	}
 
+
+	uint16_t PBHOpenDF(uint32_t paramBlock)
+	{
+		// PBHOpen... is identical to PBOpen... except
+		// that it accepts a directory ID in ioDirID.
+
+		Log("     PBHOpenDF\n");
+		// same as Open but slightly different handling of . files.
+		return OS::Open(0xa000);
+	}
+
+
 	uint16_t FSDispatch(uint16_t trap)
 	{
 
@@ -219,16 +231,13 @@ namespace OS {
 
 		switch (selector)
 		{
-			//case 0x0009:
-				//return PBGetCatInfo(paramBlock);
-				//break;
 
-			case 0x1a:
+			case 0x001a:
 				return PBOpenDF(paramBlock);
 				break;
 
 			default:
-				fprintf(stderr, "HFSDispatch: selector %08x not implemented\n", 
+				fprintf(stderr, "FSDispatch: selector %08x not implemented\n", 
 					selector);
 				exit(1);
 		}

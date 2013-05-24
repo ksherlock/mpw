@@ -41,6 +41,7 @@ namespace OS
 	uint16_t FlushVol(uint16_t trap);
 	
 	uint16_t GetFileInfo(uint16_t trap);
+	uint16_t HGetFileInfo(uint16_t trap);
 	uint16_t SetFileInfo(uint16_t trap);
 
 	uint16_t GetEOF(uint16_t trap);
