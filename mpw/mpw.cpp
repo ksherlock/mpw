@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <sys/stat.h>
+#include <pwd.h>
 
 #include <cpu/defs.h>
 #include <cpu/fmem.h>
@@ -90,6 +92,100 @@ namespace MPW
 		return kEINVAL;
 
 	}
+
+	static bool isdir(const std::string &path)
+	{
+		struct stat st;
+		if (stat(path.c_str(), &st) < 0) return false;
+		return S_ISDIR(st.st_mode);
+	}
+
+	const std::string RootDir()
+	{
+		static bool initialized = false;
+		static std::string path;
+
+		static const std::string paths[] = {
+			"/usr/local/share/mpw",
+			"/usr/share/mpw",
+		};
+
+		char *cp;
+		struct passwd *pw;
+
+		if (initialized) return path;
+
+		initialized = true;
+
+		// check $MPW, $HOME/mpw, /usr/local/share/mpw/, /usr/share/mpw
+		// for a directory.
+
+		cp = getenv("MPW");
+		if (cp && *cp)
+		{
+			std::string s(cp);
+			if (isdir(s))
+			{
+				path = std::move(s);
+				return path;
+			}
+		}
+
+		// home/mpw
+		pw = getpwuid(getuid());
+		if (pw && pw->pw_dir && pw->pw_dir[0])
+		{
+			std::string s(pw->pw_dir);
+			if (s.back() != '/') s.push_back('/');
+			s.append("mpw");
+
+			if (isdir(s))
+			{
+				path = std::move(s);
+				return path;
+			}
+		}
+#if 0
+		// thread-safe
+		{
+			int size;
+
+			size = sysconf(_SC_GETPW_R_SIZE_MAX);
+			if (size >= 0)
+			{
+				struct passwd pwd, *result = nullptr;
+				char *buffer = alloca(size);
+
+				if (getpwuid_r(getuid(), &pwd, buffer, size, &result) == 0 && result)
+				{
+					std::string s(pwd.pw_dir);
+					if (s.back() != '/') s.push_back('/');
+					s.append("mpw");					
+					if (isdir(s))
+					{
+						path = std::move(s);
+						return path;
+					}
+				}
+			}
+		}
+#endif
+		for (auto &iter : paths)
+		{
+			if (isdir(iter))
+			{
+				path = iter;
+				return path;
+			}
+
+		}
+
+
+
+		return path; // unknown.
+	}
+
+
 
 	uint16_t Init(int argc, char **argv)
 	{
@@ -194,20 +290,18 @@ namespace MPW
 		{
 			std::unordered_map<std::string, std::string> env;
 
-			const char *mpw = getenv("MPW");
-			if (mpw && *mpw)
+			std::string m(RootDir());
+			if (!m.empty())
 			{
-				std::string m(mpw);
-				m = ToolBox::UnixToMac(m);
-				if (m.back() != ':') m.push_back(':');
+				std::string mm = ToolBox::UnixToMac(m);
+				if (mm.back() != ':') mm.push_back(':');
 
-				env.emplace(std::string("MPW"), m);
+				env.emplace(std::string("MPW"), mm);
 			}
 			env.emplace(std::string("Command"), command);
 
-			if (mpw && *mpw)
+			if (!m.empty())
 			{
-				std::string m(mpw);
 
 				void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::string> &env);
 

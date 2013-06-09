@@ -2,6 +2,7 @@
 #define __mpw_mpw_h__
 
 #include <cstdint>
+#include <string>
 
 namespace MPW {
 
@@ -91,6 +92,7 @@ namespace MPW {
 	};
 
 
+	const std::string RootDir();
 
 	// should add argc/argv/envp...
 	uint16_t Init(int argc, char **argv);

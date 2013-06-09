@@ -454,11 +454,9 @@ std::string find_exe(const std::string &name)
 	// if name is a path, then it doesn't exist.
 	if (name.find('/') != name.npos) return std::string();
 
+	std::string path = MPW::RootDir();
+	if (path.empty()) return path;
 
-	const char *mpw = getenv("MPW");
-	if (!mpw || !*mpw) return std::string();
-
-	std::string path(mpw);
 
 	if (path.back() != '/') path.push_back('/');
 	path.append("Tools/");
@@ -468,47 +466,6 @@ std::string find_exe(const std::string &name)
 
 	return std::string();
 
-
-
-#if 0
-	std::string subpath;
-	// check in $MPW/name.
-	const char *cpath = getenv("mpw_path");
-	if (!cpath) return std::string();
-
-	path = cpath; 
-	// split on :
-
-	if (path.empty()) return std::string();
-
-	int start = 0, end = 0;
-
-	while ((end = path.find(':', start)) != path.npos)
-	{
-		subpath = path.substr(start, end - start);
-
-		if (subpath.length())
-		{
-			subpath.push_back('/');
-			subpath.append(name);
-
-			if (file_exists(subpath)) return subpath;			
-		}
-
-		start = end + 1;
-	}
-
-	subpath = path.substr(start);
-	if (subpath.length())
-	{
-		subpath.push_back('/');
-		subpath.append(name);
-
-		if (file_exists(subpath)) return subpath;
-	}
-
-	return std::string();
-#endif
 }
 
 
