@@ -10,17 +10,20 @@
 #include "rm.h"
 #include "toolbox.h"
 #include "mm.h"
+#include "os_internal.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
 #include <macos/sysequ.h>
-
+#include <macos/errors.h>
 
 #include "stackframe.h"
 
 using ToolBox::Log;
+
+using namespace OS::Internal;
 
 namespace
 {
@@ -290,7 +293,7 @@ namespace RM
 
 		sp = StackFrame<4>(fileName);
 
-		std::string sname = ToolBox::ReadPString(fileName);
+		std::string sname = ToolBox::ReadPString(fileName, true);
 
 		Log("%04x OpenResFile(%s)\n", trap, sname.c_str());
 
@@ -321,6 +324,61 @@ namespace RM
 		::UseResFile(resFile);
 		return SetResError(::ResError());
 	}
+
+	uint16_t CreateResFile(uint16_t trap)
+	{
+		// PROCEDURE CreateResFile (fileName: Str255);
+
+		/*
+		 * CreateResFile creates a resource file containing no resource 
+		 * data. If there's no file at all with the given name, it also 
+		 * creates an empty data fork for the file. If there's already a 
+		 * resource file with the given name (that is, a resource fork 
+		 * that isn't empty), CreateResFile will do nothing and the 
+		 * ResError function will return an appropriate Operating System 
+		 * result code.
+		 */
+
+		// FSCreateResourceFile uses the parent FSRef + a file name.
+
+
+		uint32_t fileName;
+		FSRef ref;
+		OSErr error;
+		int fd;
+
+		StackFrame<4>(fileName);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+		Log("%04x CreateResFile(%s)\n", trap, sname.c_str());
+
+		if (!sname.length()) return SetResError(MacOS::paramErr);
+
+		// 1. if the file exists, call FSCreateResourceFork on the file.
+		// 2. if the file does not exist, create the file then call 
+		//    FSCreateResourceFork
+
+		error = FSPathMakeRef((const UInt8 *)sname.c_str(), &ref, NULL);
+		if (error != noErr)
+		{
+			return SetResError(error);
+		}
+
+		fd = open(sname.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+		if (fd < 0)
+		{
+			if (errno != EEXIST) return SetResError(errno_to_oserr(errno));
+		}
+		if (fd >= 0) close(fd);
+
+        HFSUniStr255 fork = {0,{0}};
+        FSGetResourceForkName(&fork);
+
+		error = FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
+
+		return SetResError(error);
+	}
+
 
 
 	// todo -- move since it's not RM related.

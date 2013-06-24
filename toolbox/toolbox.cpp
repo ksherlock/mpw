@@ -305,6 +305,11 @@ namespace ToolBox {
 				d0 = RM::ResError(trap);
 				break;
 
+			// CreateResFile(fileName: Str255);
+			case 0xa9b1:
+				d0 = RM::CreateResFile(trap);
+				break;
+
 			// UnloadSeg (routineAddr: Ptr);
 			case 0xa9f1:
 				d0 = RM::UnloadSeg(trap);
