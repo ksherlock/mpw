@@ -310,6 +310,12 @@ namespace ToolBox {
 				d0 = RM::CreateResFile(trap);
 				break;
 
+			// OpenRFPerm (fileName: Str255; vRefNum: Integer;
+            //       permission: SignedByte): Integer;
+			case 0xa9c4:
+				d0 = RM::OpenRFPerm(trap);
+				break;
+
 			// UnloadSeg (routineAddr: Ptr);
 			case 0xa9f1:
 				d0 = RM::UnloadSeg(trap);

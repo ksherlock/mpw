@@ -381,6 +381,49 @@ namespace RM
 
 
 
+	uint16_t OpenRFPerm(uint16_t trap)
+	{
+		// FUNCTION OpenRFPerm (fileName: Str255; vRefNum: Integer;
+        //           permission: SignedByte): Integer;
+		ResFileRefNum refNum;
+		FSRef ref;
+
+		uint32_t sp;
+		uint32_t fileName;
+		uint16_t vRefNum;
+		uint16_t permission;
+		OSErr error;
+
+		sp = StackFrame<8>(fileName, vRefNum, permission);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+		Log("%04x OpenRFPerm(%s, %04x, %04x)\n",
+			trap, sname.c_str(), vRefNum, permission);
+
+		error = FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
+		if (error != noErr)
+		{
+			ToolReturn<2>(sp, (uint16_t)-1);
+			return SetResError(error);
+		}
+
+        HFSUniStr255 fork = {0,{0}};
+        FSGetResourceForkName(&fork);
+
+        refNum = -1;
+    	error = FSOpenResourceFile(&ref, 
+    		fork.length, 
+    		fork.unicode, 
+    		permission, 
+    		&refNum);
+
+		ToolReturn<2>(sp, (uint16_t)refNum);
+
+		return SetResError(error);
+	}
+
+
+
 	// todo -- move since it's not RM related.
 	uint16_t UnloadSeg(uint16_t trap)
 	{

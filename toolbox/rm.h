@@ -24,6 +24,7 @@ namespace RM
 	uint16_t ResError(uint16_t trap);
 
 	uint16_t OpenResFile(uint16_t trap);
+	uint16_t OpenRFPerm(uint16_t trap);
 
 	uint16_t SetResLoad(uint16_t trap);
 
