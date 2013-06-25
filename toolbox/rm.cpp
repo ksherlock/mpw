@@ -129,8 +129,10 @@ namespace RM
 		StackFrame<2>(refNum);
 
 		Log("%04x CloseResFile(%04x)\n", trap, refNum);
-
-		return SetResError(resFNotFound);
+		::CloseResFile(refNum);
+		return SetResError(::ResError());
+		
+		//return SetResError(resFNotFound);
 	}
 
 
@@ -279,7 +281,7 @@ namespace RM
 		Log("%04x SetResLoad(%04x)\n", trap, load);
 
 		memoryWriteByte(load ? 0xff : 0x00, MacOS::ResLoad); // word or byte?
-		return 0;
+		return SetResError(0);
 	}
 
 
@@ -358,13 +360,13 @@ namespace RM
 		// 2. if the file does not exist, create the file then call 
 		//    FSCreateResourceFork
 
-		error = FSPathMakeRef((const UInt8 *)sname.c_str(), &ref, NULL);
+		error = ::FSPathMakeRef((const UInt8 *)sname.c_str(), &ref, NULL);
 		if (error != noErr)
 		{
 			return SetResError(error);
 		}
 
-		fd = open(sname.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+		fd = ::open(sname.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 		if (fd < 0)
 		{
 			if (errno != EEXIST) return SetResError(errno_to_oserr(errno));
@@ -372,9 +374,9 @@ namespace RM
 		if (fd >= 0) close(fd);
 
         HFSUniStr255 fork = {0,{0}};
-        FSGetResourceForkName(&fork);
+        ::FSGetResourceForkName(&fork);
 
-		error = FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
+		error = ::FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
 
 		return SetResError(error);
 	}
@@ -400,7 +402,7 @@ namespace RM
 		Log("%04x OpenRFPerm(%s, %04x, %04x)\n",
 			trap, sname.c_str(), vRefNum, permission);
 
-		error = FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
+		error = ::FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
 		if (error != noErr)
 		{
 			ToolReturn<2>(sp, (uint16_t)-1);
@@ -408,10 +410,10 @@ namespace RM
 		}
 
         HFSUniStr255 fork = {0,{0}};
-        FSGetResourceForkName(&fork);
+        ::FSGetResourceForkName(&fork);
 
         refNum = -1;
-    	error = FSOpenResourceFile(&ref, 
+    	error = ::FSOpenResourceFile(&ref, 
     		fork.length, 
     		fork.unicode, 
     		permission, 
@@ -421,6 +423,74 @@ namespace RM
 
 		return SetResError(error);
 	}
+
+	uint16_t Count1Resources(uint16_t trap)
+	{
+		// FUNCTION Count1Resources (theType: ResType): Integer;
+
+		uint32_t sp;
+		uint32_t theType;
+		uint16_t count;
+
+		sp = StackFrame<4>(theType);
+
+		Log("%04x Count1Resources(%08x ('%s'))\n", 
+			trap, theType, TypeToString(theType).c_str());
+
+		count = ::Count1Resources(theType);
+
+		ToolReturn<2>(sp, count);
+		return SetResError(0);
+	}
+
+
+	uint16_t UpdateResFile(uint16_t trap)
+	{
+		// PROCEDURE UpdateResFile (refNum: Integer);
+
+		uint16_t refNum;
+
+		StackFrame<2>(refNum);
+
+		Log("%04x UpdateResFile(%04x)\n", trap, refNum);
+
+		::UpdateResFile(refNum);
+
+		return SetResError(::ResError());
+	}
+
+	uint16_t GetResFileAttrs(uint16_t trap)
+	{
+		// FUNCTION GetResFileAttrs (refNum: Integer): Integer;
+		uint32_t sp;
+		uint16_t attrs;
+		uint16_t refNum;
+
+		sp = StackFrame<2>(refNum);
+		Log("%04x GetResFileAttrs(%04x)\n", trap, refNum);
+
+		attrs = ::GetResFileAttrs(refNum);
+		ToolReturn<2>(sp, attrs);
+
+		return SetResError(::ResError());
+	}
+
+
+	uint16_t SetResFileAttrs(uint16_t trap)
+	{
+		// PROCEDURE SetResFileAttrs  (refNum: Integer; attrs: Integer);
+		uint32_t sp;
+		uint16_t attrs;
+		uint16_t refNum;
+
+		sp = StackFrame<4>(refNum, attrs);
+		Log("%04x GetResFileAttrs(%04x, %04x)\n", trap, refNum, attrs);
+
+		::SetResFileAttrs(refNum, attrs);
+
+		return SetResError(::ResError());
+	}
+
 
 
 
@@ -436,14 +506,14 @@ namespace RM
 		 *
 		 */
 
-		 uint32_t sp;
-		 uint32_t routineAddr;
+		uint32_t sp;
+		uint32_t routineAddr;
 
-		 sp = StackFrame<4>(routineAddr);
+		sp = StackFrame<4>(routineAddr);
 
-		 Log("%04x UnloadSeg(%08x)\n", trap, routineAddr);
+		Log("%04x UnloadSeg(%08x)\n", trap, routineAddr);
 
-		 return 0;
+		return 0;
 	}
 
 }

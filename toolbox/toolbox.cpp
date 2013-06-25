@@ -260,6 +260,11 @@ namespace ToolBox {
 
 			// resource manager stuff.
 
+			// Count1Resources (theType: ResType): Integer;
+			case 0xa80d:
+				d0 = RM::Count1Resources(trap);
+				break;
+
 			// Get1Resource (theType: ResType; thelD: INTEGER) : Handle;
 			case 0xa81f:
 				d0 = RM::Get1Resource(trap);
@@ -280,6 +285,10 @@ namespace ToolBox {
 
 			case 0xA998:
 				d0 = RM::UseResFile(trap);
+				break;
+
+			case 0xa999:
+				d0 = RM::UpdateResFile(trap);
 				break;
 
 			case 0xa99a:
@@ -320,6 +329,15 @@ namespace ToolBox {
 			case 0xa9f1:
 				d0 = RM::UnloadSeg(trap);
 				break;
+
+			case 0xa9f6:
+				d0 = RM::GetResFileAttrs(trap);
+				break;
+
+			case 0xa9f7:
+				d0 = RM::SetResFileAttrs(trap);
+				break;
+
 
 			// quickdraw (AsmIIgs ... )
 
