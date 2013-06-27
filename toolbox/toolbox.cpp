@@ -284,6 +284,11 @@ namespace ToolBox {
 				d0 = RM::Get1NamedResource(trap);
 				break;
 
+
+			case 0xa992:
+				d0 = RM::DetachResource(trap);
+				break;
+
 			case 0xa994:
 				d0 = RM::CurResFile(trap);
 				break;
@@ -318,9 +323,21 @@ namespace ToolBox {
 				d0 = RM::ReleaseResource(trap);
 				break;
 
+			case 0xa9a7:
+				d0 = RM::SetResAttrs(trap);
+				break;
+
+			case 0xa9ab:
+				d0 = RM::AddResource(trap);
+				break;
+				
 			// ResError : INTEGER;
 			case 0xa9af:
 				d0 = RM::ResError(trap);
+				break;
+
+			case 0xa9b0:
+				d0 = RM::WriteResource(trap);
 				break;
 
 			// CreateResFile(fileName: Str255);

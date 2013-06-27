@@ -2,7 +2,7 @@
 #include <string>
 //#include <unordered_map>
 #include <list>
-
+#include <map>
 
 #include <CoreServices/CoreServices.h>
 
@@ -43,6 +43,9 @@ namespace
 #endif
 	// sigh... really need to create a resmap for every open
 	// resource file and update that with the pointer.
+
+
+	std::map<uint32_t, Handle> rhandle_map;
 
 
 	inline uint16_t SetResError(uint16_t error)
@@ -491,7 +494,121 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+	// TODO -- update rhandle_map when loading resources
+	// TODO -- update rhandle_map when disposing resources.
 
+	uint16_t AddResource(uint16_t trap)
+	{
+		// PROCEDURE AddResource (theData: Handle; theType: ResType;
+		// theID: Integer; name: Str255);
+
+		uint32_t theData;
+		uint32_t theType;
+		uint16_t theID;
+		uint32_t namePtr;
+
+
+		StackFrame<14>(theData, theType, theID, namePtr);
+
+		std::string sname = ToolBox::ReadPString(namePtr, false);
+
+		Log("%04x AddResource(%08x, %08x ('%s'), %04x, %s)\n",
+			trap, theData, theType, TypeToString(theType).c_str(), sname.c_str()
+		);
+
+
+		Handle nativeHandle = NULL;
+		if (theData)
+		{
+			uint32_t handleSize;
+			MM::Native::GetHandleSize(theData, handleSize);
+
+			if (handleSize)
+			{
+
+				nativeHandle = ::NewHandle(handleSize);
+				if (!nativeHandle) return SetResError(MacOS::addResFailed);
+
+				uint32_t src = memoryReadLong(theData);
+
+				std::memcpy(*(uint8_t **)nativeHandle, memoryPointer(src), handleSize);  
+
+				rhandle_map.insert({theData, nativeHandle});
+			}
+		}
+		// AddResource assumes ownership of the handle.
+		::AddResource(nativeHandle, theType, theID, memoryPointer(namePtr));
+		return SetResError(::ResError());
+	}
+
+	uint16_t SetResAttrs(uint16_t trap)
+	{
+		// PROCEDURE SetResAttrs (theResource: Handle; attrs: Integer);
+
+		uint32_t theResource;
+		uint16_t attrs;
+
+		StackFrame<6>(theResource, attrs);
+
+		Log("%04x SetResAttrs(%08x, %04x)\n", trap, theResource, attrs);
+
+		// find the native handle..
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end()) return SetResError(MacOS::resNotFound);
+
+		Handle nativeHandle = iter->second;
+
+		::SetResAttrs(nativeHandle, attrs);
+
+		return SetResError(::ResError());
+	}
+
+
+	uint16_t WriteResource(uint16_t trap)
+	{
+		// PROCEDURE WriteResource (theResource: Handle);
+
+		uint32_t theResource;
+		StackFrame<4>(theResource);
+
+		Log("%04x WriteResource(%08x)\n", trap, theResource);
+
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end()) return SetResError(MacOS::resNotFound);
+
+		Handle nativeHandle = iter->second;
+
+		// todo -- need to verify handle size, re-copy handle memory?
+		::WriteResource(nativeHandle);
+
+		return SetResError(::ResError());
+	}
+
+
+
+	uint16_t DetachResource(uint16_t trap)
+	{
+		// PROCEDURE DetachResource (theResource: Handle);
+
+		uint32_t theResource;
+		StackFrame<4>(theResource);
+
+		Log("%04x DetachResource(%08x)\n", trap, theResource);
+
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end()) return SetResError(MacOS::resNotFound);
+
+		Handle nativeHandle = iter->second;
+
+		rhandle_map.erase(iter);
+
+		::ReleaseResource(nativeHandle);
+
+		return SetResError(::ResError());
+	}
 
 
 	// todo -- move since it's not RM related.

@@ -37,6 +37,10 @@ namespace RM
 	uint16_t UpdateResFile(uint16_t trap);
 	uint16_t GetResFileAttrs(uint16_t trap);
 	uint16_t SetResFileAttrs(uint16_t trap);
+	uint16_t AddResource(uint16_t trap);
+	uint16_t SetResAttrs(uint16_t trap);
+	uint16_t WriteResource(uint16_t trap);
+	uint16_t DetachResource(uint16_t trap);
 
 }
 
