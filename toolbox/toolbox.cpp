@@ -203,6 +203,11 @@ namespace ToolBox {
 			case 0xa9e3:
 				d0 = MM::PtrToHand(trap);
 
+
+			case 0xa126:
+				d0 = MM::HandleZone(trap);
+				break;
+
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
 				d0 = OS::ReadDateTime(trap);
@@ -242,6 +247,10 @@ namespace ToolBox {
 			// DisposPtr (p: Ptr);
 			case 0xa01f:
 				d0 = MM::DisposePtr(trap);
+				break;
+
+			case 0xa065:
+				d0 = MM::StackSpace(trap);
 				break;
 
 			// NewHandle (logicalSize: Size) : Handle;
