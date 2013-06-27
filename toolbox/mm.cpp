@@ -228,6 +228,18 @@ namespace MM
 		}
 
 
+		uint16_t GetHandleSize(uint32_t handle, uint32_t &handleSize)
+		{
+			handleSize = 0;
+
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+			handleSize = iter->second.size;
+			return SetMemError(0);
+		}		
+
+
 	}
 
 

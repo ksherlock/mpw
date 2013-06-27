@@ -19,6 +19,8 @@ namespace MM
 
 		uint16_t DisposeHandle(uint32_t handle);
 		uint16_t DisposePtr(uint32_t pointer);
+
+		uint16_t GetHandleSize(uint32_t handle, uint32_t &handleSize);
 	}
 
 	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved);
