@@ -104,6 +104,16 @@ namespace MM
 		void PrintMemoryStats()
 		{
 			mplite_print_stats(&pool,  std::puts);
+
+			for (const auto & kv : HandleMap)
+			{
+				const auto h = kv.first;
+				const auto & info = kv.second;
+				fprintf(stdout, "%08x %08x %08x %c %c\n",
+					h, info.address, info.size, 
+					info.locked? 'L' : ' ', info.purgeable? 'P' : ' ');
+			}
+
 		}
 
 
