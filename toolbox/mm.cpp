@@ -206,10 +206,12 @@ namespace MM
 
 			HandleMap.erase(iter);
 
-			uint8_t *ptr = info.address + Memory;
+			if (info.address)
+			{
+				uint8_t *ptr = info.address + Memory;
 
-			mplite_free(&pool, ptr);
-
+				mplite_free(&pool, ptr);
+			}
 			HandleQueue.push_back(handle);
 
 			return SetMemError(0);
