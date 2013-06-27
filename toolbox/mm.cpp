@@ -766,13 +766,17 @@ namespace MM
 			mplite_free(&pool, ptr);
 			info.address = 0;
 			info.size = 0;
+
+			memoryWriteLong(info.address, hh);
 			return SetMemError(0);
 		}
 
 		// 2. - resizing from 0.
 
-		if (!ptr)
+		if (!mcptr)
 		{
+			if (info.locked) return SetMemError(MacOS::memLockedErr);
+
 			ptr = (uint8_t *)mplite_malloc(&pool, newSize);
 			if (!ptr) return SetMemError(MacOS::memFullErr);
 
@@ -780,6 +784,7 @@ namespace MM
 			info.address = mcptr;
 			info.size = newSize;
 
+			memoryWriteLong(info.address, hh);
 			return SetMemError(0);
 		}
 
@@ -789,7 +794,7 @@ namespace MM
 			// 3. - locked
 			if (info.locked)
 			{
-				if (mplite_resize(&pool, ptr, newSize) == MPLITE_OK)
+				if (mplite_resize(&pool, ptr, mplite_roundup(&pool, newSize)) == MPLITE_OK)
 				{
 					info.size = newSize;
 					return SetMemError(0);
@@ -800,7 +805,7 @@ namespace MM
 
 				// 4. - resize.
 
-				ptr = (uint8_t *)mplite_realloc(&pool, ptr, newSize);
+				ptr = (uint8_t *)mplite_realloc(&pool, ptr, mplite_roundup(&pool, newSize));
 
 				if (ptr)
 				{
@@ -808,6 +813,7 @@ namespace MM
 					info.address = mcptr;
 					info.size = newSize;
 
+					memoryWriteLong(info.address, hh);
 					return SetMemError(0);
 				}
 
