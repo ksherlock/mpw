@@ -979,6 +979,7 @@ namespace MM
 		return address;
 	}
 
+	#pragma mark - zone
 	uint16_t HandleZone(uint16_t trap)
 	{
 		// FUNCTION HandleZone (h: Handle): THz;
@@ -1005,6 +1006,43 @@ namespace MM
 
 		cpuSetAReg(0, 0);
 		return SetMemError(0);
+	}
+
+
+	uint16_t GetZone(uint16_t trap)
+	{
+		// FUNCTION GetZone: THz;
+
+		/*
+		 * on entry:
+		 *
+		 * on exit:
+		 * A0 Pointer to current heap zone 
+		 * D0 Result code
+		 */
+
+		 Log("%04x GetZone()\n", trap);
+
+		 cpuSetAReg(0, 0);
+		 return 0;
+	}
+
+	uint16_t SetZone(uint16_t trap)
+	{
+		// PROCEDURE SetZone (hz: THz);
+
+		/*
+		 * on entry:
+		 * A0 Pointer to new current heap zone
+		 *
+		 * on exit:
+		 * D0 Result code
+		 */
+
+		uint32_t THz = cpuGetAReg(0);
+		Log("%04x SetZone(%08x)\n", trap, THz);
+
+		return 0;
 	}
 
 }

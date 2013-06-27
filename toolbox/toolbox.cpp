@@ -203,6 +203,13 @@ namespace ToolBox {
 			case 0xa9e3:
 				d0 = MM::PtrToHand(trap);
 
+			case 0xa11a:
+				d0 = MM::GetZone(trap);
+				break;
+				
+			case 0xa01b:
+				d0 = MM::SetZone(trap);
+				break;
 
 			case 0xa126:
 				d0 = MM::HandleZone(trap);

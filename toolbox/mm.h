@@ -68,6 +68,8 @@ namespace MM
 	uint32_t StackSpace(uint16_t trap);
 
 	uint16_t HandleZone(uint16_t trap);
+	uint16_t GetZone(uint16_t trap);
+	uint16_t SetZone(uint16_t trap);
 }
 
 
