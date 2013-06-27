@@ -701,7 +701,7 @@ namespace MM
 		uint32_t hh = cpuGetAReg(0);
 		uint32_t newSize = cpuGetDReg(0);
 
-		Log("%04x SetHandleSize(%08x, %08x)\n", hh, newSize);
+		Log("%04x SetHandleSize(%08x, %08x)\n", trap, hh, newSize);
 
 		auto iter = HandleMap.find(hh);
 
@@ -743,35 +743,63 @@ namespace MM
 			return SetMemError(0);
 		}
 
-		// 3. - locked
-		if (info.locked)
+		for (unsigned i = 0; i < 2; ++i)
 		{
-			if (mplite_resize(&pool, ptr, newSize) == MPLITE_OK)
+
+			// 3. - locked
+			if (info.locked)
 			{
-				info.size = newSize;
-				return SetMemError(0);
+				if (mplite_resize(&pool, ptr, newSize) == MPLITE_OK)
+				{
+					info.size = newSize;
+					return SetMemError(0);
+				}
 			}
-			return SetMemError(MacOS::memFullErr);
+			else
+			{
+
+				// 4. - resize.
+
+				ptr = (uint8_t *)mplite_realloc(&pool, ptr, newSize);
+
+				if (ptr)
+				{
+					mcptr = ptr - Memory;
+					info.address = mcptr;
+					info.size = newSize;
+
+					return SetMemError(0);
+				}
+
+			}
+
+			fprintf(stderr, "mplite_realloc failed.\n");
+			Native::PrintMemoryStats();
+			
+
+			if (i > 0) return SetMemError(MacOS::memFullErr);
+
+			// purge...
+			for (auto & kv : HandleMap)
+			{
+				uint32_t handle = kv.first;
+				auto &info = kv.second;
+
+				if (handle == hh) continue;
+				if (info.size && info.purgeable && !info.locked)
+				{
+					mplite_free(&pool, Memory + info.address);
+					info.size = 0;
+					info.address = 0;
+
+					// also need to update memory
+					memoryWriteLong(0, handle);
+				}
+			}
+
 		}
 
-		// 4. - resize.
-
-		ptr = (uint8_t *)mplite_realloc(&pool, ptr, newSize);
-
-		if (ptr)
-		{
-			mcptr = ptr - Memory;
-			info.address = mcptr;
-			info.size = newSize;
-
-			return SetMemError(0);
-		}
-		else
-		{
-			return SetMemError(MacOS::memFullErr);
-		}
-
-
+		return SetMemError(MacOS::memFullErr);
 	}
 
 
