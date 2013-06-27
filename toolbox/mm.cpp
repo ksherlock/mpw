@@ -410,6 +410,34 @@ namespace MM
 	}
 
 
+	uint32_t StackSpace(uint16_t trap)
+	{
+
+		/* 
+		 * on entry:
+		 *
+		 * on exit:
+		 * D0: Number of bytes between stack and heap
+		 *
+		 */
+
+		uint32_t sp = cpuGetAReg(7);
+
+		SetMemError(0);
+
+		// find the pointer base...
+		for (const auto & iter : PtrMap)
+		{
+			if (sp >= iter.first && sp < iter.first + iter.second)
+			{
+				return sp - iter.first;
+			}
+		}
+
+		return 0;
+	}
+
+
 
 	#pragma mark Pointers
 
@@ -945,5 +973,32 @@ namespace MM
 		return address;
 	}
 
+	uint16_t HandleZone(uint16_t trap)
+	{
+		// FUNCTION HandleZone (h: Handle): THz;
+		/* 
+		 * on entry:
+		 * A0 Handle whose zone is to be found
+		 *
+		 * on exit:
+		 * A0 Pointer to handle’s heap zone 
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t h = cpuGetAReg(0);
+
+		Log("%04x HandleZone(%08x)\n", trap, h);
+
+
+		if (HandleMap.find(h) == HandleMap.end())
+		{
+			cpuSetAReg(0, 0);
+			return SetMemError(MacOS::memWZErr);
+		}
+
+		cpuSetAReg(0, 0);
+		return SetMemError(0);
+	}
 
 }

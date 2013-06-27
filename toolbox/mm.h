@@ -65,6 +65,9 @@ namespace MM
 	uint16_t PtrToHand(uint16_t trap);
 	uint16_t PtrToXHand(uint16_t trap);
 
+	uint32_t StackSpace(uint16_t trap);
+
+	uint16_t HandleZone(uint16_t trap);
 }
 
 
