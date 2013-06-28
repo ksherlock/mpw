@@ -423,9 +423,13 @@ namespace MM
 
 		uint32_t sp = cpuGetAReg(7);
 
+		Log("%04x StackSpace(%08x)\n", trap);
+
+
 		SetMemError(0);
 
 		// find the pointer base...
+		// todo -- call lower bound, then iter-- ?
 		for (const auto & iter : PtrMap)
 		{
 			if (sp >= iter.first && sp < iter.first + iter.second)
