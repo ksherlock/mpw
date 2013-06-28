@@ -331,22 +331,6 @@ namespace RM
 
 
 
-	uint16_t OpenResFile(uint16_t trap)
-	{
-		// OpenResFile (fileName: Str255) : INTEGER;
-
-		uint32_t sp;
-		uint32_t fileName;
-
-		sp = StackFrame<4>(fileName);
-
-		std::string sname = ToolBox::ReadPString(fileName, true);
-
-		Log("%04x OpenResFile(%s)\n", trap, sname.c_str());
-
-		ToolReturn<2>(sp, (uint16_t)-1);
-		return SetResError(resFNotFound);
-	}
 
 
 	uint16_t CurResFile(uint16_t trap)
@@ -422,6 +406,48 @@ namespace RM
         ::FSGetResourceForkName(&fork);
 
 		error = ::FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
+
+		return SetResError(error);
+	}
+
+
+	uint16_t OpenResFile(uint16_t trap)
+	{
+		// OpenResFile (fileName: Str255) : INTEGER;
+		
+		ResFileRefNum refNum;
+		FSRef ref;
+
+		uint32_t sp;
+		uint32_t fileName;
+		uint16_t permission;
+		OSErr error;
+
+		sp = StackFrame<4>(fileName);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+
+		Log("%04x OpenResFile(%s)\n", trap, sname.c_str());
+
+		error = ::FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
+		if (error != noErr)
+		{
+			ToolReturn<2>(sp, (uint16_t)-1);
+			return SetResError(error);
+		}
+
+        HFSUniStr255 fork = {0,{0}};
+        ::FSGetResourceForkName(&fork);
+
+        refNum = -1;
+        permission = 0; // whatever is allowed.
+    	error = ::FSOpenResourceFile(&ref, 
+    		fork.length, 
+    		fork.unicode, 
+    		permission, 
+    		&refNum);
+
+		ToolReturn<2>(sp, (uint16_t)refNum);
 
 		return SetResError(error);
 	}
