@@ -72,6 +72,25 @@ namespace
 		return std::string(tmp);
 	}
 
+	bool LoadResType(uint32_t type)
+	{
+
+		switch (type)
+		{
+			case 0x76657273: // 'vers';
+			case 0x48455841: // 'HEXA'
+			case 0x53545220: // 'STR '
+			case 0x53545223: // 'STR#' (reziigs)
+			case 0x59414343: // 'YACC' (pascaliigs)
+			case 0x72547970: // 'rTyp' (rezIIgs)
+			case 0x756e6974: // 'unit' (Pascal)
+			case 0x434f4445: // 'CODE' (Link)
+				return true;
+			default:
+				return false;
+		}
+
+	}
 
 
 
@@ -79,10 +98,14 @@ namespace
 namespace RM
 {
 
+
+
 	namespace Native 
 	{
 
-		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle)
+
+		template<class FX>
+		uint16_t LoadResource(uint32_t type, uint32_t &theHandle, FX fx)
 		{
 			uint32_t ptr;
 			uint16_t error;
@@ -91,21 +114,11 @@ namespace RM
 			uint32_t size;
 
 			theHandle = 0;
-			switch (type)
-			{
-				case 0x76657273: // 'vers';
-				case 0x48455841: // 'HEXA'
-				case 0x53545220: // 'STR '
-				case 0x53545223: // 'STR#' (reziigs)
-				case 0x59414343: // 'YACC' (pascaliigs)
-				case 0x72547970: // 'rTyp' (rezIIgs)
-				case 0x756e6974: // 'unit' (Pascal)
-					break;
-				default:
-					return SetResError(resNotFound);
-			}
+			if (!LoadResType(type))
+				return SetResError(resNotFound);
 
-			nativeHandle = ::Get1Resource(type, id);
+			nativeHandle = fx();
+
 			if (!nativeHandle) return SetResError(resNotFound);
 
 			size = ::GetHandleSize(nativeHandle);
@@ -114,13 +127,27 @@ namespace RM
 			if (!theHandle)
 			{
 				::ReleaseResource(nativeHandle);
-				return error;
+				return SetResError(error);
 			}
 
-			std::memcpy(memoryPointer(ptr), *(void **)nativeHandle, size);
-			::ReleaseResource(nativeHandle);
+			if (size)
+				std::memcpy(memoryPointer(ptr), *(void **)nativeHandle, size);
 
-			return 0;
+			//::ReleaseResource(nativeHandle);
+
+			rhandle_map.insert({theHandle, nativeHandle});
+
+			return SetResError(0);
+		}
+
+
+		// used by GetString (utility.h)
+		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle)
+		{
+			return LoadResource(type, theHandle,
+				[type, id](){
+					return ::GetResource(type, id);
+				});
 		}
 
 	}
@@ -160,16 +187,22 @@ namespace RM
 		uint32_t theType;
 		uint32_t name;
 
-		uint32_t resourceHandle = 0;
-
 		sp = StackFrame<8>(theType, name);
 
 		std::string sname = ToolBox::ReadPString(name);
 
 		Log("%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
 
+		uint32_t resourceHandle;
+		uint32_t d0;
+		d0 = Native::LoadResource(theType, resourceHandle, 
+			[theType, name](){
+				return ::Get1NamedResource(theType, memoryPointer(name));
+			}
+		);
+
 		ToolReturn<4>(sp, resourceHandle);
-		return SetResError(resourceHandle ? 0 : resNotFound);
+		return SetResError(d0);
 	}
 
 
@@ -194,16 +227,19 @@ namespace RM
 		uint32_t sp;
 		uint32_t theType;
 		uint16_t theID;
-		uint32_t d0;
-
-		uint32_t resourceHandle;
 
 		sp = StackFrame<6>(theType, theID);
 
 		Log("%04x GetResource(%08x ('%s'), %04x)\n", trap, theType, TypeToString(theType).c_str(), theID);
 
 
-		d0 = Native::GetResource(theType, theID, resourceHandle);
+		uint32_t resourceHandle;
+		uint32_t d0;
+		d0 = Native::LoadResource(theType, resourceHandle, 
+			[theType, theID](){
+				return ::GetResource(theType, theID);
+			}
+		);
 
 		ToolReturn<4>(sp, resourceHandle);
 		return d0;
@@ -231,15 +267,19 @@ namespace RM
 		uint32_t theType;
 		uint16_t theID;
 
-		uint32_t resourceHandle;
-		uint32_t d0;
-
-
 		sp = StackFrame<6>(theType, theID);
 
 		Log("%04x Get1Resource(%08x ('%s'), %04x)\n", trap, theType, TypeToString(theType).c_str(), theID);
 
-		d0 = Native::GetResource(theType, theID, resourceHandle);
+
+		uint32_t resourceHandle;
+		uint32_t d0;
+		d0 = Native::LoadResource(theType, resourceHandle, 
+			[theType, theID](){
+				return ::Get1Resource(theType, theID);
+			}
+		);
+
 
 		ToolReturn<4>(sp, resourceHandle);
 		return d0;
@@ -282,6 +322,8 @@ namespace RM
 		StackFrame<2>(load);
 
 		Log("%04x SetResLoad(%04x)\n", trap, load);
+
+		::SetResLoad(load);
 
 		memoryWriteByte(load ? 0xff : 0x00, MacOS::ResLoad); // word or byte?
 		return SetResError(0);
@@ -564,6 +606,34 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+	uint16_t GetResAttrs(uint16_t trap)
+	{
+		// FUNCTION GetResAttrs (theResource: Handle): Integer;
+
+		uint32_t sp;
+		uint32_t theResource;
+		uint16_t attrs;
+
+		sp = StackFrame<4>(theResource);
+
+		Log("%04x GetResAttrs(%08x)\n", trap, theResource);
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end())
+		{
+			ToolReturn<2>(sp, 0);
+			return SetResError(MacOS::resNotFound);
+		}
+
+		Handle nativeHandle = iter->second;
+
+		attrs = ::GetResAttrs(nativeHandle);
+
+		ToolReturn<2>(sp, attrs);
+
+		return SetResError(::ResError());
+	}
+
 
 	uint16_t WriteResource(uint16_t trap)
 	{
@@ -609,6 +679,56 @@ namespace RM
 
 		return SetResError(::ResError());
 	}
+
+
+	uint16_t Get1IndResource(uint16_t trap)
+	{
+		// FUNCTION Get1IndResource (theType: ResType; index: Integer): Handle;
+
+		uint32_t sp;
+		uint32_t theType;
+		uint16_t index;
+
+		sp = StackFrame<6>(theType, index);
+		Log("%04x Get1IndResource(%08x ('%s'), %04x)\n", 
+			trap, theType, TypeToString(theType).c_str(), index);
+
+		uint32_t resourceHandle = 0;
+		uint16_t d0;
+		d0 = Native::LoadResource(theType, resourceHandle, 
+			[theType, index](){
+				return ::Get1IndResource(theType, index);
+			}
+		);
+
+		ToolReturn<4>(sp, resourceHandle);
+		return SetResError(d0);
+	}
+
+
+	uint16_t RemoveResource(uint16_t trap)
+	{
+		// PROCEDURE RemoveResource (theResource: Handle);
+
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x RemoveResource(%08x)\n", trap, theResource);
+
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end()) return SetResError(MacOS::resNotFound);
+
+		Handle nativeHandle = iter->second;
+		rhandle_map.erase(iter);
+
+		::RemoveResource(nativeHandle);
+		::DisposeHandle(nativeHandle);
+
+		return SetResError(::ResError());
+	}
+
 
 
 	// todo -- move since it's not RM related.

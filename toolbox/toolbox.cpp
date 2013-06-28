@@ -281,6 +281,10 @@ namespace ToolBox {
 				d0 = RM::Count1Resources(trap);
 				break;
 
+			case 0xa80e:
+				d0 = RM::Get1IndResource(trap);
+				break;
+
 			// Get1Resource (theType: ResType; thelD: INTEGER) : Handle;
 			case 0xa81f:
 				d0 = RM::Get1Resource(trap);
@@ -330,12 +334,21 @@ namespace ToolBox {
 				d0 = RM::ReleaseResource(trap);
 				break;
 
+
+			case 0xa9a6:
+				d0 = RM::GetResAttrs(trap);
+				break;
+
 			case 0xa9a7:
 				d0 = RM::SetResAttrs(trap);
 				break;
 
 			case 0xa9ab:
 				d0 = RM::AddResource(trap);
+				break;
+
+			case 0xa9ad:
+				d0 = RM::RemoveResource(trap);
 				break;
 				
 			// ResError : INTEGER;
