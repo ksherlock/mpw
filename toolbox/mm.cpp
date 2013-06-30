@@ -878,7 +878,7 @@ namespace MM
 		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 		iter->second.purgeable = true;
 
-		return 0;
+		return SetMemError(0);
 	}
 
 	uint16_t HLock(uint16_t trap)
@@ -901,7 +901,7 @@ namespace MM
 		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		iter->second.locked = true;
-		return 0;
+		return SetMemError(0);
 	}
 
 	uint16_t HUnlock(uint16_t trap)
@@ -924,7 +924,7 @@ namespace MM
 		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		iter->second.locked = false;
-		return 0;
+		return SetMemError(0);
 	}
 
 	#pragma mark - OS Utility Routines
@@ -956,7 +956,7 @@ namespace MM
 		}
 		
 		cpuSetAReg(0, destHandle);
-		return d0;
+		return d0; // SetMemError called by Native::NewHandle.
 	}
 
 
