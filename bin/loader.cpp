@@ -389,7 +389,7 @@ void help()
 	printf(" --trace-macsbug     print macsbug names\n");
 	printf(" --trace-toolbox     print toolbox calls\n");
 	printf(" --trace-mpw         print mpw calls\n");
-	printf(" --memory stats      print memory usage information\n");
+	printf(" --memory-stats      print memory usage information\n");
 	printf(" --ram=<number>      set the ram size.  Default=16M\n");
 	printf(" --stack=<number>    set the stack size.  Default=8K\n");
 	printf("\n");
