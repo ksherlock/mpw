@@ -47,6 +47,7 @@ namespace RM
 
 	uint16_t RemoveResource(uint16_t trap);
 
+	uint16_t GetResourceSizeOnDisk(uint16_t trap);
 }
 
 

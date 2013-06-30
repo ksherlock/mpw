@@ -755,6 +755,33 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+	uint16_t GetResourceSizeOnDisk(uint16_t trap)
+	{
+		// FUNCTION GetResourceSizeOnDisk (theResource: Handle): LongInt;
+
+		uint32_t sp;
+		uint32_t theResource;
+
+		sp = StackFrame<4>(theResource);
+
+		Log("%04x GetResourceSizeOnDisk(%08x)\n", trap, theResource);
+
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end())
+		{
+			ToolReturn<4>(sp, (uint32_t)0);
+			return SetResError(MacOS::resNotFound);
+		}
+
+		Handle nativeHandle = iter->second;
+		uint32_t size = ::GetResourceSizeOnDisk(nativeHandle);
+
+		ToolReturn<4>(sp, size);
+		return SetResError(::ResError());
+	}
+
+
 
 
 	// todo -- move since it's not RM related.
