@@ -28,6 +28,8 @@ using namespace OS::Internal;
 namespace
 {
 
+	bool ResLoad = true;
+
 #if 0
 	struct ResEntry
 	{
@@ -120,6 +122,10 @@ namespace RM
 			nativeHandle = fx();
 
 			if (!nativeHandle) return SetResError(resNotFound);
+
+			// in OS X 10.8, ::SetResLoad(false) seems to be permanent.
+			// therefore, explicitly load it if needed. (PascalIIgs)
+			if (ResLoad) ::LoadResource(nativeHandle);
 
 			size = ::GetHandleSize(nativeHandle);
 			error = MM::Native::NewHandle(size, false, theHandle, ptr);
@@ -323,6 +329,7 @@ namespace RM
 
 		Log("%04x SetResLoad(%04x)\n", trap, load);
 
+		ResLoad = load;
 		::SetResLoad(load);
 
 		memoryWriteByte(load ? 0xff : 0x00, MacOS::ResLoad); // word or byte?
