@@ -87,6 +87,7 @@ namespace
 			case 0x72547970: // 'rTyp' (rezIIgs)
 			case 0x756e6974: // 'unit' (Pascal)
 			case 0x434f4445: // 'CODE' (Link)
+			case 0x5041434b: // 'PACK' (PascalIIgs)
 				return true;
 			default:
 				return false;
