@@ -10,15 +10,14 @@
 #include <cpu/fmem.h>
 #include <cpu/CpuModule.h>
 
-
+#include <macos/traps.h>
+#include <macos/sysequ.h>
 
 char strings[4][256];
 
 const uint8_t *Memory = NULL;
 uint32_t MemorySize = 0;
 
-
-extern "C" { const char *TrapName(uint16_t trap); }
 
 void ToolBox(uint32_t pc, uint16_t trap)
 {
