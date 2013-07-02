@@ -77,6 +77,21 @@ void code0(uint32_t data_size)
 	printf("\n\n");
 }
 
+inline char *cc2(uint16_t value, char out[3])
+{
+	uint8_t tmp;
+
+	tmp = (value >> 8) & 0xff;
+	if (tmp & 0x80 || !isprint(tmp)) out[0] = '.';
+	else out[0] = tmp;
+
+	tmp = (value >> 0) & 0xff;
+	if (tmp & 0x80 || !isprint(tmp)) out[1] = '.';
+	else out[1] = tmp;
+
+	out[2] = 0;
+	return out;
+}
 void disasm(const char *name, int segment, uint32_t data_size)
 {
 
@@ -103,16 +118,29 @@ void disasm(const char *name, int segment, uint32_t data_size)
 
 				std::string s;
 				s.reserve(len);
+				pc += 1; // skip the length byte.
 				for (unsigned i = 0; i < len; ++ i)
 				{
-
-					s.push_back(memoryReadByte(pc + 1 + i));
+					s.push_back(memoryReadByte(pc++));
 				}
 
-				printf("%s\n\n", s.c_str());
+				printf("%s\n", s.c_str());
 				pc = (pc + 1) & ~0x01;
-				// if next word is 0, skip as well.
-				if (memoryReadWord(pc) == 0) pc += 2; 
+
+#if 0
+				if (memoryReadWord(pc) == 0x0000) pc += 2;
+#else
+				// treat the remainder as data until 4E56. [Link A6,#]
+				while (pc < data_size)
+				{
+					char tmp[3];
+					uint16_t data = memoryReadWord(pc);
+					if (data == 0x4e56) break;
+					printf("$%08X   $%04X                                               ; '%s'\n", pc, data, cc2(data, tmp));
+					pc += 2;
+				}
+#endif
+				printf("\n");
 
 				prevOP = 0;
 				continue;
