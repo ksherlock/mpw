@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cassert>
+#include <cctype>
 
 #include <string>
 
@@ -91,6 +92,7 @@ inline char *cc2(uint16_t value, char out[3])
 	out[2] = 0;
 	return out;
 }
+
 void disasm(const char *name, int segment, uint32_t data_size)
 {
 
