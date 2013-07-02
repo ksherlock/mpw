@@ -373,9 +373,11 @@ static ULO cpuDis71(ULO pcp, STR *sdata, STR *soperands)
 static ULO cpuDis72(ULO pcp, STR *sdata, STR *soperands)
 {
   ULO disp = memoryReadWord(pcp);
+  ULO ea = pcp + disp;
+  if (disp & 0x8000) ea += 0xffff0000;
 
   cpuDisWordAppend(disp, sdata);
-  sprintf(cpuDisEoS(soperands), "$%.4X(PC)", disp);
+  sprintf(cpuDisEoS(soperands), "$%.4X ; $%.4X(PC)", ea, disp);
   return pcp + 2;
 }
 
