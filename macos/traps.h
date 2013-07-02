@@ -17,6 +17,13 @@
 #ifndef __macos_traps__
 #define __macos_traps__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+const char *TrapName(uint16_t trap);
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef __cplusplus
 namespace MacOS {
