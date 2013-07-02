@@ -58,7 +58,6 @@ void code0(uint32_t data_size)
 	while (offset < data_size)
 	{
 		uint16_t off = memoryReadWord(offset);
-		uint16_t seg = -1;
 		if (memoryReadWord(offset + 2) == 0x3F3C && memoryReadWord(offset + 6) == 0xA9F0)
 		{
 			uint16_t seg = memoryReadWord(offset + 4);
