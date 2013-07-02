@@ -48,6 +48,14 @@ static uint8_t *Memory = NULL;
 static uint32_t MemorySize = 0;
 static uint32_t MemoryGlobalLog = 0;
 
+static memoryLoggingFunc MemoryLoggingFunc = NULL;
+
+void memorySetLoggingFunc(memoryLoggingFunc func)
+{
+	MemoryLoggingFunc = func;
+}
+
+
 void memorySetMemory(uint8_t *memory, uint32_t size)
 {
 	Memory = memory;
@@ -70,10 +78,9 @@ uint8_t *memoryPointer(uint32_t address)
 UBY memoryReadByte(ULO address)
 {
 
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryReadByte(%08x)\n", address);
-	}
+	if (MemoryLoggingFunc)
+		MemoryLoggingFunc(address, 1, 0, 0);
+
 
 	// hmmm... 32-bit clean addresses?
 	if (address < MemorySize) 
@@ -84,11 +91,8 @@ UBY memoryReadByte(ULO address)
 UWO memoryReadWord(ULO address)
 {
 
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryReadWord(%08x)\n", address);
-	}
-	
+	if (MemoryLoggingFunc)
+		MemoryLoggingFunc(address, 2, 0, 0);
 
 	if (address & 0x01) memoryOddRead(address);
 
@@ -101,10 +105,9 @@ UWO memoryReadWord(ULO address)
 
 ULO memoryReadLong(ULO address)
 {
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryReadLong(%08x)\n", address);
-	}
+
+	if (MemoryLoggingFunc)
+		MemoryLoggingFunc(address, 4, 0, 0);
 
 	if (address & 0x01) memoryOddRead(address);
 
@@ -131,10 +134,9 @@ uint64_t memoryReadLongLong(ULO address)
 
 void memoryWriteByte(UBY data, ULO address)
 {
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryWriteByte(%02x, %08x)\n", data, address);
-	}
+
+	if (MemoryLoggingFunc)
+		MemoryLoggingFunc(address, 1, 1, data);
 
 	if (address < MemorySize)
 	{
@@ -145,10 +147,8 @@ void memoryWriteByte(UBY data, ULO address)
 void memoryWriteWord(UWO data, ULO address)
 {
 
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryWriteWord(%04x, %08x)\n", data, address);
-	}
+	if (MemoryLoggingFunc)
+		MemoryLoggingFunc(address, 2, 1, data);
 
 	if (address & 0x01) memoryOddWrite(address);
 
@@ -162,10 +162,8 @@ void memoryWriteWord(UWO data, ULO address)
 void memoryWriteLong(ULO data, ULO address)
 {
 
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryWriteLong(%08x, %08x)\n", data, address);
-	}
+	if (MemoryLoggingFunc)
+		MemoryLoggingFunc(address, 4, 1, data);
 
 
 	if (address & 0x01) memoryOddWrite(address);
@@ -182,10 +180,6 @@ void memoryWriteLong(ULO data, ULO address)
 
 void memoryWriteLongLong(uint64_t data, ULO address)
 {
-	if (address < MemoryGlobalLog)
-	{
-		fprintf(stderr, "memoryWriteLongLong(%08llx, %08x)\n", data, address);
-	}
 
 	if (address & 0x01) memoryOddWrite(address);
 

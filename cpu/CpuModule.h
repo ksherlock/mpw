@@ -21,6 +21,10 @@ extern void cpuCheckPendingInterrupts(void);
 extern void cpuSetUpInterrupt(void);
 extern void cpuInitializeFromNewPC(ULO new_pc);
 
+
+typedef void (*memoryLoggingFunc)(uint32_t address, int size, int readWrite, uint32_t value);
+extern void memorySetLoggingFunc(memoryLoggingFunc func);
+
 // Logging interface
 #ifdef CPU_INSTRUCTION_LOGGING
 

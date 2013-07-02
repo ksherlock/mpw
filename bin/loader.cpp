@@ -25,6 +25,7 @@
 #include <mplite/mplite.h>
 
 #include <macos/sysequ.h>
+#include <macos/traps.h>
 
 struct {
 	uint32_t ram;
@@ -127,6 +128,8 @@ uint32_t load(const char *file)
 
 	uint32_t jtStart = 0;
 	uint32_t jtEnd = 0;
+
+	// todo -- call RM::Native to open and load the Resource File.
 
 	assert(FSPathMakeRef( (const UInt8 *)file, &ref, NULL) == noErr);
     refNum = FSOpenResFile(&ref, fsRdPerm);
@@ -281,8 +284,6 @@ void GlobalInit()
 }
 
 
-extern "C" { const char *TrapName(uint16_t trap); }
-
 void LogToolBox(uint32_t pc, uint16_t trap)
 {
 	const char *name;
@@ -377,6 +378,45 @@ void InstructionLogger()
 	}
 
 }
+
+void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
+{
+	if (address < kGlobalSize)
+	{
+		const char *name = GlobalName(address);
+		if (!name) name = "unknown";
+
+		fprintf(stderr, "%-20s %08x - ", name, address);
+		if (readWrite)
+		{
+			fprintf(stderr, " write %d bytes", size);
+			switch(size)
+			{
+				case 1:
+					fprintf(stderr, " [%02x]\n", value);
+					break;
+				case 2:
+					fprintf(stderr, " [%04x]\n", value);
+					break;
+				case 3:
+					fprintf(stderr, " [%06x]\n", value);
+					break;
+				case 4:
+					fprintf(stderr, " [%08x]\n", value);
+					break;				
+				default:
+					fprintf(stderr, "\n");
+					break;
+			}
+		}
+		else
+		{
+			fprintf(stderr, " read  %d bytes\n", size);
+		}
+
+	}
+}
+
 
 #define MPW_VERSION "0.4"
 void help()
@@ -654,8 +694,8 @@ int main(int argc, char **argv)
 	cpuSetFLineExceptionFunc(MPW::dispatch);
 
 
-	if (Flags.traceGlobals) memorySetGlobalLog(kGlobalSize);
-
+	if (Flags.traceGlobals) //memorySetGlobalLog(kGlobalSize);
+		memorySetLoggingFunc(MemoryLogger);
 
 	MPW::Trace = Flags.traceMPW;
 	ToolBox::Trace = Flags.traceToolBox;
@@ -704,6 +744,7 @@ int main(int argc, char **argv)
 
 
 		if (cpuGetStop()) break; // will this also be set by an interrupt?
+
 
 	
 		#ifndef CPU_INSTRUCTION_LOGGING
