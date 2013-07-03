@@ -260,12 +260,12 @@ bool ParseLine(const char *iter, Command *command)
 		}
 
 		'n' | 'next' {
-			Parse(&parser, tkSTEP, 0, command);
+			Parse(&parser, tkNEXT, 0, command);
 			continue;
 		}
 
 		's' | 'step' {
-			Parse(&parser, tkSTEP, 0, command);
+			Parse(&parser, tkNEXT, 0, command);
 			continue;
 		}
 
@@ -275,12 +275,12 @@ bool ParseLine(const char *iter, Command *command)
 		}
 
 		'g' | 'go' {
-			Parse(&parser, tkGO, 0, command);
+			Parse(&parser, tkCONTINUE, 0, command);
 			continue;
 		}
 
 		'r' | 'run' {
-			Parse(&parser, tkRUN, 0, command);
+			Parse(&parser, tkCONTINUE, 0, command);
 			continue;
 		}
 
@@ -304,7 +304,6 @@ bool ParseLine(const char *iter, Command *command)
 
 		[\x00] {
 			// eol.
-			Parse(&parser, tkEOL, 0, command);
 			break;
 		}
 

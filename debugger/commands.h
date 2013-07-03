@@ -2,6 +2,7 @@
 #define __debugger_commands__
 
 enum {
+	Help,
 	Print,
 	Dump,
 	List,

@@ -2,8 +2,19 @@
 %extra_argument { struct Command *command }
 %token_prefix tk
 
-%token_type    {uint32_t}
+%token_type {uint32_t}
+%include {
+#include <stdbool.h> 
+#include <stdint.h>
+#include <string.h>
+#include "commands.h"
 
+uint32_t cpuGetSR();
+uint32_t cpuGetPC();
+uint32_t cpuGetAReg(unsigned);
+uint32_t cpuGetDReg(unsigned);
+uint32_t debuggerReadLong(uint32_t);
+}
 
 %parse_failure {
 	fprintf(stderr,"I don't understand.\n");
@@ -13,6 +24,7 @@
 %parse_accept {
 	command->valid = true;
 }
+
 
 
 %left PIPEPIPE.
@@ -28,12 +40,9 @@
 %right BANG TILDE.
 
 
-
-
-
-stmt ::= assignment EOL.
-stmt ::= expr(a) EOL.
+stmt ::= expr(a).
 {
+/*
 	// print the value.
 	// hex, base 10, signed 16-bit (if appropriate)
 	printf("$%08x - %u", a, a);
@@ -45,73 +54,110 @@ stmt ::= expr(a) EOL.
 		printf(" %h", (int16_t)a);
 
 	printf("\n");
-
-	command->action = PRINT;
-	command->arg = a;
+*/
+	command->action = Print;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
-stmt ::= BREAK expr(a) EOL.
+stmt ::= BREAK expr(a).
 {
-	command->action = tkBREAK;
-	command->arg = a;
+	command->action = Break;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
-stmt ::= NEXT EOL.
+stmt ::= CONTINUE.
 {
-	command->action = tkNEXT;
-	command->arg = 1;
+	command->action = Continue;
+	command->argc = 0;
 }
 
-stmt ::= NEXT expr(a) EOL.
+stmt ::= TBREAK expr(a).
 {
-	command->action = tkNEXT;
-	command->arg = a;
+	// negative number = remove it.
+	command->action = TBreak;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
-stmt ::= PRINT expr(a) EOL.
+stmt ::= NEXT.
 {
-	command->action = tkPRINT;
-	command->arg = a;
+	command->action = Step;
+	command->argc = 0;
 }
 
-stmt ::= DUMP expr(a) EOL .
+stmt ::= NEXT expr(a).
 {
-	command->action = tkDUMP;
-	command->arg = a;
+	command->action = Step;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
-stmt ::= LIST expr(a) EOL .
+stmt ::= PRINT expr(a).
 {
-	command->action = tkLIST;
-	command->arg = a;
+	command->action = Print;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
-stmt ::= expr(a) SEMIL EOL.
+stmt ::= DUMP expr(a).
 {
-	command->action = tkLIST;
-	command->arg = a;
+	command->action = Dump;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
-stmt ::= expr(a) SEMIH EOL.
+stmt ::= LIST expr(a).
 {
-	command->action = tkDUMP;
-	command->arg = a;
+	command->action = List;
+	command->argc = 1;
+	command->argv[0] = a;
+}
+
+stmt ::= expr(a) SEMIL.
+{
+	command->action = List;
+	command->argc = 1;
+	command->argv[0] = a;
+}
+
+stmt ::= expr(a) SEMIH.
+{
+	command->action = Dump;
+	command->argc = 1;
+	command->argv[0] = a;
 }
 
 
-assignment ::= DREGISTER(a) EQ expr(b). { cpuSetDReg(a, b); }
-assignment ::= AREGISTER(a) EQ expr(b). { cpuSetAReg(a, b); }
-assignment ::= XREGISTER(a) EQ expr(b).
-{ 
-	switch(a)
-	{
-	case 0: 
-		cpuSetPC(b);
-		break;
-	case 1:
-		cpuSetSR(b);
-		break;
-	}
+stmt ::= DREGISTER(a) EQ expr(b).
+{
+	command->action = SetDRegister;
+	command->argc = 2;
+	command->argv[0] = a;
+	command->argv[1] = b;
+}
+
+stmt ::= AREGISTER(a) EQ expr(b).
+{
+	command->action = SetARegister;
+	command->argc = 2;
+	command->argv[0] = a;
+	command->argv[1] = b;
+}
+
+stmt ::= XREGISTER(a) EQ expr(b).
+{
+	command->action = SetXRegister;
+	command->argc = 2;
+	command->argv[0] = a;
+	command->argv[1] = b;
+}
+
+stmt ::= HELP .
+{
+	command->action = Help;
+	command->argc = 0;
 }
 
 expr(rhs) ::= unary(a). { rhs = a; }
@@ -140,7 +186,7 @@ unary(rhs) ::= PLUS unary(a). [BANG] { rhs = a; }
 unary(rhs) ::= MINUS unary(a). [BANG] { rhs = -a; }
 unary(rhs) ::= TILDE unary(a). { rhs = ~a; }
 unary(rhs) ::= BANG unary(a). { rhs = !a; }
-unary(rhs) ::= STAR unary(a). [BANG] { rhs = cpuMemoryReadLong(a); }
+unary(rhs) ::= STAR unary(a). [BANG] { rhs = debuggerReadLong(a); }
 
 
 term(rhs) ::= LPAREN expr(a) RPAREN. { rhs = a; }
