@@ -1,0 +1,163 @@
+
+%extra_argument { struct Command *command }
+%token_prefix tk
+
+%token_type    {uint32_t}
+
+
+%parse_failure {
+	fprintf(stderr,"I don't understand.\n");
+	command->valid = false;
+}
+
+%parse_accept {
+	command->valid = true;
+}
+
+
+%left PIPEPIPE.
+%left AMPAMP.
+%left PIPE.
+%left CARET.
+%left AMP.
+%left EQEQ BANGEQ.
+%left LT LTEQ GT GTEQ.  
+%left LTLT GTGT.
+%left PLUS MINUS. 
+%left STAR SLASH PERCENT.
+%right BANG TILDE.
+
+
+
+
+
+stmt ::= assignment EOL.
+stmt ::= expr(a) EOL.
+{
+	// print the value.
+	// hex, base 10, signed 16-bit (if appropriate)
+	printf("$%08x - %u", a, a);
+
+	if (a & 0x80000000)
+		printf(" %d", (int32_t)a);
+
+	if ((a & 0xffff8000) == 0x8000)
+		printf(" %h", (int16_t)a);
+
+	printf("\n");
+
+	command->action = PRINT;
+	command->arg = a;
+}
+
+stmt ::= BREAK expr(a) EOL.
+{
+	command->action = tkBREAK;
+	command->arg = a;
+}
+
+stmt ::= NEXT EOL.
+{
+	command->action = tkNEXT;
+	command->arg = 1;
+}
+
+stmt ::= NEXT expr(a) EOL.
+{
+	command->action = tkNEXT;
+	command->arg = a;
+}
+
+stmt ::= PRINT expr(a) EOL.
+{
+	command->action = tkPRINT;
+	command->arg = a;
+}
+
+stmt ::= DUMP expr(a) EOL .
+{
+	command->action = tkDUMP;
+	command->arg = a;
+}
+
+stmt ::= LIST expr(a) EOL .
+{
+	command->action = tkLIST;
+	command->arg = a;
+}
+
+stmt ::= expr(a) SEMIL EOL.
+{
+	command->action = tkLIST;
+	command->arg = a;
+}
+
+stmt ::= expr(a) SEMIH EOL.
+{
+	command->action = tkDUMP;
+	command->arg = a;
+}
+
+
+assignment ::= DREGISTER(a) EQ expr(b). { cpuSetDReg(a, b); }
+assignment ::= AREGISTER(a) EQ expr(b). { cpuSetAReg(a, b); }
+assignment ::= XREGISTER(a) EQ expr(b).
+{ 
+	switch(a)
+	{
+	case 0: 
+		cpuSetPC(b);
+		break;
+	case 1:
+		cpuSetSR(b);
+		break;
+	}
+}
+
+expr(rhs) ::= unary(a). { rhs = a; }
+expr(rhs) ::= term(a) PLUS term(b). { rhs = a + b; }
+expr(rhs) ::= term(a) MINUS term(b). { rhs = a + b; }
+expr(rhs) ::= term(a) STAR term(b). { rhs = a * b; }
+expr(rhs) ::= term(a) SLASH term(b). { rhs = a / b; }
+expr(rhs) ::= term(a) PERCENT term(b). { rhs = a % b; }
+expr(rhs) ::= term(a) LTLT term(b). { rhs = a << b; }
+expr(rhs) ::= term(a) GTGT term(b). { rhs = a >> b; }
+expr(rhs) ::= term(a) LT term(b). { rhs = a < b; }
+expr(rhs) ::= term(a) LTEQ term(b). { rhs = a <= b; }
+expr(rhs) ::= term(a) GT term(b). { rhs = a > b; }
+expr(rhs) ::= term(a) GTEQ term(b). { rhs = a >= b; }
+expr(rhs) ::= term(a) EQEQ term(b). { rhs = a == b; }
+expr(rhs) ::= term(a) BANGEQ term(b). { rhs = a != b; }
+expr(rhs) ::= term(a) AMP term(b). { rhs = a & b; }
+expr(rhs) ::= term(a) CARET term(b). { rhs = a ^ b; }
+expr(rhs) ::= term(a) PIPE term(b). { rhs = a | b; }
+expr(rhs) ::= term(a) AMPAMP term(b). { rhs = a && b; }
+expr(rhs) ::= term(a) PIPEPIPE term(b). { rhs = a || b; }
+
+
+unary(rhs) ::= term(a). { rhs = a; }
+unary(rhs) ::= PLUS unary(a). [BANG] { rhs = a; }
+unary(rhs) ::= MINUS unary(a). [BANG] { rhs = -a; }
+unary(rhs) ::= TILDE unary(a). { rhs = ~a; }
+unary(rhs) ::= BANG unary(a). { rhs = !a; }
+unary(rhs) ::= STAR unary(a). [BANG] { rhs = cpuMemoryReadLong(a); }
+
+
+term(rhs) ::= LPAREN expr(a) RPAREN. { rhs = a; }
+term(rhs) ::= INTEGER(a). { rhs = a; }
+term(rhs) ::= DREGISTER(a). { rhs = cpuGetDReg(a); }
+term(rhs) ::= AREGISTER(a). { rhs = cpuGetAReg(a); }
+term(rhs) ::= XREGISTER(a).
+{
+	switch(a)
+	{
+	case 0: 
+		rhs = cpuGetPC();
+		break;
+	case 1:
+		rhs = cpuGetSR();
+		break;
+	default:
+		rhs = 0;
+	}
+}
