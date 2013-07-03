@@ -9,11 +9,23 @@
 #include <string.h>
 #include "commands.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint32_t cpuGetSR();
 uint32_t cpuGetPC();
 uint32_t cpuGetAReg(unsigned);
 uint32_t cpuGetDReg(unsigned);
 uint32_t debuggerReadLong(uint32_t);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#undef NDEBUG
+
 }
 
 %parse_failure {
@@ -40,40 +52,34 @@ uint32_t debuggerReadLong(uint32_t);
 %right BANG TILDE.
 
 
-stmt ::= expr(a).
+stmt ::= expr(a) EOL.
 {
-/*
-	// print the value.
-	// hex, base 10, signed 16-bit (if appropriate)
-	printf("$%08x - %u", a, a);
-
-	if (a & 0x80000000)
-		printf(" %d", (int32_t)a);
-
-	if ((a & 0xffff8000) == 0x8000)
-		printf(" %h", (int16_t)a);
-
-	printf("\n");
-*/
 	command->action = Print;
 	command->argc = 1;
 	command->argv[0] = a;
 }
 
-stmt ::= BREAK expr(a).
+stmt ::= PRINT expr(a) EOL.
+{
+	command->action = Print;
+	command->argc = 1;
+	command->argv[0] = a;
+}
+
+stmt ::= BREAK expr(a) EOL.
 {
 	command->action = Break;
 	command->argc = 1;
 	command->argv[0] = a;
 }
 
-stmt ::= CONTINUE.
+stmt ::= CONTINUE EOL.
 {
 	command->action = Continue;
 	command->argc = 0;
 }
 
-stmt ::= TBREAK expr(a).
+stmt ::= TBREAK expr(a) EOL.
 {
 	// negative number = remove it.
 	command->action = TBreak;
@@ -81,48 +87,41 @@ stmt ::= TBREAK expr(a).
 	command->argv[0] = a;
 }
 
-stmt ::= NEXT.
+stmt ::= NEXT EOL.
 {
 	command->action = Step;
 	command->argc = 0;
 }
 
-stmt ::= NEXT expr(a).
+stmt ::= NEXT expr(a) EOL.
 {
 	command->action = Step;
 	command->argc = 1;
 	command->argv[0] = a;
 }
 
-stmt ::= PRINT expr(a).
-{
-	command->action = Print;
-	command->argc = 1;
-	command->argv[0] = a;
-}
-
-stmt ::= DUMP expr(a).
+stmt ::= DUMP expr(a) EOL.
 {
 	command->action = Dump;
 	command->argc = 1;
 	command->argv[0] = a;
 }
 
-stmt ::= LIST expr(a).
+stmt ::= LIST expr(a) EOL.
 {
 	command->action = List;
 	command->argc = 1;
 	command->argv[0] = a;
 }
 
-stmt ::= expr(a) SEMIL.
+stmt ::= expr(a) SEMIL EOL.
 {
 	command->action = List;
 	command->argc = 1;
 	command->argv[0] = a;
 }
 
-stmt ::= expr(a) SEMIH.
+stmt ::= expr(a) SEMIH EOL.
 {
 	command->action = Dump;
 	command->argc = 1;
@@ -130,7 +129,7 @@ stmt ::= expr(a) SEMIH.
 }
 
 
-stmt ::= DREGISTER(a) EQ expr(b).
+stmt ::= DREGISTER(a) EQ expr(b) EOL.
 {
 	command->action = SetDRegister;
 	command->argc = 2;
@@ -138,7 +137,7 @@ stmt ::= DREGISTER(a) EQ expr(b).
 	command->argv[1] = b;
 }
 
-stmt ::= AREGISTER(a) EQ expr(b).
+stmt ::= AREGISTER(a) EQ expr(b) EOL.
 {
 	command->action = SetARegister;
 	command->argc = 2;
@@ -146,7 +145,7 @@ stmt ::= AREGISTER(a) EQ expr(b).
 	command->argv[1] = b;
 }
 
-stmt ::= XREGISTER(a) EQ expr(b).
+stmt ::= XREGISTER(a) EQ expr(b) EOL.
 {
 	command->action = SetXRegister;
 	command->argc = 2;
@@ -154,31 +153,31 @@ stmt ::= XREGISTER(a) EQ expr(b).
 	command->argv[1] = b;
 }
 
-stmt ::= HELP .
+stmt ::= HELP EOL.
 {
 	command->action = Help;
 	command->argc = 0;
 }
 
 expr(rhs) ::= unary(a). { rhs = a; }
-expr(rhs) ::= term(a) PLUS term(b). { rhs = a + b; }
-expr(rhs) ::= term(a) MINUS term(b). { rhs = a + b; }
-expr(rhs) ::= term(a) STAR term(b). { rhs = a * b; }
-expr(rhs) ::= term(a) SLASH term(b). { rhs = a / b; }
-expr(rhs) ::= term(a) PERCENT term(b). { rhs = a % b; }
-expr(rhs) ::= term(a) LTLT term(b). { rhs = a << b; }
-expr(rhs) ::= term(a) GTGT term(b). { rhs = a >> b; }
-expr(rhs) ::= term(a) LT term(b). { rhs = a < b; }
-expr(rhs) ::= term(a) LTEQ term(b). { rhs = a <= b; }
-expr(rhs) ::= term(a) GT term(b). { rhs = a > b; }
-expr(rhs) ::= term(a) GTEQ term(b). { rhs = a >= b; }
-expr(rhs) ::= term(a) EQEQ term(b). { rhs = a == b; }
-expr(rhs) ::= term(a) BANGEQ term(b). { rhs = a != b; }
-expr(rhs) ::= term(a) AMP term(b). { rhs = a & b; }
-expr(rhs) ::= term(a) CARET term(b). { rhs = a ^ b; }
-expr(rhs) ::= term(a) PIPE term(b). { rhs = a | b; }
-expr(rhs) ::= term(a) AMPAMP term(b). { rhs = a && b; }
-expr(rhs) ::= term(a) PIPEPIPE term(b). { rhs = a || b; }
+expr(rhs) ::= expr(a) PLUS expr(b). { rhs = a + b; }
+expr(rhs) ::= expr(a) MINUS expr(b). { rhs = a - b; }
+expr(rhs) ::= expr(a) STAR expr(b). { rhs = a * b; }
+expr(rhs) ::= expr(a) SLASH expr(b). { rhs = a / b; }
+expr(rhs) ::= expr(a) PERCENT expr(b). { rhs = a % b; }
+expr(rhs) ::= expr(a) LTLT expr(b). { rhs = a << b; }
+expr(rhs) ::= expr(a) GTGT expr(b). { rhs = a >> b; }
+expr(rhs) ::= expr(a) LT expr(b). { rhs = a < b; }
+expr(rhs) ::= expr(a) LTEQ expr(b). { rhs = a <= b; }
+expr(rhs) ::= expr(a) GT expr(b). { rhs = a > b; }
+expr(rhs) ::= expr(a) GTEQ expr(b). { rhs = a >= b; }
+expr(rhs) ::= expr(a) EQEQ expr(b). { rhs = a == b; }
+expr(rhs) ::= expr(a) BANGEQ expr(b). { rhs = a != b; }
+expr(rhs) ::= expr(a) AMP expr(b). { rhs = a & b; }
+expr(rhs) ::= expr(a) CARET expr(b). { rhs = a ^ b; }
+expr(rhs) ::= expr(a) PIPE expr(b). { rhs = a | b; }
+expr(rhs) ::= expr(a) AMPAMP expr(b). { rhs = a && b; }
+expr(rhs) ::= expr(a) PIPEPIPE expr(b). { rhs = a || b; }
 
 
 unary(rhs) ::= term(a). { rhs = a; }

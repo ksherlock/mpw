@@ -11,11 +11,11 @@ add_custom_command(
 )
 
 add_custom_command(
-	OUTPUT parser.cpp parser.h
-	COMMAND cp "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
+	OUTPUT parser.c parser.h
+	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
 	COMMAND lemon parser.lemon
-	COMMAND cp parser.h "${CMAKE_CURRENT_SOURCE_DIR}/"
-	COMMAND cp parser.out "${CMAKE_CURRENT_SOURCE_DIR}/"
+	COMMAND cp -f parser.h "${CMAKE_CURRENT_SOURCE_DIR}/"
+	COMMAND cp -f parser.out "${CMAKE_CURRENT_SOURCE_DIR}/"
 	MAIN_DEPENDENCY parser.lemon
 	DEPENDS commands.h
 )
