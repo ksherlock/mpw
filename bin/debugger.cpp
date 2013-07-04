@@ -4,6 +4,8 @@
 #include <cstring>
 #include <cstdlib>
 
+#include <signal.h>
+
 #include <string>
 #include <vector>
 #include <array>
@@ -28,6 +30,49 @@
 bool ParseLine(const char *iter, Command *command);
 
 extern "C" {
+
+	uint32_t debuggerReadLong(uint32_t address)
+	{
+		uint32_t tmp = 0;
+		for (unsigned i = 0; i < 4; ++i)
+		{
+			if (address < Flags.memorySize)
+				tmp = (tmp << 8) + Flags.memory[address++];
+		}
+
+		return tmp;
+	}
+
+
+	uint16_t debuggerReadWord(uint32_t address)
+	{
+		uint16_t tmp = 0;
+		for (unsigned i = 0; i < 2; ++i)
+		{
+			if (address < Flags.memorySize)
+				tmp = (tmp << 8) + Flags.memory[address++];
+		}
+
+		return tmp;
+	}
+
+	uint8_t debuggerReadByte(uint32_t address)
+	{
+		if (address < Flags.memorySize)
+			return Flags.memory[address];
+
+		return 0;
+	}
+
+}
+
+namespace {
+
+	bool sigInt = false;
+	void sigIntHandler(int)
+	{
+		sigInt = true;
+	}
 
 	// any reason to have enable/disable flag
 	// vs deleting it?
@@ -109,41 +154,6 @@ extern "C" {
 		return brkMap.find(address) != brkMap.end();
 	}
 
-	uint32_t debuggerReadLong(uint32_t address)
-	{
-		uint32_t tmp = 0;
-		for (unsigned i = 0; i < 4; ++i)
-		{
-			if (address < Flags.memorySize)
-				tmp = (tmp << 8) + Flags.memory[address++];
-		}
-
-		return tmp;
-	}
-
-	uint16_t debuggerReadWord(uint32_t address)
-	{
-		uint16_t tmp = 0;
-		for (unsigned i = 0; i < 2; ++i)
-		{
-			if (address < Flags.memorySize)
-				tmp = (tmp << 8) + Flags.memory[address++];
-		}
-
-		return tmp;
-	}
-
-	uint8_t debuggerReadByte(uint32_t address)
-	{
-		if (address < Flags.memorySize)
-			return Flags.memory[address];
-
-		return 0;
-	}
-
-}
-
-namespace {
 
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
 	{
@@ -230,6 +240,82 @@ namespace {
 
 		return pc;
 	}
+
+
+
+	bool step(bool trace)
+	{
+		// return false to break (toolbreak, address break, etc.)
+
+		uint16_t op;
+		cpuExecuteInstruction();
+
+		uint32_t pc = cpuGetPC();
+		if (trace) disasm(pc, &op);
+		else op = debuggerReadWord(pc);
+
+
+		// will this also be set by an interrupt?
+		if (cpuGetStop())
+		{
+			if (!trace) disasm(pc);
+			printf("CPU stopped\n");
+			return false; 
+		}
+
+		if (sigInt)
+		{
+			if (!trace) disasm(pc);
+			printf("^C break\n");
+			sigInt = false;
+			return false; 			
+		}
+
+
+		// check for pc breaks
+		if (brkLookup(pc))
+		{
+			if (!trace) disasm(pc);
+			printf("Address break: $%08x\n", pc);
+			return false;
+		}
+
+		// todo -- instruction break for rts /rtn
+
+		// check for toolbreaks.
+		if ((op & 0xf000) == 0xa000)
+		{
+			if (tbrkLookup(op))
+			{
+				if (!trace) disasm(pc);
+				printf("Tool break: $%04x\n", op);
+				return false;
+			}
+		}
+
+		if (pc > Flags.memorySize)
+		{
+			printf("PC out of range\n");
+			return false;
+		}
+
+		uint32_t sp = cpuGetAReg(7);
+		if (sp < Flags.stackRange.first)
+		{
+			printf("Stack overflow error\n");
+			return false;
+		}
+
+		if (sp > Flags.stackRange.second)
+		{
+			printf("Stack underflow error\n");
+			return false;
+		}
+
+		return true;
+	}
+
+
 
 }
 
@@ -402,6 +488,7 @@ void DebugBreak(Command &cmd)
 }
 
 
+
 void DebugStep(const Command &cmd)
 {
 	// TODO - step n to step specified # of instructions.
@@ -416,41 +503,14 @@ void DebugStep(const Command &cmd)
 	// TODO -- move to common function...
 	for (int i = 0; i < count; ++i)
 	{
-		uint16_t op;
-		cpuExecuteInstruction();
-
-		if (cpuGetStop()) break; // will this also be set by an interrupt?
-
-
-		uint32_t pc = cpuGetPC();
-		disasm(pc, &op);
-
-		// check for pc breaks
-		if (brkLookup(pc))
-		{
-			break;
-		}
-
-		// check for toolbreaks.
-		if ((op & 0xf000) == 0xa000)
-		{
-			if (tbrkLookup(op))
-				break;
-		}
-
-		uint32_t sp = cpuGetAReg(7);
-		if (sp < Flags.stackRange.first)
-		{
-			fprintf(stderr, "Stack overflow error\n");
-			break;
-		}
-
-		if (sp > Flags.stackRange.second)
-		{
-			fprintf(stderr, "Stack underflow error\n");
-			break;
-		}
+		if (!step(true)) break;
 	}
+}
+
+
+void DebugContinue(const Command &cmd)
+{
+	while (step(false)) ;
 }
 
 void DebugSetARegister(Command &cmd)
@@ -529,6 +589,8 @@ void DebugShell()
 	printf("MPW Debugger shell\n\n");
 	disasm(cpuGetPC());
 
+	signal(SIGINT, sigIntHandler);
+
 	for(;;)
 	{
 		cp = readline("] ");
@@ -567,6 +629,10 @@ void DebugShell()
 
 					case Step:
 						DebugStep(cmd);
+						break;
+
+					case Continue:
+						DebugContinue(cmd);
 						break;
 
 					case TBreak:
