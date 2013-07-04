@@ -262,6 +262,11 @@ bool ParseLine(const char *iter, Command *command)
 			continue;
 		}
 
+		'l' | 'list' {
+			Parse(parser, tkLIST, 0, command);
+			continue;
+		}
+
 		'n' | 'next' {
 			Parse(parser, tkNEXT, 0, command);
 			continue;
@@ -327,6 +332,9 @@ bool ParseLine(const char *iter, Command *command)
 
 	Parse(parser, 0, 0, command);
 	ParseFree(parser, free);
+
+	if (!command->valid)
+		fprintf(stderr,"I don't understand.\n");
 
 	return command->valid;
 }

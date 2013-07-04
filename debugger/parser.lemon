@@ -29,7 +29,7 @@ uint32_t debuggerReadLong(uint32_t);
 }
 
 %parse_failure {
-	fprintf(stderr,"I don't understand.\n");
+	//fprintf(stderr,"I don't understand.\n");
 	command->valid = false;
 }
 
@@ -57,6 +57,12 @@ stmt ::= expr(a) EOL.
 	command->action = Print;
 	command->argc = 1;
 	command->argv[0] = a;
+}
+
+stmt ::= STAR EOL.
+{
+	command->action = PrintRegisters;
+	command->argc = 0;
 }
 
 stmt ::= PRINT expr(a) EOL.

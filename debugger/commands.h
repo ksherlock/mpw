@@ -4,6 +4,7 @@
 enum {
 	Help,
 	Print,
+	PrintRegisters,
 	Dump,
 	List,
 	Break,
