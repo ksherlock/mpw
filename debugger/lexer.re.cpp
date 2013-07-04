@@ -282,6 +282,11 @@ bool ParseLine(const char *iter, Command *command)
 			continue;
 		}
 
+		'tbrk' | 'tbreak' | 'toolbreak' {
+			Parse(parser, tkBREAK, 0, command);
+			continue;	
+		}
+
 		'g' | 'go' {
 			Parse(parser, tkCONTINUE, 0, command);
 			continue;
