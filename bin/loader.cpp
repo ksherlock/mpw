@@ -1,6 +1,7 @@
 // clang++ -c -std=c++11 -stdlib=libc++ -Wno-deprecated-declarations loader.cpp
 
 #include <cstdint>
+#include <cctype>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -27,21 +28,9 @@
 #include <macos/sysequ.h>
 #include <macos/traps.h>
 
-struct {
-	uint32_t ram;
-	uint32_t stack;
-	uint32_t machine;
+#include "loader.h"
 
-	bool traceCPU;
-	bool traceMacsbug;
-	bool traceGlobals;
-	bool traceToolBox;
-	bool traceMPW;
-
-	bool memoryStats;
-
-} Flags = { 16 * 1024 * 1024, 8 * 1024, 68030, false, false, false, false, false, false};
-
+Settings Flags;
 
 const uint32_t kGlobalSize = 0x10000;
 // retained to make debugging easier.
@@ -112,6 +101,8 @@ void WriteLong(void *data, uint32_t offset, uint32_t value)
 	((uint8_t *)data)[offset++] = value >> 8;
 	((uint8_t *)data)[offset++] = value;
 }
+
+
 
 uint32_t load(const char *file)
 {
@@ -280,8 +271,39 @@ void GlobalInit()
 	// so put stack at top of memory?
 	
 	// 0x0130 -- ApplLimit
-	memoryWriteLong(Flags.ram - 1, MacOS::ApplLimit);
+	memoryWriteLong(Flags.memorySize - 1, MacOS::ApplLimit);
 }
+
+
+void CreateStack()
+{
+	// allocate stack, set A7...
+
+	uint32_t address;
+	uint16_t error;
+
+	Flags.stackSize = (Flags.stackSize + 3) & ~0x03;
+
+	error = MM::Native::NewPtr(Flags.stackSize, true, address);
+	if (error)
+	{
+		fprintf(stderr, "Unable to allocate stack (%08x bytes)\n", Flags.stackSize);
+		exit(EX_CONFIG);
+	}
+
+
+	Flags.stackRange.first = address;
+	Flags.stackRange.second = address + Flags.stackSize;
+
+	// TODO -- is there a global for the max (min) stack pointer?
+
+	// address grows down
+	// -4 is for the return address.
+	cpuSetAReg(7, Flags.stackRange.second - 4);
+	// return address.
+	memoryWriteLong(MacOS::MinusOne, Flags.stackRange.second - 4); // MinusOne Global -- 0xffff ffff
+}
+
 
 
 void LogToolBox(uint32_t pc, uint16_t trap)
@@ -509,6 +531,62 @@ std::string find_exe(const std::string &name)
 }
 
 
+void MainLoop()
+{
+	#if 0
+	auto begin_emu_time = std::chrono::high_resolution_clock::now();
+	fprintf(stderr, "Begin Emulation Time: %20lld\n", (begin_emu_time - start_time).count());
+	#endif
+
+
+	uint64_t cycles = 0;
+	for (;;)
+	{
+		uint32_t pc = cpuGetPC();
+		uint32_t sp = cpuGetAReg(7);
+
+		if (pc == 0x00000000)
+		{
+			fprintf(stderr, "Exiting - PC = 0\n");
+			exit(EX_SOFTWARE);
+		}
+
+		if (sp < Flags.stackRange.first)
+		{
+			fprintf(stderr, "Stack overflow error - please increase the stack size (--stack=size)\n");
+			fprintf(stderr, "Current stack size is 0x%06x\n", Flags.stackSize);
+			exit(EX_SOFTWARE);
+		}
+
+		if (sp > Flags.stackRange.second)
+		{
+			fprintf(stderr, "Stack underflow error\n");
+			exit(EX_SOFTWARE);
+		}
+
+
+		if (cpuGetStop()) break; // will this also be set by an interrupt?
+
+	
+		#ifndef CPU_INSTRUCTION_LOGGING
+		if (Flags.traceCPU || Flags.traceMacsbug)
+		{
+			InstructionLogger();
+		}
+		#endif
+
+		cycles += cpuExecuteInstruction();
+	}
+
+	#if 0
+	auto end_emu_time = std::chrono::high_resolution_clock::now();
+	fprintf(stderr, "  End Emulation Time: %20lld\n", (end_emu_time - start_time).count());
+	fprintf(stderr, "              Cycles: %20lld\n", cycles);
+	#endif
+
+
+}
+
 int main(int argc, char **argv)
 {
 	// getopt...
@@ -520,6 +598,7 @@ int main(int argc, char **argv)
 		kTraceGlobals,
 		kTraceToolBox,
 		kTraceMPW,
+		kDebugger,
 		kMemoryStats,
 	};
 	static struct option LongOpts[] = 
@@ -533,6 +612,9 @@ int main(int argc, char **argv)
 		{ "trace-toolbox", no_argument, NULL, kTraceToolBox },
 		{ "trace-tools", no_argument, NULL, kTraceToolBox },
 		{ "trace-mpw", no_argument, NULL, kTraceMPW },
+
+		{ "debug", no_argument, NULL, kDebugger },
+		{ "debugger", no_argument, NULL, kDebugger },
 
 		{ "memory-stats", no_argument, NULL, kMemoryStats },
 
@@ -572,18 +654,22 @@ int main(int argc, char **argv)
 				Flags.memoryStats = true;
 				break;
 
+			case kDebugger:
+				Flags.debugger = true;
+				break;
+
 			case 'm':
 				if (!parse_number(optarg, &Flags.machine))
 					exit(EX_CONFIG);
 				break;
 
 			case 'r':
-				if (!parse_number(optarg, &Flags.ram))
+				if (!parse_number(optarg, &Flags.memorySize))
 					exit(EX_CONFIG);
 				break;
 
 			case 's':
-				if (!parse_number(optarg, &Flags.stack))
+				if (!parse_number(optarg, &Flags.stackSize))
 					exit(EX_CONFIG);
 				break;
 
@@ -615,6 +701,19 @@ int main(int argc, char **argv)
 		exit(EX_USAGE);
 	}
 
+	if (Flags.stackSize < 0x100)
+	{
+		fprintf(stderr, "Invalid stack size\n");
+		exit(EX_CONFIG);
+	}
+
+	if (Flags.memorySize < 0x200)
+	{
+		fprintf(stderr, "Invalid ram size\n");
+		exit(EX_CONFIG);
+	}
+
+
 	std::string command(argv[0]); // InitMPW updates argv...
 
 	command = find_exe(command);
@@ -628,9 +727,9 @@ int main(int argc, char **argv)
 	argv[0] = ::strdup(command.c_str()); // hmm.. could setenv(mpw_command) instead.
 
 
-
-	Memory = new uint8_t[Flags.ram];
-	MemorySize = Flags.ram;
+	// move to CreateRam()
+	Memory = Flags.memory = new uint8_t[Flags.memorySize];
+	MemorySize = Flags.memorySize;
 
 
 	/// ahhh... need to set PC after memory.
@@ -649,39 +748,7 @@ int main(int argc, char **argv)
 	cpuSetModel(3,0);
 
 
-
-	if (!Flags.stack)
-	{
-		fprintf(stderr, "Invalid stack size\n");
-		exit(EX_CONFIG);
-	}
-
-	std::pair<uint32_t, uint32_t> StackRange;
-	// allocate stack, set A7...
-	{
-		uint32_t address;
-		uint16_t error;
-
-		Flags.stack = (Flags.stack + 3) & ~0x03;
-
-		error = MM::Native::NewPtr(Flags.stack, true, address);
-		if (error)
-		{
-			fprintf(stderr, "Unable to allocate stack (%08x bytes)\n", Flags.stack);
-			exit(EX_CONFIG);
-		}
-
-		StackRange.first = address;
-		StackRange.second = address + Flags.stack;
-
-		// TODO -- is there a global for the max (min) stack pointer?
-
-		// address grows down
-		// -4 is for the return address.
-		cpuSetAReg(7, address + Flags.stack - 4);
-		// return address.
-		memoryWriteLong(MacOS::MinusOne, StackRange.second - 4); // MinusOne Global -- 0xffff ffff
-	}
+	CreateStack();
 
 
 	uint32_t address = load(command.c_str());
@@ -712,58 +779,11 @@ int main(int argc, char **argv)
 
 	cpuInitializeFromNewPC(address);
 
-	#if 0
-	auto begin_emu_time = std::chrono::high_resolution_clock::now();
-	fprintf(stderr, "Begin Emulation Time: %20lld\n", (begin_emu_time - start_time).count());
-	#endif
 
-	uint64_t cycles = 0;
-	for (;;)
-	{
-		uint32_t pc = cpuGetPC();
-		uint32_t sp = cpuGetAReg(7);
-
-		if (pc == 0x00000000)
-		{
-			fprintf(stderr, "Exiting - PC = 0\n");
-			exit(EX_SOFTWARE);
-		}
-
-		if (sp < StackRange.first)
-		{
-			fprintf(stderr, "Stack overflow error - please increase the stack size (--stack=size)\n");
-			fprintf(stderr, "Current stack size is 0x%06x\n", Flags.stack);
-			exit(EX_SOFTWARE);
-		}
-
-		if (sp > StackRange.second)
-		{
-			fprintf(stderr, "Stack underflow error\n");
-			exit(EX_SOFTWARE);
-		}
+	if (Flags.debugger) DebugShell();
+	else MainLoop();
 
 
-		if (cpuGetStop()) break; // will this also be set by an interrupt?
-
-
-	
-		#ifndef CPU_INSTRUCTION_LOGGING
-		if (Flags.traceCPU || Flags.traceMacsbug)
-		{
-			InstructionLogger();
-		}
-		#endif
-
-
-
-		cycles += cpuExecuteInstruction();
-	}
-
-	#if 0
-	auto end_emu_time = std::chrono::high_resolution_clock::now();
-	fprintf(stderr, "  End Emulation Time: %20lld\n", (end_emu_time - start_time).count());
-	fprintf(stderr, "              Cycles: %20lld\n", cycles);
-	#endif
 
 	if (Flags.memoryStats)
 	{
