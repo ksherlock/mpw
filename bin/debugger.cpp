@@ -6,7 +6,10 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <unordered_set>
+#include <unordered_map>
+
 #include <bitset>
 
 #include <readline/readline.h>
@@ -21,6 +24,124 @@
 
 #include <macos/traps.h>
 #include <macos/sysequ.h>
+
+bool ParseLine(const char *iter, Command *command);
+
+extern "C" {
+
+	// any reason to have enable/disable flag
+	// vs deleting it?
+	std::unordered_map<uint16_t, bool> tbrkMap;
+	
+	std::unordered_map<uint16_t, unsigned> brkMap;
+	std::array<uint32_t, 4096> brkPageMap; // bloom filter on a page-level.
+
+	void tbrkAdd(uint16_t tool)
+	{
+		auto iter = tbrkMap.find(tool);
+		if (iter == tbrkMap.end())
+		{
+			tbrkMap.emplace(tool, true);
+		}
+	}
+
+	void tbrkRemove(uint16_t tool)
+	{
+		auto iter = tbrkMap.find(tool);
+		if (iter == tbrkMap.end()) return;
+
+		tbrkMap.erase(iter);
+	}
+
+	void tbrkRemoveAll()
+	{
+		tbrkMap.clear();
+	}
+
+	bool tbrkLookup(uint16_t tool)
+	{
+		if ((tool & 0xf000) != 0xa000) return false;
+
+		return tbrkMap.find(tool) != tbrkMap.end();
+	}
+
+
+	void brkRemoveAll()
+	{
+		brkPageMap.fill(0);
+		brkMap.clear();
+	}
+
+	void brkRemove(uint32_t address)
+	{
+		uint32_t page = address >> 12;
+		if (page >= brkPageMap.size()) return;
+
+		auto iter = brkMap.find(address);
+		if (iter == brkMap.end())
+			return;
+
+		brkPageMap[page]--;
+		brkMap.erase(iter);
+	}
+
+	void brkAdd(uint32_t address)
+	{
+		uint32_t page = address >> 12;
+		if (page >= brkPageMap.size()) return;
+
+		auto iter = brkMap.find(address);
+		if (iter == brkMap.end())
+		{
+			brkPageMap[page]++;
+			brkMap.emplace(address, 0);
+		}
+
+	}
+
+	bool brkLookup(uint32_t address)
+	{
+		uint32_t page = address >> 12;
+		if (page >= brkPageMap.size()) return false;
+
+		if (!brkPageMap[page]) return false;
+
+		return brkMap.find(address) != brkMap.end();
+	}
+
+	uint32_t debuggerReadLong(uint32_t address)
+	{
+		uint32_t tmp = 0;
+		for (unsigned i = 0; i < 4; ++i)
+		{
+			if (address < Flags.memorySize)
+				tmp = (tmp << 8) + Flags.memory[address++];
+		}
+
+		return tmp;
+	}
+
+	uint16_t debuggerReadWord(uint32_t address)
+	{
+		uint16_t tmp = 0;
+		for (unsigned i = 0; i < 2; ++i)
+		{
+			if (address < Flags.memorySize)
+				tmp = (tmp << 8) + Flags.memory[address++];
+		}
+
+		return tmp;
+	}
+
+	uint8_t debuggerReadByte(uint32_t address)
+	{
+		if (address < Flags.memorySize)
+			return Flags.memory[address];
+
+		return 0;
+	}
+
+}
 
 namespace {
 
