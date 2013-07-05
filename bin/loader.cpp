@@ -338,19 +338,6 @@ void InstructionLogger()
 	}
 
 
-	#if 0	
-	fprintf(stderr, "D: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		cpuGetDReg(0), cpuGetDReg(1), cpuGetDReg(2), cpuGetDReg(3), 
-		cpuGetDReg(4), cpuGetDReg(5), cpuGetDReg(6), cpuGetDReg(7)
-
-	);
-
-	fprintf(stderr, "A: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		cpuGetAReg(0), cpuGetAReg(1), cpuGetAReg(2), cpuGetAReg(3), 
-		cpuGetAReg(4), cpuGetAReg(5), cpuGetAReg(6), cpuGetAReg(7)
-	);
-	#endif
-
 	if (Flags.traceCPU)
 	{
 		cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
