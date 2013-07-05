@@ -1,12 +1,15 @@
 #ifndef __debugger_commands__
 #define __debugger_commands__
 
+
 enum {
+	NullCommand,
 	Help,
 	Print,
 	PrintRegisters,
 	Dump,
 	List,
+	Info,
 	Break,
 	TBreak,
 	Continue,

@@ -12,14 +12,13 @@
 // re2c -b -i
 
 
-extern "C" {
+//extern "C" {
 
 	void *ParseAlloc(void *(*mallocProc)(size_t));
 	void ParseFree(void *p, void (*freeProc)(void*));
 	void Parse(void *yyp, int yymajor, uint32_t yyminor, Command *command);
 	void ParseTrace(FILE *TraceFILE, char *zTracePrompt);
-
-}
+//}
 
 	// p / print expression
 	// hd / hexdump expression [:expression]
@@ -154,6 +153,9 @@ bool ParseLine(const char *iter, Command *command)
 		'<' { Parse(parser, tkLT, 0, command); continue; }
 		'>' { Parse(parser, tkGT, 0, command); continue; }
 
+		':' { Parse(parser, tkCOLON, 0, command); continue; }
+		'@' { Parse(parser, tkAT, 0, command); continue; }
+
 		[0-9]+ {
 			// integer
 			uint32_t data;
@@ -283,7 +285,7 @@ bool ParseLine(const char *iter, Command *command)
 		}
 
 		'tbrk' | 'tbreak' | 'toolbreak' {
-			Parse(parser, tkBREAK, 0, command);
+			Parse(parser, tkTBREAK, 0, command);
 			continue;	
 		}
 
@@ -303,15 +305,22 @@ bool ParseLine(const char *iter, Command *command)
 		}
 
 
+		';h' | ';hd' | ';hexdump' {
+			Parse(parser, tkSEMIH, 0, command);
+			continue;
+		}
+
+		';i' | ';info' {
+			Parse(parser, tkSEMII, 0, command);
+			continue;
+		}
+
 		';l' | ';list' {
 			Parse(parser, tkSEMIL, 0, command);
 			continue;
 		}
 
-		';h' | ';hd' | ';hexdump' {
-			Parse(parser, tkSEMIH, 0, command);
-			continue;
-		}
+
 
 		[_A-Za-z][_A-Za-z0-9] + {
 			// identifier. lookup global address, tool number, etc.

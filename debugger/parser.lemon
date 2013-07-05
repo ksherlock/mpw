@@ -9,6 +9,7 @@
 #include <string.h>
 #include "commands.h"
 
+#include <toolbox/MM.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -113,6 +114,24 @@ stmt ::= DUMP expr(a) EOL.
 	command->argv[0] = a;
 }
 
+stmt ::= DUMP expr(a) COLON expr(b) EOL.
+{
+	// range dump
+	command->action = Dump;
+	command->argc = 2;
+	command->argv[0] = a;	
+	command->argv[1] = b;	
+}
+
+stmt ::= DUMP expr(a) AT expr(b) EOL.
+{
+	// count dump
+	command->action = Dump;
+	command->argc = 2;
+	command->argv[0] = a;	
+	command->argv[1] = a+b;	
+}
+
 stmt ::= LIST expr(a) EOL.
 {
 	command->action = List;
@@ -120,16 +139,27 @@ stmt ::= LIST expr(a) EOL.
 	command->argv[0] = a;
 }
 
-stmt ::= expr(a) SEMIL EOL.
-{
-	command->action = List;
-	command->argc = 1;
-	command->argv[0] = a;
-}
 
 stmt ::= expr(a) SEMIH EOL.
 {
 	command->action = Dump;
+	command->argc = 1;
+	command->argv[0] = a;
+}
+
+stmt ::= expr(a) SEMII EOL.
+{
+	command->action = NullCommand;
+	command->argc = 0;
+
+	MM::Native::MemoryInfo(a);
+}
+
+
+
+stmt ::= expr(a) SEMIL EOL.
+{
+	command->action = List;
 	command->argc = 1;
 	command->argv[0] = a;
 }
