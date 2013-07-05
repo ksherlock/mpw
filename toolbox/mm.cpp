@@ -100,6 +100,76 @@ namespace MM
 	namespace Native {
 
 
+		// debugger support.
+		// print info on an address.
+		void MemoryInfo(uint32_t address)
+		{
+			// 1. check if it's a pointer.
+			{
+				auto iter = PtrMap.find(address);
+				if (iter != PtrMap.end())
+				{
+					printf("Pointer $%08x Size: $%08x\n", iter->first, iter->second);
+					return;
+				}
+			}
+
+			// 2. check if it's contained in a pointer
+			for (const auto kv : PtrMap)
+			{
+				if (address < kv.first) continue;
+				if (address >= kv.first + kv.second) continue;
+
+				printf("Pointer $%08x Size: $%08x\n", kv.first, kv.second);
+
+				return;
+			}
+
+			// 2. check if it's a handle.
+			{
+				auto iter = HandleMap.find(address);
+				if (iter != HandleMap.end())
+				{
+					const HandleInfo &info = iter->second;
+					printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c\n", 
+						iter->first, 
+						info.address, 
+						info.size, 
+						info.locked ? 'L' : ' ',
+						info.purgeable ? 'P' : ' '
+					);
+					return;
+				}			
+			}
+
+			// 3. check if the address is within a handle.
+			{
+				for (const auto kv : HandleMap)
+				{
+					const HandleInfo &info = kv.second;
+
+					if (!info.address) continue;
+
+					uint32_t begin = info.address;
+					uint32_t end = info.address + info.size;
+					if (!info.size) end++;
+					if (address >= begin && address < end)
+					{
+						printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c\n", 
+							kv.first, 
+							info.address, 
+							info.size, 
+							info.locked ? 'L' : ' ',
+							info.purgeable ? 'P' : ' '
+						);
+						return;
+					}
+				}
+
+
+			}
+
+		}
 
 		void PrintMemoryStats()
 		{

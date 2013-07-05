@@ -9,7 +9,7 @@ namespace MM
 	namespace Native
 	{
 
-
+		void MemoryInfo(uint32_t address);
 		void PrintMemoryStats();
 
 		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle);
