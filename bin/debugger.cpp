@@ -18,6 +18,7 @@
 
 
 #include "loader.h"
+#include "address_map.h"
 
 #include <debugger/commands.h>
 
@@ -74,85 +75,11 @@ namespace {
 		sigInt = true;
 	}
 
-	// any reason to have enable/disable flag
-	// vs deleting it?
-	std::unordered_map<uint16_t, bool> tbrkMap;
-	
-	std::unordered_map<uint16_t, unsigned> brkMap;
-	std::array<uint32_t, 4096> brkPageMap; // bloom filter on a page-level.
+	AddressMap brkMap; // address breaks
+	AddressMap rbrkMap; // read breaks.
+	AddressMap wbrkMap; // write breaks.
+	ToolMap tbrkMap; // tool breaks.
 
-	void tbrkAdd(uint16_t tool)
-	{
-		auto iter = tbrkMap.find(tool);
-		if (iter == tbrkMap.end())
-		{
-			tbrkMap.emplace(tool, true);
-		}
-	}
-
-	void tbrkRemove(uint16_t tool)
-	{
-		auto iter = tbrkMap.find(tool);
-		if (iter == tbrkMap.end()) return;
-
-		tbrkMap.erase(iter);
-	}
-
-	void tbrkRemoveAll()
-	{
-		tbrkMap.clear();
-	}
-
-	bool tbrkLookup(uint16_t tool)
-	{
-		if ((tool & 0xf000) != 0xa000) return false;
-
-		return tbrkMap.find(tool) != tbrkMap.end();
-	}
-
-
-	void brkRemoveAll()
-	{
-		brkPageMap.fill(0);
-		brkMap.clear();
-	}
-
-	void brkRemove(uint32_t address)
-	{
-		uint32_t page = address >> 12;
-		if (page >= brkPageMap.size()) return;
-
-		auto iter = brkMap.find(address);
-		if (iter == brkMap.end())
-			return;
-
-		brkPageMap[page]--;
-		brkMap.erase(iter);
-	}
-
-	void brkAdd(uint32_t address)
-	{
-		uint32_t page = address >> 12;
-		if (page >= brkPageMap.size()) return;
-
-		auto iter = brkMap.find(address);
-		if (iter == brkMap.end())
-		{
-			brkPageMap[page]++;
-			brkMap.emplace(address, 0);
-		}
-
-	}
-
-	bool brkLookup(uint32_t address)
-	{
-		uint32_t page = address >> 12;
-		if (page >= brkPageMap.size()) return false;
-
-		if (!brkPageMap[page]) return false;
-
-		return brkMap.find(address) != brkMap.end();
-	}
 
 
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
@@ -273,7 +200,7 @@ namespace {
 
 
 		// check for pc breaks
-		if (brkLookup(pc))
+		if (brkMap.lookup(pc))
 		{
 			if (!trace) disasm(pc);
 			printf("Address break: $%08x\n", pc);
@@ -285,7 +212,7 @@ namespace {
 		// check for toolbreaks.
 		if ((op & 0xf000) == 0xa000)
 		{
-			if (tbrkLookup(op))
+			if (tbrkMap.lookup(op))
 			{
 				if (!trace) disasm(pc);
 				printf("Tool break: $%04x\n", op);
@@ -451,8 +378,8 @@ void DebugToolBreak(Command &cmd)
 
 		if (tool >= 0xa000 && tool <= 0xafff)
 		{
-			if (remove) tbrkRemove(tool);
-			else tbrkAdd(tool);
+			if (remove) tbrkMap.remove(tool);
+			else tbrkMap.add(tool);
 		}
 		else
 		{
@@ -477,8 +404,8 @@ void DebugBreak(Command &cmd)
 
 		if ((address & 0xff000000) == 0)
 		{
-			if (remove) brkRemove(address);
-			else brkAdd(address);
+			if (remove) brkMap.remove(address);
+			else brkMap.add(address);
 		}
 		else
 		{
