@@ -125,6 +125,45 @@ namespace {
 	    std::printf("\n");
 	}
 
+
+	void printMacsbug(uint32_t pc, uint32_t opcode)
+	{
+
+		unsigned mboffset;
+		switch(opcode)
+		{
+		case 0x4E75: // rts
+		case 0x4ED0: // jmp (a0)
+			mboffset = 2;
+			break;
+		case 0x4E74: // rtd #
+			mboffset = 4;
+			break;			
+		default:
+			return;
+			break;
+		}
+
+
+		pc += mboffset;
+		// check for MacsBug name after rts.
+		std::string s;
+		unsigned b = debuggerReadByte(pc);
+		if (b > 0x80 && b < 0xa0)
+		{
+			b -= 0x80;
+			pc++;
+			s.reserve(b);
+			for (unsigned i = 0; i < b; ++i)
+			{
+				s.push_back(debuggerReadByte(pc++));
+			}
+			printf("%s\n", s.c_str());
+		}
+
+	}
+
+
 	uint32_t disasm(uint32_t pc, uint16_t *op = nullptr)
 	{
 
@@ -162,10 +201,12 @@ namespace {
 
 		for (unsigned j = 0; j < 4; ++j) strings[j][0] = 0;
 
-		pc = cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
+		uint32_t newpc = cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
 		printf("%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
 
-		return pc;
+		printMacsbug(pc, opcode);
+
+		return newpc;
 	}
 
 
@@ -181,6 +222,8 @@ namespace {
 		if (trace) disasm(pc, &op);
 		else op = debuggerReadWord(pc);
 
+		if (Flags.traceMacsbug && !trace)
+			printMacsbug(pc, op);
 
 		// will this also be set by an interrupt?
 		if (cpuGetStop())
@@ -284,17 +327,17 @@ void DebugDump(const Command &cmd)
 {
 	// TODO -- if no address, use previous address.
 	// TODO -- support range?
-	if (cmd.argc == 1)
-	{
-		uint32_t start = cmd.argv[0];
-		if (start >= Flags.memorySize) return;
 
-		uint32_t end = std::min(start + 512, Flags.memorySize);
-		ssize_t size = end - start;
 
-		hexdump(Flags.memory + start, size, start);
+	uint32_t start = cmd.argv[0];
+	uint32_t end = cmd.argc == 2 ? cmd.argv[1] : start + 256;
 
-	}
+	if (start >= Flags.memorySize) return;
+
+	end = std::min(end, Flags.memorySize);
+	ssize_t size = end - start;
+
+	hexdump(Flags.memory + start, size, start);
 }
 
 
@@ -504,8 +547,9 @@ void DebugSetXRegister(Command &cmd)
 }
 
 
-// todo -- add sigint trap.  it shall set a flag to break.
 
+// TODO -- RUN command - reload, re-initialize, re-execute
+// TODO -- parser calls commands directly (except trace/step/run/etc)
 void DebugShell()
 {
 	char *cp;
@@ -538,6 +582,9 @@ void DebugShell()
 			{
 				switch(cmd.action)
 				{
+					case NullCommand:
+						break;
+
 					case Print:
 						DebugPrint(cmd);
 						break;
