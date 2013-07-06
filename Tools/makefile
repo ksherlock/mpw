@@ -12,7 +12,7 @@ LIBS = 	$(Libraries)/Stubs.o \
 LDFLAGS = -w -c 'MPS ' -t MPST \
 	-sn STDIO=Main -sn INTENV=Main -sn %A5Init=Main
 
-all: Help GetEnv
+all: Help GetEnv Duplicate
 
 GetEnv: GetEnv.c.o
 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
@@ -20,6 +20,9 @@ GetEnv: GetEnv.c.o
 Help: Help.c.o
 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
+
+Duplicate: Duplicate.c.o
+	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 %.c.o : %.c
 	mpw SC -p $< -o $@
