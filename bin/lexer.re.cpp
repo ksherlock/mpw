@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <stdlib.h>
 
-#include "commands.h"
+#include "debugger.h"
 #include "parser.h"
 
 // re2c -b -i
@@ -16,7 +16,7 @@
 
 	void *ParseAlloc(void *(*mallocProc)(size_t));
 	void ParseFree(void *p, void (*freeProc)(void*));
-	void Parse(void *yyp, int yymajor, uint32_t yyminor, Command *command);
+	void Parse(void *yyp, int yymajor, uint32_t yyminor, Debug::Command *command);
 	void ParseTrace(FILE *TraceFILE, char *zTracePrompt);
 //}
 
@@ -51,58 +51,9 @@ namespace {
 	}
 }
 
-#if 0
-/*
- * unordered_set of breakpoints?
- * bloom filter via std::bitset<16 * 1024> ?
- */
 
- class AddressFilter {
- 	std::bitset<4096> pageSet;
- 	std::unordered_set<uint32_t> addSet;
 
- 	bool test(uint32_t address) const
- 	{
- 		if (address > 0xffffff) return false;
- 		if (!pageSet[address >> 12]) return false;
-
- 		return addSet.find(address) != addSet.end();
- 	}
-
- 	void add(uint32_t address)
- 	{
- 		if (address > 0xffffff) return;
-
- 		pageSet[address >> 12] = true;
- 		addSet.insert(address);
- 	}
-
- 	void remove(uint32_t address)
- 	{
- 		if (address > 0xffffff) return;
-
- 		auto iter = addSet.find(address);
- 		if (iter != addSet.end())
- 		{
- 			addSet.remove();
- 			// need to re-scan all addresses to update the pageSet...
- 			uint32_t page = address >> 12;
- 			pageSet[page] = false;
- 			for (auto x : addSet)
- 			{
- 				if ((x >> 12) == page)
- 				{
- 					addSet[page] = true;
- 					break;
- 				}
- 			}
- 		}
- 	}
-
- };
-
-#endif
-
+namespace Debug {
 bool ParseLine(const char *iter, Command *command)
 {
 	void *parser;
@@ -110,7 +61,7 @@ bool ParseLine(const char *iter, Command *command)
 	parser = ParseAlloc(malloc);
 
 	//ParseTrace(stdout, "--> ");
-
+	command->action = cmdNull;
 	for (;;)
 	{
 		const char *begin = iter;
@@ -352,3 +303,5 @@ bool ParseLine(const char *iter, Command *command)
 
 	return command->valid;
 }
+
+} // namespace Debugger

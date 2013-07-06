@@ -20,52 +20,13 @@
 #include "loader.h"
 #include "address_map.h"
 
-#include <debugger/commands.h>
+#include "debugger.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
 
 #include <macos/traps.h>
 #include <macos/sysequ.h>
-
-bool ParseLine(const char *iter, Command *command);
-
-extern "C" {
-
-	uint32_t debuggerReadLong(uint32_t address)
-	{
-		uint32_t tmp = 0;
-		for (unsigned i = 0; i < 4; ++i)
-		{
-			if (address < Flags.memorySize)
-				tmp = (tmp << 8) + Flags.memory[address++];
-		}
-
-		return tmp;
-	}
-
-
-	uint16_t debuggerReadWord(uint32_t address)
-	{
-		uint16_t tmp = 0;
-		for (unsigned i = 0; i < 2; ++i)
-		{
-			if (address < Flags.memorySize)
-				tmp = (tmp << 8) + Flags.memory[address++];
-		}
-
-		return tmp;
-	}
-
-	uint8_t debuggerReadByte(uint32_t address)
-	{
-		if (address < Flags.memorySize)
-			return Flags.memory[address];
-
-		return 0;
-	}
-
-}
 
 namespace {
 
@@ -148,7 +109,7 @@ namespace {
 		pc += mboffset;
 		// check for MacsBug name after rts.
 		std::string s;
-		unsigned b = debuggerReadByte(pc);
+		unsigned b = Debug::ReadByte(pc);
 		if (b > 0x80 && b < 0xa0)
 		{
 			b -= 0x80;
@@ -156,7 +117,7 @@ namespace {
 			s.reserve(b);
 			for (unsigned i = 0; i < b; ++i)
 			{
-				s.push_back(debuggerReadByte(pc++));
+				s.push_back(Debug::ReadByte(pc++));
 			}
 			printf("%s\n", s.c_str());
 		}
@@ -175,7 +136,7 @@ namespace {
 			return pc;
 		}
 
-		uint16_t opcode = debuggerReadWord(pc);
+		uint16_t opcode = Debug::ReadWord(pc);
 		if (op) *op = opcode;
 
 		if ((opcode & 0xf000) == 0xa000)
@@ -220,7 +181,7 @@ namespace {
 
 		uint32_t pc = cpuGetPC();
 		if (trace) disasm(pc, &op);
-		else op = debuggerReadWord(pc);
+		else op = Debug::ReadWord(pc);
 
 		if (Flags.traceMacsbug && !trace)
 			printMacsbug(pc, op);
@@ -289,8 +250,46 @@ namespace {
 
 }
 
+#pragma mark - Debugger
 
-void DebugHelp(const Command &cmd)
+namespace Debug {
+
+uint32_t ReadLong(uint32_t address)
+{
+	uint32_t tmp = 0;
+	for (unsigned i = 0; i < 4; ++i)
+	{
+		if (address < Flags.memorySize)
+			tmp = (tmp << 8) + Flags.memory[address++];
+	}
+
+	return tmp;
+}
+
+
+uint16_t ReadWord(uint32_t address)
+{
+	uint16_t tmp = 0;
+	for (unsigned i = 0; i < 2; ++i)
+	{
+		if (address < Flags.memorySize)
+			tmp = (tmp << 8) + Flags.memory[address++];
+	}
+
+	return tmp;
+}
+
+uint8_t ReadByte(uint32_t address)
+{
+	if (address < Flags.memorySize)
+		return Flags.memory[address];
+
+	return 0;
+}
+
+
+
+void Help()
 {
 	printf("help\n");
 	printf("break expression\n");
@@ -307,64 +306,76 @@ void DebugHelp(const Command &cmd)
 }
 
 
-void DebugPrint(const Command &cmd)
+void Print(uint32_t data)
 {
-	for (unsigned i = 0; i < cmd.argc; ++i)
-	{
-		uint32_t data = cmd.argv[i];
-		printf("$%08x %12u", data, data);
-		if (data & 0x80000000)
-			printf(" %12d", (int32_t)data);
-		if ((data & 0xffff8000) == 0x8000)
-			printf(" %6d", (int16_t)data);
+	printf("$%08x %12u", data, data);
+	if (data & 0x80000000)
+		printf(" %12d", (int32_t)data);
+	if ((data & 0xffff8000) == 0x8000)
+		printf(" %6d", (int16_t)data);
 
-		printf("\n");
-	}	
+	printf("\n");
+
 }
 
 
-void DebugDump(const Command &cmd)
+void Dump(uint32_t start, int size)
 {
 	// TODO -- if no address, use previous address.
 	// TODO -- support range?
 
 
-	uint32_t start = cmd.argv[0];
-	uint32_t end = cmd.argc == 2 ? cmd.argv[1] : start + 256;
+	if (size <= 0) return;
+
+	uint32_t end = start + size;
 
 	if (start >= Flags.memorySize) return;
 
 	end = std::min(end, Flags.memorySize);
-	ssize_t size = end - start;
+	size = end - start;
 
 	hexdump(Flags.memory + start, size, start);
 }
 
 
 
-void DebugList(const Command &cmd)
+// grr... need separate count/range options.
+void List(uint32_t pc, int count)
 {
 	// TODO -- if no address, use previous address.
-	// TODO -- support range?
-	if (cmd.argc == 1)
+	if (pc & 0x01)
 	{
-		uint32_t pc = cmd.argv[0];
-		if (pc & 0x01)
-		{
-			printf("address is not aligned: $%08x\n", pc);
-			return;
-		}
+		printf("address is not aligned: $%08x\n", pc);
+		return;
+	}
 
-		for (unsigned i = 0; i < 32; ++i)
-		{
-			if (pc >= Flags.memorySize) break;
-			pc = disasm(pc);
-		}
+	for (int i = 0; i < count; ++i)
+	{
+		if (pc >= Flags.memorySize) break;
+		pc = disasm(pc);
 	}
 }
 
+void List(uint32_t pc, uint32_t endpc)
+{
+	if (endpc < pc) return;
 
-void DebugPrintRegisters(const Command &cmd)
+	if (pc & 0x01)
+	{
+		printf("address is not aligned: $%08x\n", pc);
+		return;
+	}
+
+	while (pc <= endpc)
+	{
+		if (pc >= Flags.memorySize) break;
+		pc = disasm(pc);
+	}
+
+}
+
+
+void PrintRegisters()
 {
 	char srbits[20];
 
@@ -406,60 +417,54 @@ void DebugPrintRegisters(const Command &cmd)
 }
 
 
-void DebugToolBreak(Command &cmd)
+void ToolBreak(int32_t tool)
 {
-	for (unsigned  i = 0; i < cmd.argc; ++i)
+
+	bool remove = false;
+
+	if (tool < 0)
 	{
-		int32_t tool = (int32_t)cmd.argv[i];
-		bool remove = false;
+		tool = -tool;
+		remove = true;
+	}
 
-		if (tool < 0)
-		{
-			tool = -tool;
-			remove = true;
-		}
-
-		if (tool >= 0xa000 && tool <= 0xafff)
-		{
-			if (remove) tbrkMap.remove(tool);
-			else tbrkMap.add(tool);
-		}
-		else
-		{
-			fprintf(stderr, "Invalid tool: $%04x\n", tool);
-		}
+	if (tool >= 0xa000 && tool <= 0xafff)
+	{
+		if (remove) tbrkMap.remove(tool);
+		else tbrkMap.add(tool);
+	}
+	else
+	{
+		fprintf(stderr, "Invalid tool: $%04x\n", tool);
 	}
 }
 
-void DebugBreak(Command &cmd)
+void Break(int32_t address)
 {
 	// 24-bit only, - address to remove.
-	for (unsigned  i = 0; i < cmd.argc; ++i)
+
+	bool remove = false;
+
+	if (address < 0)
 	{
-		int32_t address = (int32_t)cmd.argv[i];
-		bool remove = false;
+		address = -address;
+		remove = true;
+	}
 
-		if (address < 0)
-		{
-			address = -address;
-			remove = true;
-		}
-
-		if ((address & 0xff000000) == 0)
-		{
-			if (remove) brkMap.remove(address);
-			else brkMap.add(address);
-		}
-		else
-		{
-			fprintf(stderr, "Invalid address: $%08x\n", address);
-		}
+	if ((address & 0xff000000) == 0)
+	{
+		if (remove) brkMap.remove(address);
+		else brkMap.add(address);
+	}
+	else
+	{
+		fprintf(stderr, "Invalid address: $%08x\n", address);
 	}
 }
 
 
 
-void DebugStep(const Command &cmd)
+void Step(const Command &cmd)
 {
 	// TODO - step n to step specified # of instructions.
 	// TODO -- step @address to step until address?
@@ -478,17 +483,13 @@ void DebugStep(const Command &cmd)
 }
 
 
-void DebugContinue(const Command &cmd)
+void Continue(const Command &cmd)
 {
 	while (step(false)) ;
 }
 
-void DebugSetARegister(Command &cmd)
+void SetARegister(unsigned reg, uint32_t value)
 {
-	if (cmd.argc != 2) return;
-	unsigned reg = cmd.argv[0];
-	uint32_t value = cmd.argv[1];
-
 	if (reg > 7) return;
 	if (reg == 7)
 	{
@@ -509,20 +510,15 @@ void DebugSetARegister(Command &cmd)
 }
 
 
-void DebugSetDRegister(Command &cmd)
+void SetDRegister(unsigned reg, uint32_t value)
 {
-	if (cmd.argc != 2) return;
-	unsigned reg = cmd.argv[0];
-	uint32_t value = cmd.argv[1];
+	if (reg > 7) return;
 
 	cpuSetDReg(reg, value);
 }
 
-void DebugSetXRegister(Command &cmd)
+void SetXRegister(unsigned reg, uint32_t value)
 {
-	if (cmd.argc != 2) return;
-	unsigned reg = cmd.argv[0];
-	uint32_t value = cmd.argv[1];
 
 	if (reg == 0)
 	{
@@ -541,7 +537,7 @@ void DebugSetXRegister(Command &cmd)
 
 	if (reg == 1)
 	{
-		cpuSetSR(value);
+		cpuSetSR(value & 0xffff);
 	}
 
 }
@@ -550,7 +546,7 @@ void DebugSetXRegister(Command &cmd)
 
 // TODO -- RUN command - reload, re-initialize, re-execute
 // TODO -- parser calls commands directly (except trace/step/run/etc)
-void DebugShell()
+void Shell()
 {
 	char *cp;
 
@@ -582,55 +578,19 @@ void DebugShell()
 			{
 				switch(cmd.action)
 				{
-					case NullCommand:
+					case cmdNull:
 						break;
 
-					case Print:
-						DebugPrint(cmd);
+					case cmdStep:
+						Step(cmd);
 						break;
 
-					case Dump:
-						DebugDump(cmd);
-						break;
-
-					case List:
-						DebugList(cmd);
-						break;
-
-					case PrintRegisters:
-						DebugPrintRegisters(cmd);
-						break;
-
-					case Step:
-						DebugStep(cmd);
-						break;
-
-					case Continue:
-						DebugContinue(cmd);
-						break;
-
-					case TBreak:
-						DebugToolBreak(cmd);
-						break;
-
-					case Break:
-						DebugBreak(cmd);
-						break;
-
-					case SetARegister:
-						DebugSetARegister(cmd);
-						break;
-
-					case SetDRegister:
-						DebugSetDRegister(cmd);
-						break;
-
-					case SetXRegister:
-						DebugSetXRegister(cmd);
+					case cmdContinue:
+						Continue(cmd);
 						break;
 
 					default:
-						DebugHelp(cmd);
+						Help();
 						break;
 				}
 			}
@@ -642,4 +602,7 @@ void DebugShell()
 	}
 
 }
+
+} // namespace Debugger
+
 

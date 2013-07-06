@@ -29,6 +29,7 @@
 #include <macos/traps.h>
 
 #include "loader.h"
+#include "debugger.h"
 
 Settings Flags;
 
@@ -767,7 +768,7 @@ int main(int argc, char **argv)
 	cpuInitializeFromNewPC(address);
 
 
-	if (Flags.debugger) DebugShell();
+	if (Flags.debugger) Debug::Shell();
 	else MainLoop();
 
 
