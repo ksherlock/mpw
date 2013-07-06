@@ -408,6 +408,9 @@ namespace SANE
 			Log("     %s <> %s\n", tmp1.c_str(), tmp2.c_str());
 		}
 
+		// TODO -- verify if src/dest are backwards here
+		//
+		
 		//
 		// check if ordered...
 
@@ -620,6 +623,14 @@ namespace SANE
 		return tmp;
 	}
 
+	uint32_t fpstr2dec()
+	{
+
+
+		printf(stderr, "fpstr2dec is not yet supported.\n");
+		exit(1);
+	}
+
 	uint32_t decstr68k(uint16_t trap)
 	{
 		// this is a strange one since it may be sane or it may be the binary/decimal package.
@@ -638,6 +649,11 @@ namespace SANE
 			
 		case 0x01:
 			return StringToNum();
+			break;
+
+		case 0x02:
+			// fpstr2dec
+			return fpstr2dec();
 			break;
 
 		default:
