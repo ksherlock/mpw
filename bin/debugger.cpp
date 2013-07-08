@@ -28,6 +28,8 @@
 #include <macos/traps.h>
 #include <macos/sysequ.h>
 
+#include <mpw/mpw.h>
+
 namespace {
 
 	bool sigInt = false;
@@ -41,6 +43,7 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
+	std::unordered_map<std::string, uint16_t> toolMap;
 
 
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
@@ -439,6 +442,34 @@ void ToolBreak(int32_t tool)
 	}
 }
 
+void ToolBreak()
+{
+	// list all tool breaks.
+
+	if (!tbrkMap.size())
+	{
+		printf("No tool breaks\n");
+		return;
+	}
+
+	std::vector<unsigned> v;
+	v.reserve(tbrkMap.size());
+
+	for (auto kv : tbrkMap)
+	{
+		v.push_back(kv.first);
+	}
+
+	std::sort(v.begin(), v.end());
+
+	for (auto trap : v)
+	{
+		const char *name = TrapName(trap);
+		if (!name) name = "";
+		printf("$%04x %s\n", trap, name);
+	}
+}
+
 void Break(int32_t address)
 {
 	// 24-bit only, - address to remove.
@@ -461,6 +492,34 @@ void Break(int32_t address)
 		fprintf(stderr, "Invalid address: $%08x\n", address);
 	}
 }
+
+
+void Break()
+{
+	// list all tool breaks.
+
+	if (!brkMap.size())
+	{
+		printf("No breaks\n");
+		return;
+	}
+
+	std::vector<unsigned> v;
+	v.reserve(brkMap.size());
+
+	for (auto kv : brkMap)
+	{
+		v.push_back(kv.first);
+	}
+
+	std::sort(v.begin(), v.end());
+
+	for (auto address : v)
+	{
+		printf("$%08x", address);
+	}
+}
+
 
 
 
@@ -543,6 +602,20 @@ void SetXRegister(unsigned reg, uint32_t value)
 }
 
 
+uint16_t TrapNumber(const std::string &s)
+{
+	auto iter = toolMap.find(s);
+	if (iter == toolMap.end()) return 0;
+	return iter->second;
+}
+
+uint16_t TrapNumber(const char *cp)
+{
+	if (!cp || !*cp) return 0;
+	std::string s(cp);
+	return TrapNumber(s);
+}
+
 
 // TODO -- RUN command - reload, re-initialize, re-execute
 // TODO -- parser calls commands directly (except trace/step/run/etc)
@@ -551,6 +624,13 @@ void Shell()
 	char *cp;
 
 	add_history("!Andy, it still has history!");
+
+	{
+		// load the tool trap file.
+		std::string path = MPW::RootDir();
+		path += "/Traps.text";
+		toolMap = LoadTrapFile(path);
+	}
 
 	// start it up
 	printf("MPW Debugger shell\n\n");

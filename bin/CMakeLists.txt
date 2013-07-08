@@ -25,8 +25,14 @@ add_custom_command(
 	DEPENDS debugger.h
 )
 
+add_custom_command(
+	OUTPUT loadtrap.cpp
+	COMMAND ragel -p -G2 -o loadtrap.cpp "${CMAKE_CURRENT_SOURCE_DIR}/loadtrap.rl"
+	MAIN_DEPENDENCY loadtrap.rl 
+	DEPENDS debugger.h
+)
 
-add_executable(mpw loader.cpp debugger.cpp address_map.cpp lexer.cpp parser.cpp)
+add_executable(mpw loader.cpp debugger.cpp address_map.cpp lexer.cpp parser.cpp loadtrap.cpp)
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
 target_link_libraries(mpw MPW_LIB)

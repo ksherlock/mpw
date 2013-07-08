@@ -3,6 +3,9 @@
 
 
 #include <cstdint>
+#include <unordered_map>
+#include <functional>
+#include <string>
 
 // Debugger is a function in MacTypes.h
 namespace Debug {
@@ -25,6 +28,12 @@ struct Command {
 
 bool ParseLine(const char *iter, Command *command);
 
+std::unordered_map<std::string, uint16_t> LoadTrapFile(const std::string &path);
+
+uint16_t TrapNumber(const std::string &);
+uint16_t TrapNumber(const char *);
+
+
 void Shell();
 void Help();
 
@@ -44,7 +53,10 @@ void SetDRegister(unsigned reg, uint32_t value);
 void SetXRegister(unsigned reg, uint32_t value);
 
 void ToolBreak(int32_t tool);
+void ToolBreak();
+
 void Break(int32_t address);
+void Break();
 
 }
 

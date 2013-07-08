@@ -16,6 +16,21 @@ public:
 
 	void clear();
 
+	std::unordered_map<uint32_t, unsigned>::iterator begin()
+	{
+		return map.begin();
+	}
+
+	std::unordered_map<uint32_t, unsigned>::iterator end()
+	{
+		return map.end();
+	}
+
+	size_t size()
+	{
+		return map.size();
+	}
+
 private:
 	std::array<unsigned, 4096> pageMap;
 	std::unordered_map<uint32_t, unsigned> map;
@@ -33,6 +48,21 @@ public:
 	bool lookup(uint16_t tool);
 
 	void clear();
+
+	std::unordered_map<uint32_t, unsigned>::iterator begin()
+	{
+		return map.begin();
+	}
+
+	std::unordered_map<uint32_t, unsigned>::iterator end()
+	{
+		return map.end();
+	}
+	
+	size_t size()
+	{
+		return map.size();
+	}
 
 private:
 	std::unordered_map<uint32_t, unsigned> map;

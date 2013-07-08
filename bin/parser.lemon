@@ -67,6 +67,11 @@ stmt ::= PRINT expr(a) EOL.
 	Debug::Print(a);
 }
 
+stmt ::= BREAK EOL.
+{
+	Debug::Break();
+}
+
 stmt ::= BREAK expr(a) EOL.
 {
 	Debug::Break(a);
@@ -76,6 +81,11 @@ stmt ::= CONTINUE EOL.
 {
 	command->action = Debug::cmdContinue;
 	command->argc = 0;
+}
+
+stmt ::= TBREAK EOL.
+{
+	Debug::ToolBreak();
 }
 
 stmt ::= TBREAK expr(a) EOL.
