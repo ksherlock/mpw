@@ -1,5 +1,6 @@
 #include "qd.h"
 #include "toolbox.h"
+#include "sane.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -7,6 +8,7 @@
 
 #include <stdlib.h>
 #include <string>
+#include <cmath>
 
 #include "stackframe.h"
 
@@ -436,6 +438,61 @@ namespace SANE
 		return 0;
 	}
 
+	template <class DestType>
+	uint16_t fdecimal(const char *name)
+	{
+		uint16_t op;
+		uint32_t decimalPtr;
+		uint32_t dest;
+
+
+		StackFrame<10>(decimalPtr, dest, op);
+
+		uint16_t sgn = memoryReadByte(decimalPtr);
+		uint16_t exp = memoryReadWord(decimalPtr + 2);
+		std::string sig;
+		sig = ToolBox::ReadPString(decimalPtr + 4, false);
+
+		Log("     %s({%c %s e%d}, %08x)\n",
+			name,
+			sgn ? '-' : ' ', sig.c_str(), exp,
+			dest
+		);
+
+		extended tmp = 0;
+		if (sig.length())
+		{
+			if (sig[0] == 'I')
+			{
+				tmp = INFINITY;
+			}
+			else if (sig[0] == 'N')
+			{
+				tmp = NAN; // todo -- nan type
+			}
+			else
+			{
+				tmp = stold(sig);
+
+				while (exp > 0)
+				{
+					tmp = tmp * 10.0;
+					exp--;
+				}
+				while (exp < 0)
+				{
+					tmp = tmp / 10.0;
+					exp++;
+				}
+			}
+		}
+		if (sgn) tmp = -tmp;
+
+		writenum<DestType>((DestType)tmp, dest);
+
+		return 0;
+	}
+
 
 	extern "C" void cpuSetFlagsAbs(UWO f);
 	uint16_t fp68k(uint16_t trap)
@@ -540,6 +597,12 @@ namespace SANE
 				break; 
 
 
+			case 0x0009:
+				// fdec2x
+				return fdecimal<extended>("FDEC2X");
+				break;
+
+
 		}
 
 
@@ -625,10 +688,64 @@ namespace SANE
 
 	uint32_t fpstr2dec()
 	{
+		// void str2dec(const char *s,short *ix,decimal *d,short *vp); 
 
+#if 0
+#define SIGDIGLEN 20						/* significant decimal digits */
+#define DECSTROUTLEN 80 					/* max length for dec2str output */
 
-		printf(stderr, "fpstr2dec is not yet supported.\n");
-		exit(1);
+struct decimal {
+	char sgn;								/*sign 0 for +, 1 for -*/
+	char unused;
+	short exp;								/*decimal exponent*/
+	struct{
+		unsigned char length;
+		unsigned char text[SIGDIGLEN];		/*significant digits */
+		unsigned char unused;
+		}sig;
+};
+#endif
+
+		uint32_t stringPtr;
+		uint32_t indexPtr;
+		uint32_t decimalPtr;
+		uint32_t validPtr;
+		
+		uint16_t valid;
+		uint16_t index;
+		decimal d;
+
+		StackFrame<16>(stringPtr, indexPtr, decimalPtr, validPtr);
+
+		index = memoryReadWord(indexPtr);
+
+		std::string str = ToolBox::ReadPString(stringPtr, false);
+		Log("     FPSTR2DEC(%s, %04x, %08x, %08x)\n",
+			 str.c_str(), index, decimalPtr, validPtr);
+
+		index--;
+		str2dec(str, index, d, valid);
+		index++;
+
+		memoryWriteWord(index, indexPtr);
+		memoryWriteWord(valid, validPtr);
+
+		if (d.sig.length() > 20)
+		{
+			// truncate and adjust the exponent
+			// 1234e0 -> 123e1 -> 12e2 -> 1e3
+			// 1234e-1 -> 123e-0 -> 12e1
+			int over = d.sig.length() - 20;
+			d.sig.resize(20);
+			d.exp += over;
+		} 
+
+		memoryWriteByte(d.sgn, decimalPtr);
+		memoryWriteByte(0, decimalPtr + 1);
+		memoryWriteWord(d.exp, decimalPtr + 2);
+		ToolBox::WritePString(decimalPtr + 4, d.sig);
+
+		return 0;
 	}
 
 	uint32_t decstr68k(uint16_t trap)
