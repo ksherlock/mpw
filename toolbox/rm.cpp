@@ -237,7 +237,8 @@ namespace RM
 
 		sp = StackFrame<6>(theType, theID);
 
-		Log("%04x GetResource(%08x ('%s'), %04x)\n", trap, theType, TypeToString(theType).c_str(), theID);
+		Log("%04x GetResource(%08x ('%s'), %04x)\n", 
+				trap, theType, TypeToString(theType).c_str(), theID);
 
 
 		uint32_t resourceHandle;
