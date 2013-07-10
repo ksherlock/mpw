@@ -311,11 +311,54 @@ void Help()
 
 void Print(uint32_t data)
 {
+
+	// 32-bit unsigned int
 	printf("$%08x %12u", data, data);
+
+	// 32-bit signed int
 	if (data & 0x80000000)
 		printf(" %12d", (int32_t)data);
+
+	// 16-bit signed int
 	if ((data & 0xffff8000) == 0x8000)
 		printf(" %6d", (int16_t)data);
+
+	// 4-cc code? 2-cc code? 1-cc code?
+	char tmp[5];
+	int bits = 0;
+	tmp[0] = (data >> 24) & 0xff;
+	tmp[1] = (data >> 16) & 0xff;
+	tmp[2] = (data >> 8) & 0xff;
+	tmp[3] = (data >> 0) & 0xff;
+	tmp[4] = 0;
+
+	if (isprint(tmp[0])) bits |= (1 << 0);
+	if (isprint(tmp[1])) bits |= (1 << 1);
+	if (isprint(tmp[2])) bits |= (1 << 2);
+	if (isprint(tmp[3])) bits |= (1 << 3);
+
+	switch(bits)
+	{
+		case 0x0f:
+			printf(" '%s'", tmp);
+			break;
+
+		case 0x0e:
+			if (data <= 0xffffff)
+				printf(" '%s'", tmp + 1);
+			break;
+
+		case 0x0c:
+			if (data <= 0xffff)
+				printf(" '%s'", tmp + 2);
+			break;
+			
+		case 0x08:
+			if (data <= 0xff)
+				printf(" '%s'", tmp + 3);
+			break;
+	}
+
 
 	printf("\n");
 
