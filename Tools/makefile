@@ -12,7 +12,7 @@ LIBS = 	$(Libraries)/Stubs.o \
 LDFLAGS = -w -c 'MPS ' -t MPST \
 	-sn STDIO=Main -sn INTENV=Main -sn %A5Init=Main
 
-all: Help GetEnv Duplicate
+all: Help GetEnv Duplicate SetFile
 
 GetEnv: GetEnv.c.o
 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
@@ -23,6 +23,15 @@ Help: Help.c.o
 
 Duplicate: Duplicate.c.o
 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+
+SetFile: SetFile.c.o SetFile-flags.c.o
+	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+
+#SetFile.c : SetFile.rl
+#	ragel -G2 -p -m -o $@ $<
+
 
 %.c.o : %.c
 	mpw SC -p $< -o $@

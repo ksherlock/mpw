@@ -1,0 +1,10 @@
+---
+
+options:
+  - c: { argument : true }
+  - t: { argument : true }
+
+help: 
+  - SetFile [options] file...
+  - -c creator   set the creator
+  - -t type      set the file type
