@@ -20,6 +20,9 @@
 #include <cpu/fmem.h>
 #include <cpu/cpuModule.h>
 
+
+#include <macos/errors.h>
+
 #include <toolbox/os.h>
 #include <toolbox/os_internal.h>
 
@@ -307,8 +310,8 @@ namespace MPW
 		if (rv < 0)
 		{
 			d0 = errno_to_errno(errno);
-			f.error = 0;
-			perror(NULL);
+			f.error = OS::Internal::errno_to_oserr(errno);
+			//perror(NULL);
 		}
 		else
 		{
@@ -317,6 +320,44 @@ namespace MPW
 		}
 
 		memoryWriteLong(rv, arg + 4);
+		memoryWriteWord(f.error, parm + 2);
+		return d0;
+	}
+
+
+	uint32_t ftrap_seteof(uint32_t parm, uint32_t arg)
+	{
+
+		uint32_t d0;
+
+		MPWFile f;
+
+		f.flags = memoryReadWord(parm);
+		f.error = memoryReadWord(parm + 2);
+		f.device = memoryReadLong(parm + 4);
+		f.cookie = memoryReadLong(parm + 8);
+		f.count = memoryReadLong(parm + 12);
+		f.buffer = memoryReadLong(parm + 16);
+
+		f.error = 0;
+
+		int fd = f.cookie;
+
+		Log("     seteof(%02x, %08x)\n", fd, arg);
+
+		d0 = OS::Internal::FDEntry::action(fd,
+			[arg, &f](int fd, OS::Internal::FDEntry &e){
+				int ok = ftruncate(fd, arg);
+				if (ok == 0) return 0;
+				f.error = OS::Internal::errno_to_oserr(errno);
+				return errno_to_errno(errno);
+			},
+			[](int fd){
+				return kEINVAL;
+			}
+		);
+		
+
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
 	}
@@ -363,6 +404,10 @@ namespace MPW
 				break;
 
 			case kFIOSETEOF:
+				d0 = ftrap_seteof(fd, arg);
+				break;
+
+			default:
 				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);	
 				exit(1);
 				break;
