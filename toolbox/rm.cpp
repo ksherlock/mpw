@@ -317,9 +317,13 @@ namespace RM
 
 	uint16_t ResError(uint16_t trap)
 	{
+		uint32_t sp;
+
 		Log("%04x ResError()\n", trap);
 
-		return memoryReadWord(MacOS::ResErr);
+		sp = cpuGetAReg(7);
+		ToolReturn<2>(sp, memoryReadWord(MacOS::ResErr));
+		return 0;
 	}
 
 	// SetResLoad (load: BOOLEAN);
