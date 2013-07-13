@@ -182,6 +182,16 @@ stmt ::= expr(a) SEMIL EOL.
 	Debug::List(a);
 }
 
+stmt ::= expr(a) AT expr(b) SEMIL EOL.
+{
+	Debug::List(a, (int)b);
+}
+
+stmt ::= expr(a) COLON expr(b) SEMIL EOL.
+{
+	Debug::List(a, b);
+}
+
 
 stmt ::= DREGISTER(a) EQ expr(b) EOL.
 {
@@ -230,6 +240,7 @@ unary(rhs) ::= MINUS unary(a). [BANG] { rhs = -a; }
 unary(rhs) ::= TILDE unary(a). { rhs = ~a; }
 unary(rhs) ::= BANG unary(a). { rhs = !a; }
 unary(rhs) ::= STAR unary(a). [BANG] { rhs = Debug::ReadLong(a); }
+
 
 
 term(rhs) ::= LPAREN expr(a) RPAREN. { rhs = a; }
