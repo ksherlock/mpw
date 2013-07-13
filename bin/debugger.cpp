@@ -742,7 +742,8 @@ void SetXRegister(unsigned reg, uint32_t value)
 		{
 			fprintf(stderr, "Warning: address exceeeds memory size: $%08x\n", value);
 		}
-		cpuSetPC(value);
+		//cpuSetPC(value);
+		cpuInitializeFromNewPC(value);
 		return;
 	}
 
