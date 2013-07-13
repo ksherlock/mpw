@@ -1,3 +1,25 @@
+TODO
+
+1. scan file for debug names (starting at 4e56 - link a6), load into environment table (with tools)
+2. address break, ^C break, etc - list reason *before* disasm line
+4. ; commands - keep track of last address (;l to repeat...)
+
+5. run until return? (t bits in csr?)
+
+6. local variables (set/clear)
+set identifier '=' expression
+unset identifier
+
+expression '(' expression ')' -> 16-bit offset.
+
+
+stack dump?  any safe way to get the previous address (how many bytes for jsr?)
+
+
+
+
+
+
 --trace-cpu:
 - add support for global vars [?]
 - improve MOVEM disassembly [?]
@@ -18,11 +40,12 @@
 
 - stdout -- convert macroman to utf8 on output?
 
--- orca/c - symfile support.
 
 
 Done
 ----
+- rbreak/wbreak/rwbreak - break on memory access
+- orca/c : symfile support.
 
 - Use MM code for all memory allocs
 - GetFileInfo -- create fake finderinfo record from extension. 
