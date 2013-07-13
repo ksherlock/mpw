@@ -24,6 +24,8 @@
 #include <toolbox/os.h>
 #include <toolbox/os_internal.h>
 
+#include <macos/errors.h>
+
 /*
  * access return errors are |= 0x40000000.  Not entirely sure why...
  * may return an errno or an oserr, too, apparently.
@@ -105,7 +107,7 @@ namespace MPW
 		{
 			// return an errno.
 			d0 = 0x40000000 | errno_to_errno(errno);
-			f.error = -36; // ioErr ... whatever.
+			f.error = MacOS::ioErr;
 			f.cookie = 0;
 		}
 		else
