@@ -127,10 +127,12 @@ namespace {
 			}
 			printf("%s\n", s.c_str());
 		}
+		// could also be in the form 0x80 \p string.
 
 	}
 
 
+	// TODO -- state indicator for code/data
 	uint32_t disasm(uint32_t pc, uint16_t *op = nullptr)
 	{
 
@@ -435,6 +437,8 @@ void Print(uint32_t data)
 			break;
 	}
 
+	// TODO -- print as binary
+
 
 	printf("\n");
 
@@ -601,6 +605,7 @@ void Break(int32_t address)
 		remove = true;
 	}
 
+	// what was I thinking? only allow 24-bit addresses?
 	if ((address & 0xff000000) == 0)
 	{
 		if (remove) brkMap.remove(address);
@@ -635,7 +640,7 @@ void Break()
 
 	for (auto address : v)
 	{
-		printf("$%08x", address);
+		printf("$%08x\n", address);
 	}
 }
 
