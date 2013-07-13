@@ -240,6 +240,22 @@ bool ParseLine(const char *iter, Command *command)
 			continue;	
 		}
 
+		'mbrk' | 'mbreak' | 'rwbrk' | 'rwbreak' {
+			Parse(parser, tkRWBREAK, 0, command);
+			continue;
+		}
+
+		'rbrk' | 'rbreak' {
+			Parse(parser, tkRBREAK, 0, command);
+			continue;
+		}
+
+		'wbrk' | 'wbreak' {
+			Parse(parser, tkWBREAK, 0, command);
+			continue;
+		}
+
+
 		'g' | 'go' {
 			Parse(parser, tkCONTINUE, 0, command);
 			continue;

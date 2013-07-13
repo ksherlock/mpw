@@ -93,6 +93,33 @@ stmt ::= TBREAK expr(a) EOL.
 	Debug::ToolBreak(a);
 }
 
+stmt ::= RBREAK EOL .
+{
+	Debug::ReadBreak();
+}
+
+stmt ::= RBREAK expr(a) EOL.
+{
+	Debug::ReadBreak(a);
+}
+
+stmt ::= WBREAK EOL.
+{
+	Debug::WriteBreak();
+}
+
+stmt ::= WBREAK expr(a) EOL.
+{
+	Debug::WriteBreak(a);
+}
+
+
+stmt ::= RWBREAK expr(a) EOL .
+{
+	Debug::ReadWriteBreak(a);
+}
+
+
 stmt ::= NEXT EOL.
 {
 	command->action = Debug::cmdStep;

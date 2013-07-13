@@ -32,7 +32,10 @@
 
 namespace {
 
+	const uint32_t kGlobalSize = 0x10000;
+
 	bool sigInt = false;
+	bool memBreak = false;
 	void sigIntHandler(int)
 	{
 		sigInt = true;
@@ -180,6 +183,8 @@ namespace {
 		// return false to break (toolbreak, address break, etc.)
 
 		uint16_t op;
+		memBreak = false;
+
 		cpuExecuteInstruction();
 
 		uint32_t pc = cpuGetPC();
@@ -203,6 +208,13 @@ namespace {
 			printf("^C break\n");
 			sigInt = false;
 			return false; 			
+		}
+
+		if (memBreak)
+		{
+			printf("Memory break\n");
+			memBreak = false;
+			return false;
 		}
 
 
@@ -247,6 +259,70 @@ namespace {
 		}
 
 		return true;
+	}
+
+
+	void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
+	{
+
+		if (address < kGlobalSize && Flags.traceGlobals)
+		{
+			const char *name = GlobalName(address);
+			if (!name) name = "unknown";
+
+			fprintf(stdout, "%-20s %08x - ", name, address);
+			if (readWrite)
+			{
+				fprintf(stdout, " write %d bytes", size);
+				switch(size)
+				{
+					case 1:
+						fprintf(stdout, " [%02x]\n", value);
+						break;
+					case 2:
+						fprintf(stdout, " [%04x]\n", value);
+						break;
+					case 3:
+						fprintf(stdout, " [%06x]\n", value);
+						break;
+					case 4:
+						fprintf(stdout, " [%08x]\n", value);
+						break;				
+					default:
+						fprintf(stdout, "\n");
+						break;
+				}
+			}
+			else
+			{
+				fprintf(stdout, " read  %d bytes\n", size);
+			}
+		}
+
+
+		// check for memory breaks.
+		if (readWrite)
+		{
+			// todo -- what if writing 1 byte 4-bit address?
+			// todo -- if not single stepping at time of break, should
+			// disasm the prev pc before printing.
+
+
+			if (!wbrkMap.lookup(address)) return;
+
+			printf("Write $%08x\n", address);
+			// todo -- print previous value, old value.
+
+			memBreak = true;
+		}
+		else
+		{
+			if (!rbrkMap.lookup(address)) return;
+
+			printf("Read $%08x\n", address);
+
+			memBreak = true;
+		}
 	}
 
 
@@ -564,7 +640,40 @@ void Break()
 }
 
 
+void ReadBreak()
+{}
 
+void WriteBreak()
+{}
+
+
+
+void ReadWriteBreak()
+{
+}
+
+
+
+void ReadBreak(int32_t address)
+{
+	// sanity check address?
+
+	if (address < 0) rbrkMap.remove(-address);
+	else rbrkMap.add(address);
+}
+
+void WriteBreak(int32_t address)
+{
+	// sanity check address?
+	if (address < 0) wbrkMap.remove(-address);
+	else wbrkMap.add(address);
+}
+
+void ReadWriteBreak(int32_t address)
+{
+	ReadBreak(address);
+	WriteBreak(address);
+}
 
 void Step(const Command &cmd)
 {
@@ -680,6 +789,7 @@ void Shell()
 	disasm(cpuGetPC());
 
 	signal(SIGINT, sigIntHandler);
+	memorySetLoggingFunc(MemoryLogger);
 
 	for(;;)
 	{

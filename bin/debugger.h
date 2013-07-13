@@ -58,6 +58,15 @@ void ToolBreak();
 void Break(int32_t address);
 void Break();
 
+void ReadBreak();
+void ReadBreak(int32_t address);
+
+void WriteBreak();
+void WriteBreak(int32_t address);
+
+void ReadWriteBreak();
+void ReadWriteBreak(int32_t address);
+
 }
 
 #endif
