@@ -200,6 +200,10 @@ namespace ToolBox {
 				d0 = MM::MoveHHi(trap);
 				break;
 
+			case 0xa9e1:
+				d0 = MM::HandToHand(trap);
+				break;
+
 			case 0xa9e3:
 				d0 = MM::PtrToHand(trap);
 				break;

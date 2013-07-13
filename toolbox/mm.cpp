@@ -999,6 +999,44 @@ namespace MM
 
 	#pragma mark - OS Utility Routines
 
+
+	uint16_t HandToHand(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 source Handle
+		 *
+		 * on exit:
+		 * A0 destination Handle
+		 * D0 Result code
+		 *
+		 */	
+
+		uint32_t srcHandle = cpuGetAReg(0);
+
+		Log("%04x HandToHand(%08x)\n", trap, srcHandle);
+
+		auto iter = HandleMap.find(srcHandle);
+		if (iter == HandleMap.end())
+			return SetMemError(MacOS::memWZErr);
+
+
+		auto const info = iter->second; 
+
+
+		uint32_t destHandle;
+		uint32_t destPtr;
+		uint32_t d0 = Native::NewHandle(info.size, false, destHandle, destPtr);
+		if (d0 == 0)
+		{
+			std::memmove(memoryPointer(destPtr), memoryPointer(info.address), info.size);
+		}
+		
+		cpuSetAReg(0, destHandle);
+		return d0; // SetMemError called by Native::NewHandle.
+	}
+
+
 	uint16_t PtrToHand(uint16_t trap)
 	{
 		/* 
@@ -1028,6 +1066,9 @@ namespace MM
 		cpuSetAReg(0, destHandle);
 		return d0; // SetMemError called by Native::NewHandle.
 	}
+
+
+
 
 
 	#pragma mark -
