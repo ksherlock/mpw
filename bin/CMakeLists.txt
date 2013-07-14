@@ -20,7 +20,7 @@ add_custom_command(
 	MAIN_DEPENDENCY lexer.rl 
 )
 
-add_custom_command(
+add_custom_command(	
 	OUTPUT parser.cpp parser.h
 	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
 	COMMAND lemon parser.lemon
@@ -37,6 +37,15 @@ add_custom_command(
 	MAIN_DEPENDENCY loadtrap.rl 
 	DEPENDS debugger.h
 )
+
+
+set_source_files_properties(
+	loadtrap.cpp lexer.cpp 
+	PROPERTIES
+	COMPILE_FLAGS 
+	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
+)
+
 
 add_executable(mpw loader.cpp debugger.cpp address_map.cpp lexer.cpp parser.cpp loadtrap.cpp)
 target_link_libraries(mpw CPU_LIB)

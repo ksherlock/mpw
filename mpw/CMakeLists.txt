@@ -12,5 +12,11 @@ add_custom_command(
 	MAIN_DEPENDENCY environ.rl 
 )
 
+set_source_files_properties(
+	environ.cpp 
+	PROPERTIES
+	COMPILE_FLAGS 
+	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
+)
 
 add_library(MPW_LIB ${MPW_SRC})
