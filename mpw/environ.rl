@@ -4,20 +4,16 @@
 	machine lexer;
 
 
-	ws = [ \t\r\n];
+	ws = [ \t];
 
 	word = [A-Za-z0-9_];
 
 	action emplace {
 		//printf("emplacing %s\n", name.c_str());
 		// trim any whitespace.
-		while (value.length() && isspace(value.back()))
-			value.pop_back();	
+		//while (value.length() && isspace(value.back()))
+		//	value.pop_back();	
 		env[std::move(name)] = std::move(value);
-	}
-
-	action error {
-		fprintf(stderr, "Bad environment: %.*s\n", (int)length, line);	
 	}
 
 	value := |*
@@ -40,9 +36,12 @@
 			value.push_back('$');
 		};
 
-		any $eof(emplace)  => {
+		'\n' => emplace;
+
+		any - '\n' => {
 			value.push_back(fc);
 		} ;
+
 
 		*|;
 
@@ -51,17 +50,22 @@
 
 	comment := any* ${ fbreak; };
 
-	assignment = 
-	word+ ${ name.push_back(fc); }
-	ws* %eof(error)
-	'='
-	ws*
-	(any - ws)? ${ fhold; fgoto value; }
-	%eof(emplace)
+	assignment := 
+		word+ ${ name.push_back(fc); }
+		ws*
+		'='
+		ws*
+		# ws does not include '\n', so that will be handled
+		# as a value.
+		(any - ws)? ${ fhold; fgoto value; }
 	;
 
-	main := ws* ( '#' ${ fgoto comment; } | assignment);
-
+	main := |*
+		ws; # leading space
+		'\n'; # blank line.
+		'#' => { fgoto comment; };
+		word => { fhold; fgoto assignment; };
+		*|;
 }%%
 
 #include <string>
@@ -82,6 +86,14 @@ void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::
 
 	if (!fp) return;
 
+	/*
+	 * fgetln (for something more portable, try getline)
+	 * may or may not include the trailing \r. at the eof.
+	 * To compensate, trim all trailing whitespace and run it
+	 * a second time (with eof=pe) on a string of "\n"
+	 *
+	 */
+
 	for(;;)
 	{
 		const char *line;
@@ -90,22 +102,28 @@ void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::
 		line = fgetln(fp, &length);
 		if (!line) break; // eof or error.
 
-		// strip any trailign space.
+		// strip any trailing space.
 		while (length && isspace(line[length - 1]))
 			length--;
+
+		if (!length) continue;
 
 		std::string name;
 		std::string value;
 
-		const char *p = line;
-		const char *pe = line + length;
-		const char *eof = line + length;
+		std::string buffer(line, line + length);
+		buffer.push_back('\n');
+
+		const char *p = buffer.c_str();
+		const char *pe = p + buffer.length();
+		const char *eof = pe;
 		const char *te;
 		const char *ts;
 
 		int cs, act;
 
 		%%write init;
+
 		%%write exec;
 
 		if (cs == lexer_error)
