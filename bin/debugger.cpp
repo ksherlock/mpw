@@ -46,7 +46,7 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
-	std::unordered_map<std::string, uint16_t> toolMap;
+	std::unordered_map<std::string, uint32_t> envMap;
 
 
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
@@ -760,19 +760,13 @@ void SetXRegister(unsigned reg, uint32_t value)
 }
 
 
-uint16_t TrapNumber(const std::string &s)
+uint32_t EnvLookup(const std::string &s)
 {
-	auto iter = toolMap.find(s);
-	if (iter == toolMap.end()) return 0;
+	auto iter = envMap.find(s);
+	if (iter == envMap.end()) return 0;
 	return iter->second;
 }
 
-uint16_t TrapNumber(const char *cp)
-{
-	if (!cp || !*cp) return 0;
-	std::string s(cp);
-	return TrapNumber(s);
-}
 
 
 // TODO -- RUN command - reload, re-initialize, re-execute
@@ -783,12 +777,7 @@ void Shell()
 
 	add_history("!Andy, it still has history!");
 
-	{
-		// load the tool trap file.
-		std::string path = MPW::RootDir();
-		path += "/Traps.text";
-		toolMap = LoadTrapFile(path);
-	}
+	envMap = LoadTrapFile(MPW::RootDirPathForFile("Traps.text"));
 
 	// start it up
 	printf("MPW Debugger shell\n\n");

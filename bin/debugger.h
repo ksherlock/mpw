@@ -28,10 +28,9 @@ struct Command {
 
 bool ParseLine(const char *iter, Command *command);
 
-std::unordered_map<std::string, uint16_t> LoadTrapFile(const std::string &path);
+std::unordered_map<std::string, uint32_t> LoadTrapFile(const std::string &path);
 
-uint16_t TrapNumber(const std::string &);
-uint16_t TrapNumber(const char *);
+uint32_t EnvLookup(const std::string &);
 
 
 void Shell();

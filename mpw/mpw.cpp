@@ -100,6 +100,15 @@ namespace MPW
 		return S_ISDIR(st.st_mode);
 	}
 
+	std::string RootDirPathForFile(const std::string &file)
+	{
+		std::string dir(RootDir());
+		if (dir.length() && dir.back() != '/') dir.push_back('/');
+		dir.append(file);
+
+		return dir;
+	}
+
 	const std::string RootDir()
 	{
 		static bool initialized = false;
@@ -305,10 +314,8 @@ namespace MPW
 
 				void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::string> &env);
 
-				if (m.back() != '/') m.push_back('/');
-				m.append("Environment");
-
-				LoadEnvironment(m, env);
+				std::string path(RootDirPathForFile("Environment.text"));
+				LoadEnvironment(path, env);
 			}
 
 			std::deque<std::string> e;
