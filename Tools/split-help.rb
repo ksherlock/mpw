@@ -25,7 +25,7 @@ ARGF.each { |line|
 		if line.match(/^([A-Za-z0-F]+)\s?#?/)
 			state = :data
 			filename = $1
-			file = File::new("MPW.Help/#{filename}", "w")
+			file = File::new("Help.Files/#{filename}", "w")
 			#file.set_encoding("BINARY")
 		end
 
