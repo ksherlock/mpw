@@ -399,31 +399,43 @@ void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
 		if (!name) name = "unknown";
 
 		fprintf(stderr, "%-20s %08x - ", name, address);
-		if (readWrite)
+
+		if (!readWrite)
 		{
-			fprintf(stderr, " write %d bytes", size);
 			switch(size)
 			{
-				case 1:
-					fprintf(stderr, " [%02x]\n", value);
-					break;
-				case 2:
-					fprintf(stderr, " [%04x]\n", value);
-					break;
-				case 3:
-					fprintf(stderr, " [%06x]\n", value);
-					break;
-				case 4:
-					fprintf(stderr, " [%08x]\n", value);
-					break;				
-				default:
-					fprintf(stderr, "\n");
-					break;
+			case 1:
+				value = ReadByte(Memory, address);
+				break;
+			case 2:
+				value = ReadWord(Memory, address);
+				break;
+			case 4:
+				value = ReadLong(Memory, address);
+				break;
 			}
 		}
-		else
+
+
+		// todo -- for write, display previous value?
+		fprintf(stderr, " %s %d bytes", readWrite ? "write" : "read ", size);
+		switch(size)
 		{
-			fprintf(stderr, " read  %d bytes\n", size);
+			case 1:
+				fprintf(stderr, " [%02x]\n", value);
+				break;
+			case 2:
+				fprintf(stderr, " [%04x]\n", value);
+				break;
+			case 3:
+				fprintf(stderr, " [%06x]\n", value);
+				break;
+			case 4:
+				fprintf(stderr, " [%08x]\n", value);
+				break;				
+			default:
+				fprintf(stderr, "\n");
+				break;
 		}
 
 	}
