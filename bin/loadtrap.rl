@@ -19,16 +19,24 @@
 	action emplace {
 
 		auto iter = map.find(name);
-		if (iter != map.end() && iter->second != trap)
+
+		if (iter == map.end())
 		{
-			fprintf(stderr, "Warning: redefining %s ($%04x -> $%04x)\n", 
-				name.c_str(),
-				iter->second, 
-				trap
+			map[std::move(name)] = trap;
+		}
+		else
+		{
+			if (iter->second != trap)
+			{
+				fprintf(stderr, "Warning: redefining %s ($%04x -> $%04x)\n", 
+					name.c_str(),
+					iter->second, 
+					trap
 				);
+				iter->second = trap;
+			}
 		}
 
-		map[std::move(name)] = trap;
 	}
 
 	ws = [ \t];
@@ -112,7 +120,7 @@ std::unordered_map<std::string, uint32_t> LoadTrapFile(const std::string &path)
 
 		const char *p = buffer.c_str();
 		const char *pe = p + buffer.length();
-		const char *eof = pe;
+		//const char *eof = pe;
 		const char *ts;
 		const char *te;
 
