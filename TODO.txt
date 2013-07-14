@@ -15,7 +15,9 @@ expression '(' expression ')' -> 16-bit offset.
 
 stack dump?  any safe way to get the previous address (how many bytes for jsr?)
 
-
+option for MPW 3.2 vs 3.5?
+store as MPWVersion (standard shell variable)
+CLibraries=$MPW:Libraries:CLibraries-$MPWVersion:
 
 
 
