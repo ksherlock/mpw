@@ -12,8 +12,19 @@
 		//printf("emplacing %s\n", name.c_str());
 		// trim any whitespace.
 		//while (value.length() && isspace(value.back()))
-		//	value.pop_back();	
-		env[std::move(name)] = std::move(value);
+		//	value.pop_back();
+		// ?= only sets if not already set.
+
+		auto iter = env.find(name);
+		if (iter == env.end())
+		{
+			env[std::move(name)] = std::move(value);
+		}
+		else
+		{
+			if (overwrite)
+				iter->second = std::move(value);
+		}	
 	}
 
 	value := |*
@@ -53,7 +64,11 @@
 	assignment := 
 		word+ ${ name.push_back(fc); }
 		ws*
-		'='
+		(
+			'?=' ${ overwrite = false; }
+			|
+			'=' ${ overwrite = true; }
+		)
 		ws*
 		# ws does not include '\n', so that will be handled
 		# as a value.
@@ -62,10 +77,13 @@
 
 	main := |*
 		ws; # leading space
+
 		'\n'; # blank line.
+
 		'#' => { fgoto comment; };
+
 		word => { fhold; fgoto assignment; };
-		*|;
+	*|;
 }%%
 
 #include <string>
@@ -119,6 +137,7 @@ void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::
 		const char *eof = pe;
 		const char *te;
 		const char *ts;
+		bool overwrite = true;
 
 		int cs, act;
 
@@ -139,7 +158,7 @@ void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::
 } // namespace
 
 #ifdef TEST
-
+// clang++ -DTEST -std=c++11 -stdlib=libc++ environ.cpp
 int main(int argc, char **argv)
 {
 
