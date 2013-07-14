@@ -21,6 +21,8 @@
 
 #include <toolbox/toolbox.h>
 #include <toolbox/mm.h>
+#include <toolbox/os.h>
+
 #include <mpw/mpw.h>
 
 #include <mplite/mplite.h>
@@ -728,7 +730,7 @@ int main(int argc, char **argv)
 	// for the stack vs allocating it?
 
 	MM::Init(Memory, MemorySize, kGlobalSize);
-
+	OS::Init();
 	MPW::Init(argc, argv);
 
 

@@ -83,6 +83,12 @@ namespace OS
 		BootTime = std::chrono::steady_clock::now();
 		memoryWriteLong(0, MacOS::Ticks); // 0 ticks since boot.
 
+		//std::chrono::system_clock::now(), to_time_t
+		// set global variable Time to the current time
+		time_t now = UnixToMac(::time(NULL));
+
+		memoryWriteLong(now, MacOS::TimeLM);
+
 		return true;
 	}
 
@@ -902,6 +908,7 @@ namespace OS
 	{
 		return t + EpochAdjust;
 	}
+
 	time_t MacToUnix(time_t t)
 	{
 		return t - EpochAdjust;
