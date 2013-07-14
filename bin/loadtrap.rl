@@ -3,50 +3,76 @@
 #include <string>
 #include <cstdio>
 
-#include "debugger.h"
-
 %%{
 	
-	machine traplist;
+	machine lexer;
 
 	action error {
 		fprintf(stderr, "Invalid line: %d %.*s", line, (int)length, cp);
 		fprintf(stderr, "%s - %x\n", name.c_str(), trap);
 	}
 
-	main :=
-		[ \t]*
+	action addx {
+		trap = (trap << 4) + digittoint(fc);
+	}
+
+	action emplace {
+
+		auto iter = map.find(name);
+		if (iter != map.end() && iter->second != trap)
+		{
+			fprintf(stderr, "Warning: redefining %s ($%04x -> $%04x)\n", 
+				name.c_str(),
+				iter->second, 
+				trap
+				);
+		}
+
+		map[std::move(name)] = trap;
+	}
+
+	ws = [ \t];
+
+
+	value = 
+		'0x' >{trap = 0; } xdigit+ @addx
+		|
+		'$' >{trap = 0; } xdigit+ @addx
+		# todo -- add identifiers?
+		;
+
+
+	line :=
 		[_A-Za-z][_A-Za-z0-9]* @{
 			name.push_back(fc);
 		}
-		[ \t]*
-		'='
-		[ \t]*
-		('0x' | '$')
-		[0-9A-Fa-f]+ @{ 
-			trap = (trap << 4) + digittoint(fc);
-		}
-		[ \t\r\n]*
 
-		%eof {
-			// final state
-			map.emplace(name, trap);
-		}
-		@eof(error)
-		$err(error)
-		
-		;
+		ws*
+		'='
+		ws*
+		value
+		'\n' @emplace
+	;
+
+	comment := any* ${ fbreak; };
+
+	main := |*
+		ws; # leading space
+		'\n'; # blank line.
+		'#' => { fgoto comment; };
+		[A-Za-z_] => { fhold; fgoto line; };
+		*|;
 
 }%%
 
 namespace Debug {
-std::unordered_map<std::string, uint16_t> LoadTrapFile(const std::string &path)
+std::unordered_map<std::string, uint32_t> LoadTrapFile(const std::string &path)
 {
-%% write data nofinal;
+%% write data;
 
 	FILE *fp;
 
-	std::unordered_map<std::string, uint16_t> map;
+	std::unordered_map<std::string, uint32_t> map;
 
 	fp = fopen(path.c_str(), "r");
 	if (!fp)
@@ -54,6 +80,9 @@ std::unordered_map<std::string, uint16_t> LoadTrapFile(const std::string &path)
 		fprintf(stderr, "Unable to open file %s\n", path.c_str());
 		return map;
 	}
+
+	// todo -- consider using the debugger parser?  That would allow
+	// full mathematical expressions.
 
 	int line = 0;
 	for(;;)
@@ -65,25 +94,42 @@ std::unordered_map<std::string, uint16_t> LoadTrapFile(const std::string &path)
 		if (!cp) break;
 		++line;
 
+		#if 0
 		while (isspace(*cp) && length)
 		{
 			++cp;
 			length--;
 		}
 		if (!length) continue;
-		if (*cp == '#') continue;
+		#endif
 
-		char *p = cp;
-		char *pe = p + length;
-		char *eof = p + length;
+		while (length && isspace(cp[length - 1]))
+			length--;
+		if (!length) continue;
+
+		std::string buffer(cp, cp + length);
+		buffer.push_back('\n');
+
+		const char *p = buffer.c_str();
+		const char *pe = p + buffer.length();
+		const char *eof = pe;
+		const char *ts;
+		const char *te;
+
 		int cs;
+		int act;
 
 		std::string name;
-		uint16_t trap = 0;
+		uint32_t trap = 0;
 
 		%% write init;
 		/* ... */
 		%% write exec;
+
+		if (cs == lexer_error)
+		{
+			fprintf(stderr, "Bad line: %.*s\n", (int)length, cp);
+		}
 	}
 
 	fclose(fp);
@@ -91,3 +137,26 @@ std::unordered_map<std::string, uint16_t> LoadTrapFile(const std::string &path)
 }
 
 }
+
+
+#ifdef TEST
+
+int main(int argc, char **argv)
+{
+	for (int i = 1; i < argc; ++i)
+	{
+		std::string f(argv[i]);
+
+		auto map = Debug::LoadTrapFile(f);
+
+		for(const auto kv  : map)
+		{
+			printf("%s -> %04x\n", kv.first.c_str(), kv.second);
+		}
+	}
+
+	return 0;
+}
+
+#endif
+
