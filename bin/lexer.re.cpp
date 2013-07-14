@@ -304,6 +304,7 @@ bool ParseLine(const char *iter, Command *command)
 
 		[^] {
 			fprintf(stderr, "illegal character: `%c`\n", *begin);
+			ParseFree(parser, free);
 			return false;
 		}
 

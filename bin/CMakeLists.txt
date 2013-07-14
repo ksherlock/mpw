@@ -7,11 +7,17 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 
 
+# add_custom_command(
+# 	OUTPUT lexer.cpp
+# 	COMMAND re2c -b -i -o lexer.cpp "${CMAKE_CURRENT_SOURCE_DIR}/lexer.re.cpp"
+# 	MAIN_DEPENDENCY lexer.re.cpp 
+# 	DEPENDS debugger.h parser.h
+# )
+
 add_custom_command(
 	OUTPUT lexer.cpp
-	COMMAND re2c -b -i -o lexer.cpp "${CMAKE_CURRENT_SOURCE_DIR}/lexer.re.cpp"
-	MAIN_DEPENDENCY lexer.re.cpp 
-	DEPENDS debugger.h parser.h
+	COMMAND ragel -p -G2 -o lexer.cpp "${CMAKE_CURRENT_SOURCE_DIR}/lexer.rl"
+	MAIN_DEPENDENCY lexer.rl 
 )
 
 add_custom_command(

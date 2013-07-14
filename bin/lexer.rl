@@ -1,0 +1,307 @@
+
+#include <string>
+#include <algorithm>
+#include <numeric>
+
+#include <cstdint>
+#include <stdlib.h>
+
+#include "debugger.h"
+#include "parser.h"
+
+
+	void *ParseAlloc(void *(*mallocProc)(size_t));
+	void ParseFree(void *p, void (*freeProc)(void*));
+	void Parse(void *yyp, int yymajor, uint32_t yyminor, Debug::Command *command);
+	void ParseTrace(FILE *TraceFILE, char *zTracePrompt);
+
+namespace {
+
+	int tox(char c)
+	{
+		c |= 0x20; // lowercase it.
+		if (c >= '0' && c <= '9') return c - '0';
+		if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+		return 0;
+	}
+
+	uint32_t scan10(const char *begin, const char *end)
+	{
+		return std::accumulate(begin, end, 0, 
+			[](uint32_t value, char c){
+				return value * 10 + c - '0';
+			});
+	}
+
+	uint32_t scan16(const char *begin, const char *end)
+	{
+		return std::accumulate(begin, end, 0, 
+			[](uint32_t value, char c){
+				return (value << 4) + tox(c);
+			});
+	}
+
+	uint32_t scancc(const char *begin, const char *end)
+	{
+		return std::accumulate(begin, end, 0,
+			[](uint32_t value, char c)
+			{
+				return (value << 8) + (unsigned)c;
+			}
+		);
+
+	}
+}
+
+
+
+
+%%{
+	machine lexer;
+
+	# this exits with cs == lexer_en_error.
+	error := any* ${ fbreak; };
+
+	main := |*
+
+		[ \t\r\n]+;
+
+		'>=' { Parse(parser, tkGTEQ, 0, command); };
+		'>>' { Parse(parser, tkGTGT, 0, command); };
+		'<=' { Parse(parser, tkLTEQ, 0, command); };
+		'<<' { Parse(parser, tkLTLT, 0, command); };
+		'!=' { Parse(parser, tkBANGEQ, 0, command); };
+		'==' { Parse(parser, tkEQEQ, 0, command); };
+		'||' { Parse(parser, tkPIPEPIPE, 0, command); };
+		'&&' { Parse(parser, tkAMPAMP, 0, command); };
+
+
+		'(' { Parse(parser, tkLPAREN, 0, command); };
+		')' { Parse(parser, tkRPAREN, 0, command); };
+		'=' { Parse(parser, tkEQ, 0, command); };
+		'+' { Parse(parser, tkPLUS, 0, command); };
+		'-' { Parse(parser, tkMINUS, 0, command); };
+		'*' { Parse(parser, tkSTAR, 0, command); };
+		'/' { Parse(parser, tkSLASH, 0, command); };
+		'%' { Parse(parser, tkPERCENT, 0, command); };
+		'~' { Parse(parser, tkTILDE, 0, command); };
+		'!' { Parse(parser, tkBANG, 0, command); };
+		'^' { Parse(parser, tkCARET, 0, command); };
+		'&' { Parse(parser, tkAMP, 0, command); };
+		'|' { Parse(parser, tkPIPE, 0, command); };
+		'<' { Parse(parser, tkLT, 0, command); };
+		'>' { Parse(parser, tkGT, 0, command); };
+
+		':' { Parse(parser, tkCOLON, 0, command); };
+		'@' { Parse(parser, tkAT, 0, command); };
+
+
+		'0x'i xdigit+ {
+			uint32_t value = scan16(ts + 2, te);
+			Parse(parser, tkINTEGER, value, command);
+		};
+
+		'$' xdigit + {
+			uint32_t value = scan16(ts + 1, te);
+			Parse(parser, tkINTEGER, value, command);
+		};
+
+		digit+ {
+			uint32_t value = scan10(ts, te);
+			Parse(parser, tkINTEGER, value, command);
+		};
+
+		['] [^']{1,4} ['] {
+			// 4 cc code
+
+			uint32_t value = scancc(ts + 1, te - 1);
+			Parse(parser, tkINTEGER, value, command);
+
+		};
+
+		'd'i [0-7] {
+			// data register
+			uint32_t data = ts[1] - '0';
+			Parse(parser, tkDREGISTER, data, command);
+		};
+
+		'a'i [0-7] {
+			// address register
+			uint32_t data = ts[1] - '0';
+			Parse(parser, tkAREGISTER, data, command);
+		};
+
+		'pc'i {
+			// program counter...
+			Parse(parser, tkXREGISTER, 0, command);
+		};
+
+		'csr'i {
+			// condition status register.
+			Parse(parser, tkXREGISTER, 1, command);
+		};
+
+		'sp'i {
+			// stack pointer aka a7
+			Parse(parser, tkAREGISTER, 7, command);
+		};
+
+		'fp'i {
+			// frame pointer aka a6
+			Parse(parser, tkAREGISTER, 6, command);
+		};
+
+		# commands...
+
+		'c'i | 'continue'i {
+			Parse(parser, tkCONTINUE, 0, command);
+		};
+
+		'hd'i | 'dump'i {
+			Parse(parser, tkDUMP, 0, command);
+		};
+
+		'h'i | 'help'i {
+			Parse(parser, tkHELP, 0, command);
+		};
+
+		'l'i | 'list'i {
+			Parse(parser, tkLIST, 0, command);
+		};
+
+		'n'i | 'next'i {
+			Parse(parser, tkNEXT, 0, command);
+		};
+
+		's'i | 'step'i {
+			Parse(parser, tkNEXT, 0, command);
+		};
+
+		'b'i | 'brk'i | 'break'i {
+			Parse(parser, tkBREAK, 0, command);
+		};
+
+		'tbrk'i | 'tbreak'i | 'toolbreak'i {
+			Parse(parser, tkTBREAK, 0, command);
+		};
+
+		'mbrk'i | 'mbreak'i | 'rwbrk'i | 'rwbreak'i {
+			Parse(parser, tkRWBREAK, 0, command);
+		};
+
+		'rbrk'i | 'rbreak'i {
+			Parse(parser, tkRBREAK, 0, command);
+		};
+
+		'wbrk'i | 'wbreak'i {
+			Parse(parser, tkWBREAK, 0, command);
+		};
+
+
+		'g'i | 'go'i {
+			Parse(parser, tkCONTINUE, 0, command);
+		};
+
+		'p'i | 'print'i {
+			Parse(parser, tkPRINT, 0, command);
+		};
+	
+		'r'i | 'run'i {
+			Parse(parser, tkCONTINUE, 0, command);
+		};
+
+
+		# TODO - split the ; commands into two parts.
+		# struct Token {std::string sValue; uint32_t intValue; enum Command { dump, list,  ... }};
+		';h'i | ';hd'i | ';hexdump'i {
+			Parse(parser, tkSEMIH, 0, command);
+		};
+
+		';i'i | ';info'i {
+			Parse(parser, tkSEMII, 0, command);
+		};
+
+		';l'i | ';list'i {
+			Parse(parser, tkSEMIL, 0, command);
+		};
+
+
+
+		# generic identifier
+		[_A-Za-z][_A-Za-z0-9]* {
+			// TODO -- pass into parser, parser can check environment value.
+			fprintf(stderr, "illegal identifier: `%.*s`\n", (int)(te - ts), ts);
+			fgoto error;
+		};
+
+
+		# end of the line...
+		#0 {
+		#	Parse(parser, tkEOL, 0, command);
+		#};
+
+		#any {
+		#	fprintf(stderr, "illegal character: `%c`\n", *ts);
+		#	fbreak;
+		#};
+
+
+	*|;
+}%%
+
+namespace Debug {
+
+bool ParseLine(const char *iter, Command *command)
+{
+	%% write data;
+
+	void *parser;
+
+	parser = ParseAlloc(malloc);
+
+	//ParseTrace(stdout, "--> ");
+	command->action = cmdNull;
+
+	int length = strlen(iter);
+	const char *p = iter;
+	const char *pe = iter + length;
+	const char *eof = pe;
+	const char *ts;
+	const char *te;
+	int cs, act;
+
+	for(;;)
+	{
+
+		%% write init;
+		%% write exec;
+
+		if (cs == lexer_error)
+		{
+			fprintf(stderr, "illegal character: `%c'\n", *p);
+			ParseFree(parser, free);
+			return false;
+		}
+		if (cs == lexer_en_error)
+		{
+			ParseFree(parser, free);
+			return false;
+		}
+		if (p == pe)
+		{
+			Parse(parser, tkEOL, 0, command);
+			break;
+		}
+	}
+
+	Parse(parser, 0, 0, command);
+	ParseFree(parser, free);
+
+	if (!command->valid)
+		fprintf(stderr,"I don't understand.\n");
+
+	return command->valid;
+
+}
+
+} // namespace
