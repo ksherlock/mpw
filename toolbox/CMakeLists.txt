@@ -21,12 +21,17 @@ set(TOOLBOX_SRC
 )
 
 
-
 add_custom_command(
 	OUTPUT saneparser.cpp
 	COMMAND ragel -p -G2 -o saneparser.cpp "${CMAKE_CURRENT_SOURCE_DIR}/saneparser.rl"
 	MAIN_DEPENDENCY saneparser.rl 
 )
 
+set_source_files_properties(
+	saneparser.cpp
+	PROPERTIES
+	COMPILE_FLAGS 
+	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
+)
 
 add_library(TOOLBOX_LIB ${TOOLBOX_SRC})
