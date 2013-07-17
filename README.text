@@ -19,7 +19,7 @@ is a fork of the SQLite zero-alloc allocator by Jefty Negapatan
 
 2. Building
 
-Compiling requires cmake, ragel, and a recent version of clang++ with 
+Compiling requires cmake, ragel, lemon, and a recent version of clang++ with 
 c++11 support.  It has only been built and tested with OS X 10.8.
 
 mkdir build
