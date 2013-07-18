@@ -442,7 +442,7 @@ void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
 }
 
 
-#define MPW_VERSION "0.7"
+#define MPW_VERSION "0.7 [kf]"
 void help()
 {
 	printf("MPW " MPW_VERSION "\n");
@@ -721,9 +721,9 @@ int main(int argc, char **argv)
 	command = find_exe(command);
 	if (command.empty())
 	{
-		const char *mpw = getenv("MPW");
+		std::string mpw = MPW::RootDir();
 		fprintf(stderr, "Unable to find command %s\n", argv[0]);
-		fprintf(stderr, "$MPW = %s\n", mpw ? mpw : "<null>");
+		fprintf(stderr, "$MPW = %s\n", mpw.c_str());
 		exit(EX_USAGE);
 	}
 	argv[0] = ::strdup(command.c_str()); // hmm.. could setenv(mpw_command) instead.
