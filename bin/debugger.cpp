@@ -391,15 +391,55 @@ void Print(uint32_t data)
 {
 
 	// 32-bit unsigned int
-	printf("$%08x %12u", data, data);
+	printf("$%08x", data);
+
+
+
+	// 32-but unsigned
+	printf(" %12u", data);
 
 	// 32-bit signed int
+	int32_t negValue = 0;
 	if (data & 0x80000000)
-		printf(" %12d", (int32_t)data);
+		negValue = (int32_t)data;
 
-	// 16-bit signed int
 	if ((data & 0xffff8000) == 0x8000)
-		printf(" %6d", (int16_t)data);
+		negValue = (int16_t)data;
+
+	if (negValue != 0)
+		printf(" %12d", negValue);
+	else printf("             ");
+
+
+
+
+	// print binary value
+	{
+		std::string bins;
+		bins.reserve(32);
+
+		bins.push_back('%');
+
+		if (data > 0xffff)
+		{
+			for (unsigned i = 0, mask = 0x80000000; i < 16; ++i, mask >>= 1)
+				bins.push_back( data & mask ? '1' : '0');
+		}
+
+		if (data > 0xff)
+		{
+			for (unsigned i = 0, mask = 0x8000; i < 8; ++i, mask >>= 1)
+				bins.push_back( data & mask ? '1' : '0');
+		}
+
+		for (unsigned i = 0, mask = 0x80; i < 8; ++i, mask >>= 1)
+			bins.push_back( data & mask ? '1' : '0');
+
+
+		printf(" %33s", bins.c_str());
+	}
+
+
 
 	// 4-cc code? 2-cc code? 1-cc code?
 	char tmp[5];
@@ -437,7 +477,7 @@ void Print(uint32_t data)
 			break;
 	}
 
-	// TODO -- print as binary
+
 
 
 	printf("\n");
