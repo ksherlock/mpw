@@ -96,6 +96,17 @@ namespace OS
 	// known text file extensions
 	bool IsTextFile(const std::string &s)
 	{
+
+		// 1. check for a TEXT file type.
+		{
+			int rv;
+			char buffer[32];
+
+			rv = ::getxattr(s.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
+			if (rv >= 8 && memcmp(buffer, "TEXT", 4) == 0)
+				return true;
+		}
+		
 		std::string ext = extension(s);
 		if (ext.empty()) return false;
 
