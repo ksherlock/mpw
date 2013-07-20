@@ -442,7 +442,7 @@ void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
 }
 
 
-#define MPW_VERSION "0.7 [kf]"
+#define MPW_VERSION "0.7.1 [kf]"
 void help()
 {
 	printf("MPW " MPW_VERSION "\n");
