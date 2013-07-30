@@ -63,6 +63,8 @@ namespace MPW { namespace Internal {
 
 	uint32_t MacProgramInfo = 0;
 
+	std::unordered_map<std::string, std::string> Environment;
+
 } }
 
 
@@ -221,6 +223,16 @@ namespace MPW
 	}
 
 
+	std::string GetEnv(const std::string &name)
+	{
+		static std::string empty;
+
+		auto iter = Environment.find(name);
+		if (iter == Environment.end()) return empty;
+		return iter->second;
+	}
+
+
 
 	uint16_t Init(int argc, char **argv)
 	{
@@ -323,7 +335,6 @@ namespace MPW
 		// environment,
 		// just use $MPW and synthesize the other ones.
 		{
-			std::unordered_map<std::string, std::string> env;
 
 			std::string m(RootDir());
 			if (!m.empty())
@@ -331,9 +342,9 @@ namespace MPW
 				std::string mm = ToolBox::UnixToMac(m);
 				if (mm.back() != ':') mm.push_back(':');
 
-				env.emplace(std::string("MPW"), mm);
+				Environment.emplace(std::string("MPW"), mm);
 			}
-			env.emplace(std::string("Command"), command);
+			Environment.emplace(std::string("Command"), command);
 
 			if (!m.empty())
 			{
@@ -341,12 +352,12 @@ namespace MPW
 				void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::string> &env);
 
 				std::string path(RootDirPathForFile("Environment.text"));
-				LoadEnvironment(path, env);
+				LoadEnvironment(path, Environment);
 			}
 
 			std::deque<std::string> e;
 
-			for (const auto &iter : env)
+			for (const auto &iter : Environment)
 			{
 				std::string tmp;
 				tmp.append(iter.first);
