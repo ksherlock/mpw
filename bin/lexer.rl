@@ -66,6 +66,14 @@ namespace {
 			});
 	}
 
+	uint32_t scan2(const char *begin, const char *end)
+	{
+		return std::accumulate(begin, end, 0, 
+			[](uint32_t value, char c){
+				return (value << 1) + (c & 0x01);
+			});
+	}
+
 	uint32_t scancc(const char *begin, const char *end)
 	{
 		return std::accumulate(begin, end, 0,
@@ -121,13 +129,20 @@ namespace {
 		'@' { Parse(parser, tkAT, 0, command); };
 
 
+		'$' xdigit + {
+			uint32_t value = scan16(ts + 1, te);
+			Parse(parser, tkINTEGER, value, command);
+		};
+
 		'0x'i xdigit+ {
+			// hexadecimal
 			uint32_t value = scan16(ts + 2, te);
 			Parse(parser, tkINTEGER, value, command);
 		};
 
-		'$' xdigit + {
-			uint32_t value = scan16(ts + 1, te);
+		'0b'i [01]+ {
+			// binary
+			uint32_t value = scan2(ts + 2, te);
 			Parse(parser, tkINTEGER, value, command);
 		};
 
