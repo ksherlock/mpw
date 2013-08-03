@@ -364,6 +364,10 @@ namespace ToolBox {
 				d0 = RM::GetResource(trap);
 				break;
 
+			case 0xa9a2:
+				d0 = RM::LoadResource(trap);
+				break;
+
 			// ReleaseResource (theResource: Handle);
 			case 0xa9a3:
 				d0 = RM::ReleaseResource(trap);
@@ -379,6 +383,10 @@ namespace ToolBox {
 
 			case 0xa9a7:
 				d0 = RM::SetResAttrs(trap);
+				break;
+
+			case 0xa9a8:
+				d0 = RM::GetResInfo(trap);
 				break;
 
 			case 0xa9ab:

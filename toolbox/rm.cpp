@@ -131,6 +131,7 @@ namespace RM
 	namespace Native 
 	{
 
+		// not to be confused with MacOS LoadResource(theHandle)
 
 		template<class FX>
 		uint16_t LoadResource(uint32_t type, uint32_t &theHandle, FX fx)
@@ -819,6 +820,101 @@ namespace RM
 		ToolReturn<4>(sp, size);
 		return SetResError(::ResError());
 	}
+
+	uint16_t GetResInfo(uint16_t trap)
+	{
+		// PROCEDURE GetResInfo (theResource: Handle; 
+		// VAR theID: INTEGER; VAR theType: ResType; VAR name: Str255);
+
+		uint32_t theResource;
+		uint32_t theID;
+		uint32_t theType;
+		uint32_t name;
+		StackFrame<16>(theResource, theID, theType, name);
+
+		Log("%04x GetResInfo(%08x)\n", trap, theResource);
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end())
+		{
+			return SetResError(MacOS::resNotFound);
+		}
+
+		Handle nativeHandle = iter->second;
+		ResID nativeID = 0;
+		ResType nativeType = 0;		
+		Str255 nativeName = {0};
+
+		::GetResInfo(nativeHandle, &nativeID, &nativeType, nativeName);
+
+		if (theID) memoryWriteWord(nativeID, theID);
+		if (theType) memoryWriteLong(nativeType, theType);
+		if (name)
+		{
+			std::string sname(nativeName + 1, nativeName + 1 + nativeName[0]);
+			ToolBox::WritePString(name, sname);
+		}
+
+		return SetResError(::ResError());
+	}
+
+	uint16_t LoadResource(uint16_t trap)
+	{
+		// PROCEDURE LoadResource (theResource: Handle);
+
+		// this loads the resource from disk, if not already
+		// loaded. (if purgeable or SetResLoad(false)) 
+
+		// this needs cooperation with MM to check if 
+		// handle was purged.
+
+		OSErr err;
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x LoadResource(%08x)\n", trap, theResource);
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end())
+		{
+			return SetResError(MacOS::resNotFound);
+		}
+
+
+		// if it has a size, it's loaded...
+		uint32_t handleSize;
+		err = MM::Native::GetHandleSize(theResource, handleSize);
+		if (err) return SetResError(err);
+		if (handleSize) return SetResError(0);
+
+		// otherwise, load it
+
+		Handle nativeHandle;
+		uint32_t size;
+
+		nativeHandle = iter->second;
+
+
+		::LoadResource(nativeHandle);
+		err = ::ResError();
+		if (err) return SetResError(err); // ?!?!
+
+
+		size = ::GetHandleSize(nativeHandle);
+
+		err = MM::Native::ReallocHandle(theResource, size);
+		if (err) return SetResError(err);
+
+		if (size)
+		{
+			uint32_t ptr = memoryReadLong(theResource);
+			std::memcpy(memoryPointer(ptr), *(void **)nativeHandle, size);
+		}
+
+		return SetResError(0);
+	}
+
 
 
 
