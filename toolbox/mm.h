@@ -52,6 +52,8 @@ namespace MM
 	uint16_t SetHandleSize(uint16_t);
 	uint16_t SetPtrSize(uint16_t);
 
+	uint16_t HGetState(uint16_t trap);
+
 	uint16_t HLock(uint16_t trap);
 	uint16_t HUnlock(uint16_t trap);
 

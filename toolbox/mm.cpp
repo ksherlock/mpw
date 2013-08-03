@@ -973,7 +973,50 @@ namespace MM
 
 	#pragma mark Handle attributes
 
-	// these are all nops for now.
+	uint16_t HGetState(uint16_t trap)
+	{
+		/*
+		 * on entry:
+		 * A0 Handle
+		 *
+		 * on exit:
+		 * D0 flag byte
+		 *
+		 */
+
+		unsigned flags = 0;
+		uint32_t hh = cpuGetAReg(0);
+
+		Log("%04x HGetState(%08x)\n", trap, hh);
+
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+		/*
+		 * flag bits:
+		 * 0-4: reserved
+		 * 5: is a resource
+		 * 6: set if purgeable
+		 * 7: set if locked
+		 */
+
+		const auto &info = iter->second;
+
+		// resouce not yet supported...
+		// would need extra field and support in RM:: when
+		// creating.
+		// see HSetRBit, HClrRBit
+		if (info.resource) flags |= (1 << 5);
+		if (info.purgeable) flags |= (1 << 6);
+		if (info.locked) flags |= (1 << 7); 
+
+		SetMemError(0);
+		return flags;
+	}
+
+
 
 	uint16_t HPurge(uint16_t trap)
 	{

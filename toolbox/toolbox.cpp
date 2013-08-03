@@ -221,6 +221,10 @@ namespace ToolBox {
 				d0 = MM::MaxBlock(trap);
 				break;
 
+			case 0xa069:
+				d0 = MM::HGetState(trap);
+				break;
+
 			// MoveHHi (h: Handle);
 			case 0xa064:
 				d0 = MM::MoveHHi(trap);
