@@ -12,14 +12,6 @@ namespace MPW
 	{
 		if (Trace) fprintf(stderr, format, args...);
 	}
-
-/*
-	namespace Internal
-	{
-		// for dup counts, etc.
-		extern std::vector<int> FDTable;
-	}
-*/
 	
 }
 
