@@ -161,6 +161,7 @@ namespace RM
 				::ReleaseResource(nativeHandle);
 				return SetResError(error);
 			}
+			MM::Native::HSetRBit(theHandle);
 
 			if (size)
 				std::memcpy(memoryPointer(ptr), *(void **)nativeHandle, size);

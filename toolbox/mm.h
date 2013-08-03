@@ -21,6 +21,9 @@ namespace MM
 		uint16_t DisposePtr(uint32_t pointer);
 
 		uint16_t GetHandleSize(uint32_t handle, uint32_t &handleSize);
+		uint16_t HSetRBit(uint32_t handle);
+		uint16_t HClrRBit(uint32_t handle);
+
 	}
 
 	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved);

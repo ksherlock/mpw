@@ -61,9 +61,10 @@ namespace
 		uint32_t size;
 		bool locked;
 		bool purgeable;
+		bool resource;
 
 		HandleInfo(uint32_t a = 0, uint32_t s = 0) : 
-			address(a), size(s), locked(false), purgeable(false)
+			address(a), size(s), locked(false), purgeable(false), resource(false)
 		{}
 	};
 
@@ -334,6 +335,27 @@ namespace MM
 			handleSize = iter->second.size;
 			return SetMemError(0);
 		}		
+		uint16_t HSetRBit(uint32_t handle)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto &info = iter->second;
+			info.resource = true;
+			return SetMemError(0);
+		}
+
+		uint16_t HClrRBit(uint32_t handle)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto &info = iter->second;
+			info.resource = false;
+			return SetMemError(0);
+		}
 
 
 	}
