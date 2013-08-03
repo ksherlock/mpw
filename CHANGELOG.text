@@ -1,3 +1,8 @@
+* Pathname conversion enhancements:
+- code has been rewritten
+- supports :: to go up a directory
+- supports MPW environment variables (eg {PLibraries}PasLib.o)
+
 * Environment enhancements:
 - code has been rewritten.
 - -DName=Value now supported on the commandline (eg MPW -DMPWVersion=3.5 SC .... )
@@ -7,5 +12,8 @@
 
 * debugger now support 0b binary literals
 
------
-0.7.1
+---------------------
+0.7.1 - July 26, 2013
+---------------------
+
+* First public release.
