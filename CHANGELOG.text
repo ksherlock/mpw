@@ -1,0 +1,11 @@
+* Environment enhancements:
+- code has been rewritten.
+- -DName=Value now supported on the commandline (eg MPW -DMPWVersion=3.5 SC .... )
+- += now supported in the text file for appending
+- {variables} are now supported for better MPW compatibility.  
+- At some point, ${variables} and $variables may be removed.
+
+* debugger now support 0b binary literals
+
+-----
+0.7.1
