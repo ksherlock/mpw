@@ -273,6 +273,8 @@ namespace MM
 
 			ptr = nullptr;
 
+			// todo -- size 0 should have a ptr to differentiate
+			// from purged.
 			if (size)
 			{
 				ptr = (uint8_t *)mplite_malloc(&pool, size);
@@ -334,7 +336,158 @@ namespace MM
 			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 			handleSize = iter->second.size;
 			return SetMemError(0);
-		}		
+		}
+
+
+		uint16_t ReallocHandle(uint32_t handle, uint32_t logicalSize)
+		{
+
+			auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto& info = iter->second;
+
+			if (info.locked) return SetMemError(MacOS::memLockedErr);
+
+
+			uint32_t mcptr = 0;
+
+			if (logicalSize)
+			{
+				// todo -- purge & retry on failure.
+
+				void *address = mplite_malloc(&pool, logicalSize);
+				if (!address) return SetMemError(MacOS::memFullErr);
+
+				mcptr = (uint8_t *)address - Memory;
+			}
+
+			// the handle is not altered in the event of an error.
+			if (info.address)
+			{
+				void *address = Memory + info.address;
+
+				mplite_free(&pool, address);
+			}
+
+			info.address = mcptr;
+			info.size = logicalSize;
+
+			memoryWriteLong(mcptr, handle);
+
+			// lock?  clear purged flag?
+
+			return 0;
+
+		}
+
+
+		uint16_t SetHandleSize(uint32_t handle, uint32_t newSize)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto &info = iter->second;
+
+			// 0 - no change in size.
+			if (info.size == newSize) return SetMemError(0);
+
+			uint32_t mcptr = info.address;
+			uint8_t *ptr = mcptr + Memory;
+
+			// 1. - resizing to 0.
+			if (!newSize)
+			{
+				if (info.locked) return SetMemError(MacOS::memLockedErr);
+
+				// todo -- size 0 should have a ptr to differentiate
+				// from purged.
+
+				mplite_free(&pool, ptr);
+				info.address = 0;
+				info.size = 0;
+
+				memoryWriteLong(info.address, handle);
+				return SetMemError(0);
+			}
+
+			// 2. - resizing from 0.
+
+			if (!mcptr)
+			{
+				if (info.locked) return SetMemError(MacOS::memLockedErr);
+
+				ptr = (uint8_t *)mplite_malloc(&pool, newSize);
+				if (!ptr) return SetMemError(MacOS::memFullErr);
+
+				mcptr = ptr - Memory;
+				info.address = mcptr;
+				info.size = newSize;
+
+				memoryWriteLong(info.address, handle);
+				return SetMemError(0);
+			}
+
+			for (unsigned i = 0; i < 2; ++i)
+			{
+
+				// 3. - locked
+				if (info.locked)
+				{
+					if (mplite_resize(&pool, ptr, mplite_roundup(&pool, newSize)) == MPLITE_OK)
+					{
+						info.size = newSize;
+						return SetMemError(0);
+					}
+				}
+				else
+				{
+
+					// 4. - resize.
+
+					ptr = (uint8_t *)mplite_realloc(&pool, ptr, mplite_roundup(&pool, newSize));
+
+					if (ptr)
+					{
+						mcptr = ptr - Memory;
+						info.address = mcptr;
+						info.size = newSize;
+
+						memoryWriteLong(info.address, handle);
+						return SetMemError(0);
+					}
+
+				}
+
+				fprintf(stderr, "mplite_realloc failed.\n");
+				Native::PrintMemoryStats();			
+
+				if (i > 0) return SetMemError(MacOS::memFullErr);
+
+				// purge...
+				for (auto & kv : HandleMap)
+				{
+					uint32_t ph = kv.first;
+					auto &info = kv.second;
+
+					if (ph == handle) continue;
+					if (info.size && info.purgeable && !info.locked)
+					{
+						mplite_free(&pool, Memory + info.address);
+						info.size = 0;
+						info.address = 0;
+
+						// also need to update memory
+						memoryWriteLong(0, ph);
+					}
+				}
+			}
+			return SetMemError(MacOS::memFullErr);
+
+		}
+
 		uint16_t HSetRBit(uint32_t handle)
 		{
 			const auto iter = HandleMap.find(handle);
@@ -786,6 +939,9 @@ namespace MM
 
 		Log("%04x ReallocHandle(%08x, %08x)\n", trap, hh, logicalSize);
 
+		return Native::ReallocHandle(hh, logicalSize);
+
+#if 0
 		auto iter = HandleMap.find(hh);
 
 		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
@@ -821,6 +977,7 @@ namespace MM
 		// lock?  clear purged flag?
 
 		return 0;
+#endif
 	}
 
 
@@ -865,6 +1022,9 @@ namespace MM
 
 		Log("%04x SetHandleSize(%08x, %08x)\n", trap, hh, newSize);
 
+		return Native::SetHandleSize(hh, newSize);
+
+#if 0
 		auto iter = HandleMap.find(hh);
 
 		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
@@ -968,6 +1128,7 @@ namespace MM
 		}
 
 		return SetMemError(MacOS::memFullErr);
+#endif
 	}
 
 
