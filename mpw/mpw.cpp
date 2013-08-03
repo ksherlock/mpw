@@ -56,7 +56,7 @@
 extern char **environ;
 
 
-namespace MPW { namespace Internal {
+namespace MPW { 
 
 	// for dup counts, etc.
 	//std::vector<int> FDTable;
@@ -65,12 +65,11 @@ namespace MPW { namespace Internal {
 
 	std::unordered_map<std::string, std::string> Environment;
 
-} }
+}
 
 
 namespace MPW
 {
-	using namespace Internal;
 
 	bool Trace = false;
 
@@ -222,19 +221,7 @@ namespace MPW
 		return path; // unknown.
 	}
 
-
-	std::string GetEnv(const std::string &name)
-	{
-		static std::string empty;
-
-		auto iter = Environment.find(name);
-		if (iter == Environment.end()) return empty;
-		return iter->second;
-	}
-
-
-
-	uint16_t Init(int argc, char **argv)
+	uint16_t Init(int argc, char **argv, const std::vector<std::string> &defines)
 	{
 		/*
 		FDTable.resize(16);
@@ -335,6 +322,8 @@ namespace MPW
 		// environment,
 		// just use $MPW and synthesize the other ones.
 		{
+			void EnvLoadFile(const std::string &envfile);
+			void EnvLoadArray(const std::vector<std::string> &data);
 
 			std::string m(RootDir());
 			if (!m.empty())
@@ -346,13 +335,15 @@ namespace MPW
 			}
 			Environment.emplace(std::string("Command"), command);
 
+
+			if (defines.size())
+				EnvLoadArray(defines);
+
 			if (!m.empty())
 			{
 
-				void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::string> &env);
-
 				std::string path(RootDirPathForFile("Environment.text"));
-				LoadEnvironment(path, Environment);
+				EnvLoadFile(path);
 			}
 
 			std::deque<std::string> e;
@@ -368,7 +359,7 @@ namespace MPW
 
 
 			uint32_t size = 0;
-			for(const std::string &s : e)
+			for (const std::string &s : e)
 			{
 				int l = s.length() + 1;
 				if (l & 0x01) l++;

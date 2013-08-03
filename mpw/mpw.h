@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace MPW {
 
@@ -99,7 +100,7 @@ namespace MPW {
 
 
 	// should add argc/argv/envp...
-	uint16_t Init(int argc, char **argv);
+	uint16_t Init(int argc, char **argv, const std::vector<std::string> &defines);
 
 	uint32_t ExitStatus();
 

@@ -538,6 +538,8 @@ bool file_exists(const std::string & name)
 
 std::string find_exe(const std::string &name)
 {
+	// TODO -- use the environment variable for directories.
+
 	if (file_exists(name)) return name;
 
 	// if name is a path, then it doesn't exist.
@@ -652,8 +654,10 @@ int main(int argc, char **argv)
 
 	//auto start_time = std::chrono::high_resolution_clock::now();
 
+	std::vector<std::string> defines;
+
 	int c;
-	while ((c = getopt_long(argc, argv, "+hVm:r:s:", LongOpts, NULL)) != -1)
+	while ((c = getopt_long(argc, argv, "+hVm:r:s:D:", LongOpts, NULL)) != -1)
 	{
 		switch(c)
 		{
@@ -698,6 +702,10 @@ int main(int argc, char **argv)
 			case 's':
 				if (!parse_number(optarg, &Flags.stackSize))
 					exit(EX_CONFIG);
+				break;
+
+			case 'D':
+				defines.push_back(optarg);
 				break;
 
 			case ':':
@@ -768,7 +776,7 @@ int main(int argc, char **argv)
 
 	MM::Init(Memory, MemorySize, kGlobalSize);
 	OS::Init();
-	MPW::Init(argc, argv);
+	MPW::Init(argc, argv, defines);
 
 
 	cpuStartup();
