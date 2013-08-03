@@ -17,6 +17,7 @@ set(TOOLBOX_SRC
 	qd.cpp
 	sane.cpp
 	saneparser.cpp
+	pathnames.cpp
 	utility.cpp
 )
 
@@ -27,8 +28,14 @@ add_custom_command(
 	MAIN_DEPENDENCY saneparser.rl 
 )
 
+add_custom_command(
+	OUTPUT pathnames.cpp
+	COMMAND ragel -p -G2 -o pathnames.cpp "${CMAKE_CURRENT_SOURCE_DIR}/pathnames.rl"
+	MAIN_DEPENDENCY pathnames.rl 
+)
+
 set_source_files_properties(
-	saneparser.cpp
+	saneparser.cpp pathnames.cpp
 	PROPERTIES
 	COMPILE_FLAGS 
 	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"

@@ -97,6 +97,7 @@ namespace MPW {
 	std::string RootDirPathForFile(const std::string &file);
 
 	std::string GetEnv(const std::string &);
+	std::string ExpandVariables(const std::string &s);
 
 
 	// should add argc/argv/envp...

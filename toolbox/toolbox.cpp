@@ -558,6 +558,7 @@ namespace ToolBox {
 	 * :dir:file -> dir/file
 	 * volume:file -> /volume/file
 	 */
+	 #if 0
 	std::string UnixToMac(const std::string &path)
 	{
 		// ./..., //... etc.
@@ -630,4 +631,5 @@ namespace ToolBox {
 
 		return tmp;
 	}
+	#endif
 }
