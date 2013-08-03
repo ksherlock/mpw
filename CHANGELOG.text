@@ -1,3 +1,7 @@
+* DumpCode utility now supported
+- added HGetState, GetResInfo, LoadResource toolbox calls
+
+
 * Pathname conversion enhancements:
 - code has been rewritten
 - supports :: to go up a directory
