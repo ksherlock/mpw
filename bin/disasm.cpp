@@ -280,9 +280,18 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			// 4-byte header for segment stuff.
-			data += 4;
-			size -= 4;
+			// near model uses a $4-byte header.
+			// far model uses a $28-byte header.
+			if (data[0] == 0xff && data[1] == 0xff)
+			{
+				data += 0x28;
+				size -= 0x28;
+			}
+			else
+			{
+				data += 0x04;
+				size -= 0x04;
+			}
 			memorySetMemory(data, size);
 			disasm(cname.c_str(), resID, size);
 		}
