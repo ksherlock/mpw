@@ -148,6 +148,10 @@ namespace ToolBox {
 				d0 = OS::GetToolTrapAddress(trap);
 				break;
 
+			case 0xa647:
+				d0 = OS::SetToolTrapAddress(trap);
+				break;
+
 			case 0xA346:
 				d0 = OS::GetOSTrapAddress(trap);
 				break;
