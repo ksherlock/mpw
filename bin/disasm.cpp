@@ -82,19 +82,47 @@ void code0(uint32_t data_size)
 
 	offset = 16;
 
+	bool longA5 = false;
 	while (offset < data_size)
 	{
-		uint16_t off = memoryReadWord(offset);
-		if (memoryReadWord(offset + 2) == 0x3F3C && memoryReadWord(offset + 6) == 0xA9F0)
-		{
-			uint16_t seg = memoryReadWord(offset + 4);
 
-			// pc +2 since the first byte is the offset, not code.
-			printf("$%08X   %04X : %04X\n", pc + 2, seg, off);
+		if (longA5)
+		{
+			uint16_t segment = memoryReadWord(offset);
+			uint32_t segOffset = memoryReadLong(offset + 4);
+
+			if (memoryReadWord(offset + 2) == 0xA9F0)
+			{
+				printf("$%08X   %04X : %08X\n", pc + 2, segment, segOffset);
+			}
+			else
+			{
+				printf("$%08X   ???\n", pc + 2);	
+			}
 		}
 		else
 		{
-			printf("$%08X   ???\n", pc + 2);
+			uint16_t data[4];
+			for (unsigned i = 0; i < 4; ++i)
+				data[i] = memoryReadWord(offset + 2 * i);
+
+			if (data[1] == 0xffff)
+			{
+				longA5 = true;
+				printf("--------\n");
+			}
+			else if (data[1] == 0x3F3C && data[3] == 0xA9F0)
+			{
+				uint16_t segment = data[0];
+				uint16_t segOffset = data[2];
+
+				// pc +2 since the first byte is the offset, not code.
+				printf("$%08X   %04X : %04X\n", pc + 2, segment, segOffset);
+			}
+			else
+			{
+				printf("$%08X   ???\n", pc + 2);
+			}
 		}
 		offset += 8;
 		pc += 8;
