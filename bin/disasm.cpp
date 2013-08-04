@@ -113,8 +113,8 @@ void code0(uint32_t data_size)
 			}
 			else if (data[1] == 0x3F3C && data[3] == 0xA9F0)
 			{
-				uint16_t segment = data[0];
-				uint16_t segOffset = data[2];
+				uint16_t segOffset = data[0];
+				uint16_t segment = data[2];
 
 				// pc +2 since the first byte is the offset, not code.
 				printf("$%08X   %04X : %04X\n", pc + 2, segment, segOffset);
