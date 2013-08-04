@@ -140,7 +140,22 @@ uint32_t load(const char *file)
 
 	uint32_t returnAddress = 0;
 
-	std::vector< std::pair<uint32_t, uint32_t> > segments; // segment, address
+	struct SegInfo {
+	public:
+
+		SegInfo()
+		{}
+
+		SegInfo(uint32_t a, uint32_t s, bool f) :
+			address(a), size(s), farModel(f)
+		{}
+
+		uint32_t address = 0;
+		uint32_t size = 0;
+		bool farModel = 0;
+
+	};
+	std::vector< SegInfo> segments;
 
 
 	uint32_t a5 = 0;
@@ -151,6 +166,8 @@ uint32_t load(const char *file)
 	// todo -- call RM::Native to open and load the Resource File.
 
 	assert(FSPathMakeRef( (const UInt8 *)file, &ref, NULL) == noErr);
+	// todo -- if it wasn't a resource file, this will fail
+	// should provide a nicer error message.
     refNum = FSOpenResFile(&ref, fsRdPerm);
     assert(refNum != -1 );
 
@@ -209,7 +226,7 @@ uint32_t load(const char *file)
 			a5 = address + below;
 			std::memcpy(memoryPointer(a5 + jtOffset), data + 16 , jtSize);
 
-			segments[resID] = std::make_pair(address, a5size);
+			segments[resID] = SegInfo(address, a5size, false);
 
 			jtStart = a5 + jtOffset;
 			jtEnd = jtStart + jtSize;
@@ -224,6 +241,9 @@ uint32_t load(const char *file)
 		}
 		else
 		{
+			bool farModel = false;
+			if (data[0] == 0xff && data[1] == 0xff) farModel = true;
+
 			error = MM::Native::NewPtr(size, false, address);
 			if (error)
 			{
@@ -233,7 +253,7 @@ uint32_t load(const char *file)
 
 			std::memcpy(memoryPointer(address), data, size);
 
-			segments[resID] = std::make_pair(address, size);
+			segments[resID] = SegInfo(address, size, farModel);
 		}
 
 		ReleaseResource(h);
@@ -243,22 +263,46 @@ uint32_t load(const char *file)
     assert(a5);
 
     bool first = true;
+    bool farModel = false;
     for (; jtStart < jtEnd; jtStart += 8)
     {
-    	uint16_t offset = memoryReadWord(jtStart);
-    	uint16_t seg = memoryReadWord(jtStart + 4);
+    	uint16_t seg;
+    	uint32_t offset;
+    	if (farModel)
+    	{
+    		seg = memoryReadWord(jtStart + 0);
+    		offset = memoryReadLong(jtStart + 4);
 
-    	assert(memoryReadWord(jtStart + 2) == 0x3F3C);
-    	assert(memoryReadWord(jtStart + 6) == 0xA9F0);
+    		assert(memoryReadWord(jtStart + 2) == 0xA9F0);
+    	}
+    	else
+    	{
+    		uint16_t farModelCheck;
+    		offset = memoryReadWord(jtStart);
+    		farModelCheck = memoryReadWord(jtStart + 2);
+    		seg = memoryReadWord(jtStart + 4);
 
-    	assert(seg < segments.size());
+    		if (farModelCheck == 0xffff)
+    		{
+    			farModel = true;
+    			continue;
+    		}
+
+	    	assert(memoryReadWord(jtStart + 2) == 0x3F3C);
+	    	assert(memoryReadWord(jtStart + 6) == 0xA9F0);
+	    }
+
+		assert(seg < segments.size());
 
     	auto p = segments[seg];
-    	assert(p.first); // missing segment?!
-    	assert(offset < p.second);
+    	//assert(p.first); // missing segment?!
+    	//assert(offset < p.second);
 
-    	// +4 for the jump table info header.
-    	uint32_t address = p.first + offset + 4;
+    	assert(p.address); // missing segment?!
+    	assert(offset < p.size);
+
+    	// +$4/$28 for the jump table info header.
+    	uint32_t address = p.address + offset + (p.farModel ? 0x28 : 0x04);
 
     	// JMP absolute long
     	memoryWriteWord(0x4EF9, jtStart + 2);
