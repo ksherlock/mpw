@@ -158,12 +158,13 @@ namespace MM
 				if (iter != HandleMap.end())
 				{
 					const HandleInfo &info = iter->second;
-					printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c\n", 
+					printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c %c\n", 
 						iter->first, 
 						info.address, 
 						info.size, 
 						info.locked ? 'L' : ' ',
-						info.purgeable ? 'P' : ' '
+						info.purgeable ? 'P' : ' ',
+						info.resource ? 'R' : ' '
 					);
 					return;
 				}			
@@ -182,12 +183,13 @@ namespace MM
 					if (!info.size) end++;
 					if (address >= begin && address < end)
 					{
-						printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c\n", 
+						printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c %c\n", 
 							kv.first, 
 							info.address, 
 							info.size, 
 							info.locked ? 'L' : ' ',
-							info.purgeable ? 'P' : ' '
+							info.purgeable ? 'P' : ' ',
+							info.resource ? 'R' : ' '
 						);
 						return;
 					}
@@ -206,9 +208,14 @@ namespace MM
 			{
 				const auto h = kv.first;
 				const auto & info = kv.second;
-				fprintf(stdout, "%08x %08x %08x %c %c\n",
-					h, info.address, info.size, 
-					info.locked? 'L' : ' ', info.purgeable? 'P' : ' ');
+				fprintf(stdout, "%08x %08x %08x %c %c %c\n",
+					h, 
+					info.address, 
+					info.size, 
+					info.locked? 'L' : ' ', 
+					info.purgeable? 'P' : ' ',
+					info.resource ? 'R' : ' '
+					);
 			}
 
 		}
