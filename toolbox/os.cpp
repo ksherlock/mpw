@@ -149,6 +149,8 @@ namespace OS
 			case 'c':
 				if (ext == "c")
 					return true;
+				if (ext == "cpp")
+					return true;
 				break;
 
 			case 'e':
