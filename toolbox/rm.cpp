@@ -916,29 +916,4 @@ namespace RM
 	}
 
 
-
-
-
-	// todo -- move since it's not RM related.
-	uint16_t UnloadSeg(uint16_t trap)
-	{
-		// UnloadSeg (routineAddr: Ptr);	
-
-		/*
-		 * ------------
-		 * +0 routineAddr
-		 * ------------
-		 *
-		 */
-
-		uint32_t sp;
-		uint32_t routineAddr;
-
-		sp = StackFrame<4>(routineAddr);
-
-		Log("%04x UnloadSeg(%08x)\n", trap, routineAddr);
-
-		return 0;
-	}
-
 }
