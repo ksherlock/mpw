@@ -101,6 +101,10 @@ namespace
 
 	bool LoadResType(uint32_t type)
 	{
+		// this filtering was originally to
+		// block cursors ('acur').  Can probably 
+		// change it to a blacklist rather than 
+		// a whitelist at some point.
 
 		switch (type)
 		{
@@ -113,6 +117,7 @@ namespace
 			case 0x756e6974: // 'unit' (Pascal)
 			case 0x434f4445: // 'CODE' (Link)
 			case 0x5041434b: // 'PACK' (PascalIIgs)
+			case 0x4b4f4445: // 'KODE' (Link 32-bit Startup)
 				return true;
 			default:
 				return false;
@@ -156,6 +161,7 @@ namespace RM
 
 			size = ::GetHandleSize(nativeHandle);
 			error = MM::Native::NewHandle(size, false, theHandle, ptr);
+			// TODO -- need to lock if native handle locked.
 
 			if (!theHandle)
 			{
@@ -905,6 +911,8 @@ namespace RM
 
 		err = MM::Native::ReallocHandle(theResource, size);
 		if (err) return SetResError(err);
+
+		// todo -- need to lock if resource locked.
 
 		if (size)
 		{
