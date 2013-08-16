@@ -130,7 +130,67 @@ void WriteLong(void *data, uint32_t offset, uint32_t value)
 	((uint8_t *)data)[offset++] = value;
 }
 
+void reloc1(const uint8_t *r, uint32_t address, uint32_t offset)
+{
+	// %00000000 00000000 -> break
+	// %0xxxxxxx -> 7-bit value
+	// %1xxxxxxx xxxxxxxx -> 15-bit value
+	// %00000000 1xxxxxxx x{8} x{8} x{8} -> 31 bit value
+	// ^ that's what the documentation says.. 
+	// that's how the 32-bit bootstrap works
+	// DumpCode ignores the high 2 bytes.
+	for(;;)
+	{
+		uint32_t x;
+		uint32_t value;
 
+		x = *r++;
+
+		if (x == 0x00)
+		{
+			x = *r++;
+			if (x == 0x00) break;
+
+			x = (x << 8) | *r++;
+			x = (x << 8) | *r++;
+			x = (x << 8) | *r++;
+		}
+		else if (x & 0x80)
+		{
+			x &= 0x7f;
+			x = (x << 8) | *r++;
+		}
+
+		x <<= 1; // * 2
+
+		address += x;
+
+		value = memoryReadLong(address);
+		memoryWriteLong(value + offset, address);
+	}
+
+}
+
+// relocate a far model segment.
+void relocate(uint32_t address, uint32_t size, uint32_t a5)
+{
+	// see MacOS RT Architecture, 10-23 .. 10-26
+	uint32_t offset;
+
+	offset = memoryReadLong(address + 0x14);
+	if (memoryReadLong(address + 0x18) != a5 && offset != 0)
+	{
+		memoryWriteLong(a5, address + 0x18); // current value of A5
+		reloc1(memoryPointer(address + offset), address, a5);
+	}
+
+	offset = memoryReadLong(address + 0x1c);
+	if (memoryReadLong(address + 0x20) != address && offset != 0)
+	{
+		memoryWriteLong(address, address + 0x20); // segment load address.
+		reloc1(memoryPointer(address + offset), address, address + 0x28);
+	}
+}
 
 uint32_t load(const char *file)
 {
@@ -302,7 +362,7 @@ uint32_t load(const char *file)
     	assert(offset < p.size);
 
     	// +$4/$28 for the jump table info header.
-    	uint32_t address = p.address + offset + (p.farModel ? 0x28 : 0x04);
+    	uint32_t address = p.address + offset + (p.farModel ? 0x00 : 0x04); // was 0x28
 
     	// JMP absolute long
     	memoryWriteWord(0x4EF9, jtStart + 2);
@@ -315,6 +375,16 @@ uint32_t load(const char *file)
     		first = false;
     	}
     }
+
+    // far-model relocation.  This happens here, after a5 is loaded.
+
+    for (const auto &seg : segments)
+    {
+		if (seg.farModel)
+		{
+			relocate(seg.address, seg.size, a5);
+		}
+	}
 
 
     // set pc to jump table entry 0.
