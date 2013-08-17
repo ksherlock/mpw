@@ -495,6 +495,19 @@ namespace MM
 
 		}
 
+		// template class to validate handle and work on it.
+		template<class FX>
+		uint16_t HandleIt(uint32_t handle, FX fx)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto &info = iter->second;
+			fx(info);
+			return SetMemError(0);
+		}
+
 		uint16_t HSetRBit(uint32_t handle)
 		{
 			const auto iter = HandleMap.find(handle);
@@ -516,6 +529,29 @@ namespace MM
 			info.resource = false;
 			return SetMemError(0);
 		}
+
+		uint16_t HLock(uint32_t handle)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto &info = iter->second;
+			info.locked = true;
+			return SetMemError(0);
+		}
+
+		uint16_t HUnlock(uint32_t handle)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+			auto &info = iter->second;
+			info.locked = false;
+			return SetMemError(0);
+		}
+
 
 
 	}
