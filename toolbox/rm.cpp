@@ -182,6 +182,7 @@ namespace RM
 
 
 		// used by GetString (utility.h)
+		// used by Loader.
 		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle)
 		{
 			return LoadResource(type, theHandle,
@@ -189,6 +190,17 @@ namespace RM
 					return ::GetResource(type, id);
 				});
 		}
+
+		uint16_t SetResLoad(bool load)
+		{
+
+			ResLoad = load;
+			::SetResLoad(load);
+
+			memoryWriteByte(load ? 0xff : 0x00, MacOS::ResLoad); // word or byte?
+			return SetResError(0);
+		}
+
 
 	}
 

@@ -8,6 +8,7 @@ namespace RM
 
 	namespace Native 
 	{
+		uint16_t SetResLoad(bool tf);
 		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle);
 	}
 
