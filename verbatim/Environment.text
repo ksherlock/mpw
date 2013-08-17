@@ -1,0 +1,49 @@
+# MPW Environment file
+# ${var}, $var, and {var} substitution supported.
+# $MPW and $Command are pre-defined
+# $MPW uses MacOS : paths.
+#
+# $MPW includes the trailing ':'.
+#Be mindful of this since '::' is equivalent to '..' in Unix.
+#
+# = assigns (replacing any existing value)
+# ?= will not replace an existing value.
+# += will append to any existing value.
+
+MPWVersion ?= 3.2
+
+ShellDirectory=$MPW
+SysTempFolder=/tmp/
+TempFolder=/tmp/
+
+# MPW IIgs 1.1
+AIIGSIncludes=${MPW}Interfaces:AIIGSIncludes:
+RIIGSIncludes=${MPW}Interfaces:RIIGSIncludes:
+CIIGSIncludes=${MPW}Interfaces:CIIGSIncludes:
+CIIGSLibraries=${MPW}Libraries:CIIGSLibraries:
+PIIGSIncludes=${MPW}Interfaces:PIIGSIncludes:
+PIIGSLibraries=${MPW}Libraries:PIIGSLibraries:
+
+# MPW IIgs 1.0 compatibility
+AIIGSInclude=${MPW}Interfaces:AIIGSIncludes:
+RIIGSInclude=${MPW}Interfaces:RIIGSIncludes:
+CIIGSinclude=${MPW}Interfaces:CIIGSIncludes:
+CIIGSLibrary=${MPW}Libraries:CIIGSIncludes:
+
+# MPW Macintosh compilers
+SCIncludes=${MPW}Interfaces:CIncludes:
+CIncludes=${MPW}Interfaces:CIncludes:
+AIncludes=${MPW}Interfaces:AIncludes:
+RIncludes=${MPW}Interfaces:RIncludes:
+PInterfaces=${MPW}Interfaces:PInterfaces:
+
+Libraries=${MPW}Libraries:Libraries:
+PLibraries=${MPW}Libraries:PLibraries:
+CLibraries=${MPW}Libraries:CLibraries:
+
+# to support 3.2 and 3.5:
+# use mpw -DMPVersion=3.5 ...
+# and have versioned folders.
+#Libraries=${MPW}Libraries:Libraries-${MPWVersion}:
+#PLibraries=${MPW}Libraries:PLibraries-${MPWVersion}:
+#CLibraries=${MPW}Libraries:CLibraries-${MPWVersion}:
