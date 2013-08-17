@@ -3,19 +3,19 @@ MPW Emulator
 
 by Kelvin W Sherlock, et alia.
 
-0. System compatibility:
+0. System compatibility
 
 Currently, only OS X 10.8 with case-insensitive HFS+ is supported.
 
-1. License.
+1. License
 
 The 680x0 CPU code is from WinFellow (http://fellow.sourceforge.net) and is 
 licensed under GPL v2 or later.  Consequently, the rest of the code is licensed 
 under the GPL v2 as well.
 
 The memory allocator (NewHandle/NewPointer) code is from mempoolite, which
-is a fork of the SQLite zero-alloc allocator by Jefty Negapatan 
-<jeftyneg@gmail.com>.  It, as is SQLite, is in the public domain.
+is a fork of the SQLite zero-alloc allocator by Jefty Negapatan and D. Richard Hipp.  
+It, as is SQLite, is in the public domain.
 
 2. Building
 
