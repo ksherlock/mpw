@@ -1,13 +1,13 @@
 MPW Emulator
 ------------
 
-by Kelvin W Sherlock, et alia.
+by Kelvin W Sherlock, _et alia_
 
-0. System compatibility:
+## System compatibility:
 
 Currently, only OS X 10.8 with case-insensitive HFS+ is supported.
 
-1. License.
+## License.
 
 The 680x0 CPU code is from WinFellow (http://fellow.sourceforge.net) and is 
 licensed under GPL v2 or later.  Consequently, the rest of the code is licensed 
@@ -17,7 +17,7 @@ The memory allocator (NewHandle/NewPointer) code is from mempoolite, which
 is a fork of the SQLite zero-alloc allocator by Jefty Negapatan 
 <jeftyneg@gmail.com>.  It, as is SQLite, is in the public domain.
 
-2. Building
+## Building
 
 Compiling requires cmake, ragel, lemon, and a recent version of clang++ with 
 c++11 support.  It has only been built and tested with OS X 10.8.
@@ -29,64 +29,61 @@ make
 
 This will generate bin/mpw and bin/disasm.
 
-3. Installation
+## Installation
 
 Certain configuration and execution files are generally useful.  They are
 stored in an mpw directory, which may be located:
 
-$MPW (shell variable)
-~/mpw/ (your home directory)
-/usr/local/share/mpw/
-/usr/share/mpw/
+    $MPW (shell variable)
+    ~/mpw/ (your home directory)
+    /usr/local/share/mpw/
+    /usr/share/mpw/
 
 The layout is reminiscent of actual MPW installations.
 
-mpw/Environment.text
-mpw/Tools/...
-mpw/Interfaces/...
-mpw/Libraries/...
-mpw/Help/...
+    mpw/Environment.text
+    mpw/Tools/...
+    mpw/Interfaces/...
+    mpw/Libraries/...
+    mpw/Help/...
 
-4. Environment file
+## Environment file
 
 The Environment.text file is new; it contains MPW environment variables (many
 of them set the library and include file locations).  The format is fairly 
 simple.
 
-# this is a comment
-
-#this sets a variable
-name = value
-
-# this sets a variable if it is undefined.
-name ?= value
-
-# values may refer to other variables
-Libraries=$MPW:Libraries:Libraries:
-Libraries=${MPW}:Libraries:Libraries:
-
-eventually, mpw will support a -Dname=value flag, so you can do something like:
-
-# use 3.2 headers/libraries unless overridden on the command line
-MPWVersion ?= 3.2
-Libraries=$MPW:Libraries:Libraries-$MPWVersion:
+    # this is a comment
+    
+    #this sets a variable
+    name = value
+    
+    # this sets a variable if it is undefined.
+    name ?= value
+    
+    # values may refer to other variables
+    Libraries=$MPW:Libraries:Libraries:
+    Libraries=${MPW}:Libraries:Libraries:
+    
 
 
-5. Usage
 
-mpw [mpw flags] command-name [command arguments]
+## Usage
+
+`mpw [mpw flags] command-name [command arguments]`
 
 you may also create shell aliases:
 
-alias AsmIIgs='mpw AsmIIgs'
+`alias AsmIIgs='mpw AsmIIgs'`
 
-or create a shell script (in /usr/local/bin, etc)
+or create a shell script (in `/usr/local/bin`, etc)
 
-/usr/local/bin/AsmIIgs:
+`/usr/local/bin/AsmIIgs`:
 
-#!/usr/bin/sh
+    #!/usr/bin/sh
+    
+    exec mpw AsmIIgs $@
 
-exec mpw AsmIIgs $@
 
 mpw looks in the current directory and then in the $MPW:Tools: directory
 for the command to run.  The MPW $Commands variable is not yet supported.
