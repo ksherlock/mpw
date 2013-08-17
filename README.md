@@ -3,19 +3,21 @@ MPW Emulator
 
 by Kelvin W Sherlock, _et alia_
 
-## System compatibility:
+Please check the [wiki](https://github.com/ksherlock/mpw/wiki/_pages) for useful information.
+
+## System compatibility
 
 Currently, only OS X 10.8 with case-insensitive HFS+ is supported.
 
-## License.
+## License
 
-The 680x0 CPU code is from WinFellow (http://fellow.sourceforge.net) and is 
+The 680x0 CPU code is from [WinFellow](http://fellow.sourceforge.net) and is 
 licensed under GPL v2 or later.  Consequently, the rest of the code is licensed 
 under the GPL v2 as well.
 
-The memory allocator (NewHandle/NewPointer) code is from mempoolite, which
-is a fork of the SQLite zero-alloc allocator by Jefty Negapatan 
-<jeftyneg@gmail.com>.  It, as is SQLite, is in the public domain.
+The memory allocator (NewHandle/NewPointer) code is from [mempoolite](https://github.com/jeftyneg/mempoolite), 
+which is a fork of the SQLite zero-alloc allocator by Jefty Negapatan and D. Richard Hipp.  It, as is SQLite, 
+is in the public domain.
 
 ## Building
 
@@ -27,7 +29,7 @@ cd build
 cmake ..
 make
 
-This will generate bin/mpw and bin/disasm.
+This will generate `bin/mpw` and `bin/disasm`.
 
 ## Installation
 
@@ -85,6 +87,6 @@ or create a shell script (in `/usr/local/bin`, etc)
     exec mpw AsmIIgs $@
 
 
-mpw looks in the current directory and then in the $MPW:Tools: directory
-for the command to run.  The MPW $Commands variable is not yet supported.
+mpw looks in the current directory and then in the `$MPW:Tools:` directory
+for the command to run.  The MPW `$Commands` variable is not yet supported.
 
