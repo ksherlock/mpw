@@ -55,6 +55,8 @@
 
 #include <mpw/mpw.h>
 
+ #include <toolbox/loader.h>
+
 namespace {
 
 	const uint32_t kGlobalSize = 0x10000;
@@ -841,6 +843,14 @@ void Shell()
 	char *cp;
 
 	add_history("!Andy, it still has history!");
+
+
+	Loader::Native::LoadDebugNames(envMap);
+
+	//for (const auto &kv : envMap)
+	//{
+	//	printf("%06x: %s\n", kv.second, kv.first.c_str());
+	//}
 
 	envMap = LoadTrapFile(MPW::RootDirPathForFile("Traps.text"));
 
