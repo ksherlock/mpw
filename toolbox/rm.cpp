@@ -243,7 +243,8 @@ namespace RM
 
 		std::string sname = ToolBox::ReadPString(name);
 
-		Log("%04x Get1NamedResource(%08x, %s)\n", trap, theType, sname.c_str());
+		Log("%04x Get1NamedResource(%08x ('%s'), %s)\n", 
+			trap, theType, TypeToString(theType).c_str(), sname.c_str());
 
 		uint32_t resourceHandle;
 		uint32_t d0;
