@@ -47,6 +47,7 @@
 #include <toolbox/toolbox.h>
 #include <toolbox/mm.h>
 #include <toolbox/os.h>
+#include <toolbox/loader.h>
 
 #include <mpw/mpw.h>
 
@@ -57,6 +58,9 @@
 
 #include "loader.h"
 #include "debugger.h"
+
+
+#define LOADER_LOAD
 
 Settings Flags;
 
@@ -130,6 +134,7 @@ void WriteLong(void *data, uint32_t offset, uint32_t value)
 	((uint8_t *)data)[offset++] = value;
 }
 
+#ifndef LOADER_LOAD
 void reloc1(const uint8_t *r, uint32_t address, uint32_t offset)
 {
 	// %00000000 00000000 -> break
@@ -390,7 +395,7 @@ uint32_t load(const char *file)
     // set pc to jump table entry 0.
     return returnAddress;
 }
-
+#endif
 
 
 void GlobalInit()
@@ -899,10 +904,13 @@ int main(int argc, char **argv)
 
 	CreateStack();
 
-
+#ifdef LOADER_LOAD
+	uint16_t err = Loader::Native::LoadFile(command);
+	if (err) exit(EX_CONFIG);
+#else
 	uint32_t address = load(command.c_str());
 	if (!address) exit(EX_CONFIG);
-
+#endif
 	GlobalInit();
 
 
@@ -925,9 +933,9 @@ int main(int argc, char **argv)
 		// else do it manually below.
 	}
 
-
+#ifndef LOADER_LOAD
 	cpuInitializeFromNewPC(address);
-
+#endif
 
 	if (Flags.debugger) Debug::Shell();
 	else MainLoop();
