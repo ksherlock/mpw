@@ -6,8 +6,9 @@ add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 
 set(TOOLBOX_SRC 
 	toolbox.cpp
-	rm.cpp
 	mm.cpp
+	loader.cpp
+	rm.cpp
 	os.cpp
 	os_internal.cpp
 	os_hfs_dispatch.cpp

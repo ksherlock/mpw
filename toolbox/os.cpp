@@ -149,6 +149,8 @@ namespace OS
 			case 'c':
 				if (ext == "c")
 					return true;
+				if (ext == "cpp")
+					return true;
 				break;
 
 			case 'e':
@@ -1106,6 +1108,32 @@ namespace OS
 		Log("%04x GetToolTrapAddress($%04x)\n", trap, trapNumber);
 
 		cpuSetAReg(0, 0);
+		return MacOS::dsCoreErr;
+	}
+
+	uint16_t SetToolTrapAddress(uint16_t trap)
+	{
+		//pascal void SetToolTrapAddress(long trapAddr, short trapNum);
+
+		/* 
+		 * on entry:
+		 * A0 Address of patch
+		 * D0 trap number
+		 *
+		 * on exit:
+		 *
+		 */
+
+		// this is used by the far model stub, presumably
+		// to replace LoadSeg.
+
+		uint16_t trapNumber = cpuGetDReg(0);
+		uint32_t trapAddress = cpuGetAReg(0);
+
+		Log("%04x SetToolTrapAddress($%08x, $%04x)\n",
+			trap, trapAddress, trapNumber);
+
+
 		return MacOS::dsCoreErr;
 	}
 

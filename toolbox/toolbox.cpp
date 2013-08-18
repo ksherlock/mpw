@@ -40,7 +40,7 @@
 #include "qd.h"
 #include "sane.h"
 #include "utility.h"
-
+#include "loader.h"
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
@@ -146,6 +146,10 @@ namespace ToolBox {
 
 			case 0xA746:
 				d0 = OS::GetToolTrapAddress(trap);
+				break;
+
+			case 0xa647:
+				d0 = OS::SetToolTrapAddress(trap);
 				break;
 
 			case 0xA346:
@@ -417,17 +421,18 @@ namespace ToolBox {
 				d0 = RM::OpenRFPerm(trap);
 				break;
 
-			// UnloadSeg (routineAddr: Ptr);
-			case 0xa9f1:
-				d0 = RM::UnloadSeg(trap);
-				break;
-
 			case 0xa9f6:
 				d0 = RM::GetResFileAttrs(trap);
 				break;
 
 			case 0xa9f7:
 				d0 = RM::SetResFileAttrs(trap);
+				break;
+
+
+			// UnloadSeg (routineAddr: Ptr);
+			case 0xa9f1:
+				d0 = Loader::UnloadSeg(trap);
 				break;
 
 

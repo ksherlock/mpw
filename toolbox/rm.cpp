@@ -101,6 +101,10 @@ namespace
 
 	bool LoadResType(uint32_t type)
 	{
+		// this filtering was originally to
+		// block cursors ('acur').  Can probably 
+		// change it to a blacklist rather than 
+		// a whitelist at some point.
 
 		switch (type)
 		{
@@ -113,6 +117,7 @@ namespace
 			case 0x756e6974: // 'unit' (Pascal)
 			case 0x434f4445: // 'CODE' (Link)
 			case 0x5041434b: // 'PACK' (PascalIIgs)
+			case 0x4b4f4445: // 'KODE' (Link 32-bit Startup)
 				return true;
 			default:
 				return false;
@@ -156,6 +161,7 @@ namespace RM
 
 			size = ::GetHandleSize(nativeHandle);
 			error = MM::Native::NewHandle(size, false, theHandle, ptr);
+			// TODO -- need to lock if native handle locked.
 
 			if (!theHandle)
 			{
@@ -176,6 +182,7 @@ namespace RM
 
 
 		// used by GetString (utility.h)
+		// used by Loader.
 		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle)
 		{
 			return LoadResource(type, theHandle,
@@ -183,6 +190,17 @@ namespace RM
 					return ::GetResource(type, id);
 				});
 		}
+
+		uint16_t SetResLoad(bool load)
+		{
+
+			ResLoad = load;
+			::SetResLoad(load);
+
+			memoryWriteByte(load ? 0xff : 0x00, MacOS::ResLoad); // word or byte?
+			return SetResError(0);
+		}
+
 
 	}
 
@@ -906,6 +924,8 @@ namespace RM
 		err = MM::Native::ReallocHandle(theResource, size);
 		if (err) return SetResError(err);
 
+		// todo -- need to lock if resource locked.
+
 		if (size)
 		{
 			uint32_t ptr = memoryReadLong(theResource);
@@ -915,30 +935,5 @@ namespace RM
 		return SetResError(0);
 	}
 
-
-
-
-
-	// todo -- move since it's not RM related.
-	uint16_t UnloadSeg(uint16_t trap)
-	{
-		// UnloadSeg (routineAddr: Ptr);	
-
-		/*
-		 * ------------
-		 * +0 routineAddr
-		 * ------------
-		 *
-		 */
-
-		uint32_t sp;
-		uint32_t routineAddr;
-
-		sp = StackFrame<4>(routineAddr);
-
-		Log("%04x UnloadSeg(%08x)\n", trap, routineAddr);
-
-		return 0;
-	}
 
 }

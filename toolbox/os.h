@@ -81,6 +81,8 @@ namespace OS
 	#pragma mark - Trap Manager
 
 	uint16_t GetToolTrapAddress(uint16_t trap);
+	uint16_t SetToolTrapAddress(uint16_t trap);
+
 	uint16_t GetOSTrapAddress(uint16_t trap);
 
 	#pragma mark - Alias Manager
