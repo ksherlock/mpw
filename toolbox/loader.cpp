@@ -26,6 +26,8 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <unordered_map>
 
 #include <CoreServices/CoreServices.h>
 
@@ -63,6 +65,7 @@ namespace Loader {
 			uint32_t address = 0;
 			uint32_t size = 0;
 			bool farModel = false;
+			// todo -- also add std::string segmentName?
 		};
 
 		struct Segment0Info 
@@ -356,6 +359,163 @@ namespace Loader {
 
 			return 0;
 		}
+
+
+
+		// 
+		void LoadDebugNames(std::unordered_map<std::string, uint32_t> &table)
+		{
+
+			if (Segments.empty()) return;
+
+
+			// skip segment 0 since that's the dispatch table.
+			for (unsigned seg = 1; seg < Segments.size(); ++seg)
+			{
+
+				const auto &si = Segments[seg];
+				const uint8_t *memory = memoryPointer(si.address);
+				unsigned size = si.size;
+
+				// store entry for start?
+				// SEG_## = pc ?
+
+
+				// See MacsBugs appendix D.
+
+				/*
+				 * format is:
+				 * (optional) LINK A6, [$4e56]
+				 * opcodes...
+				 * RTS/JMP (A0)/RTD
+				 * procedure name
+				 * procedure constants
+				 *
+				 * name is fixed at 8 or 16 bytes or variable length.
+				 * valid characters = [a-zA-Z0-9_%.] and space, to pad fixed length names.
+				 *
+				 * fixed length: not yet supported.
+				 *
+				 *
+
+				 */
+
+				uint32_t start = 0;
+				for (unsigned pc = 0; pc < size; )
+				{
+					bool eof = false; // end of function
+					uint32_t oldpc = pc;
+
+					uint16_t opcode = (memory[pc + 0] << 8) | memory[pc + 1];
+					pc += 2;
+
+					switch(opcode)
+					{
+					case 0x4E56:
+						// link A6,#
+						start = oldpc;
+						break;
+
+					case 0x4E75: // rts
+					case 0x4ED0: // jmp (a0)
+						eof = true;
+						break;
+					case 0x4E74: // rtd #
+						pc += 2; // skip the argument.
+						eof = true;
+						break;	
+
+					default:
+						break;
+					}
+
+					if (!eof) continue;
+
+					std::string s;
+
+					unsigned length = memory[pc];
+
+					// variable length.
+					if (length >= 0x80 && length <= 0x9f)
+					{
+						length &= 0x7f;
+						++pc;
+
+						if (length == 0)
+							length = memory[++pc];
+
+						s.assign((const char *)memory + pc, length);
+
+						// align to word boundary
+						pc = (pc + length + 1) & ~1;
+					}
+					else
+					{
+						// fixed length.  high byte may or may not be set.
+						// if high byte of second char is set, it's a 16-char string.
+
+						length = 8;
+						s.assign((const char *)memory + pc, 8);
+						s[0] &= 0x7f;
+
+						while (s.length() && s.back() == ' ') s.pop_back();
+
+						if ((s.length() >= 2) && (s[1] & 0x80))
+						{
+							s[1] &= 0x7f;
+							length = 16;
+
+							std::string tmp((const char *)memory + pc + 8, 8);
+							while (tmp.length() && tmp.back() == ' ') tmp.pop_back();
+
+							tmp.push_back('.');
+							tmp.append(s);
+							s = std::move(tmp);
+						}
+
+						pc += length;
+					}
+
+					// verify name is legal.
+					bool ok = std::all_of(s.begin(), s.end(), 
+						[](char c) {
+							if (c >= 'A' && c <= 'Z') return true;
+							if (c >= 'a' && c <= 'z') return true;
+							if (c >= '0' && c <= '9') return true;
+							if (c == '.') return true;
+							if (c == '_') return true;
+							if (c == '%') return true;
+							return false;
+					});
+
+					if (!ok)
+					{
+						// also set start.
+
+						start = pc = oldpc + 2;
+						if (opcode == 0x4E74) start += 2;
+						continue;
+					}
+
+					table.emplace(std::move(s), start + si.address);
+
+
+					// constant data
+					length = (memory[pc + 0] << 8) | memory[pc + 1];
+					pc += 2;
+					if (length)
+					{
+						pc = (pc + length + 1) & ~1;
+					}
+
+					// in case no link instruction...
+					start = pc;
+				}
+
+			}
+		}
+
+
 
 
 	} // Internal namespace

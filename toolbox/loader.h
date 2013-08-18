@@ -1,6 +1,9 @@
 #ifndef __mpw_loader_h__
 #define __mpw_loader_h__
 
+#include <string>
+#include <unordered_map>
+
 #include <cstdint>
 
 namespace Loader {
@@ -15,6 +18,10 @@ namespace Loader {
 		 * Dependencies: MM, RM 
 		 */
 		uint16_t LoadFile(const std::string &path);
+
+		// scans segments for MacsBug debug names.
+		// associates them with the start of the segment.
+		void LoadDebugNames(std::unordered_map<std::string, uint32_t> &table);
 
 	}
 
