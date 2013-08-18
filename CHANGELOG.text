@@ -1,3 +1,8 @@
+* CODE loader enhancements
+- Cleaned up CODE loader.
+- Added experimental support for far model segments
+- SCpp works, MrC and MrCpp does not currently work
+
 * DumpCode utility now supported
 - added HGetState, GetResInfo, LoadResource toolbox calls
 
