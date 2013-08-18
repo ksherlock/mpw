@@ -73,7 +73,7 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
-	std::unordered_map<std::string, uint32_t> envMap;
+	std::unordered_map<std::string, uint32_t> SymbolTable;
 
 
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
@@ -827,14 +827,17 @@ void SetXRegister(unsigned reg, uint32_t value)
 }
 
 
-uint32_t EnvLookup(const std::string &s)
+uint32_t VariableGet(const std::string &s)
 {
-	auto iter = envMap.find(s);
-	if (iter == envMap.end()) return 0;
+	auto iter = SymbolTable.find(s);
+	if (iter == SymbolTable.end()) return 0;
 	return iter->second;
 }
 
-
+void VariableSet(const std::string &key, uint32_t value)
+{
+	SymbolTable.emplace(key, value);
+}
 
 // TODO -- RUN command - reload, re-initialize, re-execute
 // TODO -- parser calls commands directly (except trace/step/run/etc)
@@ -845,14 +848,14 @@ void Shell()
 	add_history("!Andy, it still has history!");
 
 
-	Loader::Native::LoadDebugNames(envMap);
+	Loader::Native::LoadDebugNames(SymbolTable);
 
-	//for (const auto &kv : envMap)
+	//for (const auto &kv : SymbolTable)
 	//{
 	//	printf("%06x: %s\n", kv.second, kv.first.c_str());
 	//}
 
-	envMap = LoadTrapFile(MPW::RootDirPathForFile("Traps.text"));
+	//SymbolTable = LoadTrapFile(MPW::RootDirPathForFile("Traps.text"));
 
 	// start it up
 	printf("MPW Debugger shell\n\n");
