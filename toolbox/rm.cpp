@@ -937,4 +937,31 @@ namespace RM
 	}
 
 
+	uint16_t HomeResFile(uint16_t trap)
+	{
+		// PPCAsm
+
+		// FUNCTION HomeResFile (theResource: Handle): Integer;
+
+		uint32_t sp;
+		uint32_t theResource;
+		uint16_t resFile;
+
+		sp = StackFrame<4>(theResource);
+		Log("%04x HomeResFile(%08x)\n", trap, theResource);
+
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end())
+		{
+			return SetResError(MacOS::resNotFound);
+		}
+
+		resFile = ::HomeResFile(iter->second);
+
+		ToolReturn<2>(sp, resFile);
+
+		return SetResError(::ResError());
+	}
+
 }

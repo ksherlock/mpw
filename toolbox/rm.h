@@ -50,6 +50,9 @@ namespace RM
 
 	uint16_t GetResInfo(uint16_t trap);
 	uint16_t LoadResource(uint16_t trap);
+
+	uint16_t HomeResFile(uint16_t trap);
+
 }
 
 

@@ -377,6 +377,10 @@ namespace ToolBox {
 				d0 = RM::ReleaseResource(trap);
 				break;
 
+			case 0xa9a4:
+				d0 = RM::HomeResFile(trap);
+				break;
+
 			case 0xa9a5:
 				d0 = RM::GetResourceSizeOnDisk(trap);
 				break;

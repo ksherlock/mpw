@@ -1,3 +1,6 @@
+* PPCAsm utility now supported
+- added HomeResFile toolbox call.
+
 * CODE loader enhancements
 - Cleaned up CODE loader.
 - Added experimental support for far model segments
