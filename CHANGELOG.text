@@ -7,7 +7,7 @@
 - SCpp works, MrC and MrCpp does not currently work
 
 * DumpCode utility now supported
-- added HGetState, GetResInfo, LoadResource toolbox calls
+- added HGetState, GetResInfo, LoadResource, Count1Types, Get1IndType toolbox calls
 
 
 * Pathname conversion enhancements:

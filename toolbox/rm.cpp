@@ -964,4 +964,39 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+	uint16_t Count1Types(uint16_t trap)
+	{
+		// FUNCTION Count1Types: Integer;
+
+		uint16_t count;
+
+		Log("%04x Count1Types\n", trap);
+
+		count = ::Count1Types();
+
+		ToolReturn<2>(-1, count);
+
+		return SetResError(::ResError());
+	}
+
+
+	uint16_t Get1IndType(uint16_t trap)
+	{
+		// PROCEDURE Get1IndType (VAR theType: ResType; index: Integer);
+
+		uint32_t theType;
+		uint16_t index;
+
+		StackFrame<6>(theType, index);
+
+		Log("%04x Get1IndType(%08x, %04x)\n", trap, theType, index);
+
+		ResType nativeType = 0;		
+
+		::Get1IndType(&nativeType, index);
+
+		memoryWriteLong(nativeType, theType);
+
+		return SetResError(::ResError());
+	}
 }
