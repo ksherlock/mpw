@@ -18,6 +18,14 @@ enum {
 	cmdRun,
 };
 
+enum {
+	// subtypes
+	// ; commands
+	kHexdump = 1,
+	kInfo,
+	kList
+};
+
 struct Command {
 	bool valid;
 	int action;

@@ -27,6 +27,8 @@
 #include <string>
 #include <algorithm>
 #include <numeric>
+#include <memory>
+#include <deque>
 
 #include <cstdint>
 #include <stdlib.h>
@@ -37,8 +39,16 @@
 
 	void *ParseAlloc(void *(*mallocProc)(size_t));
 	void ParseFree(void *p, void (*freeProc)(void*));
-	void Parse(void *yyp, int yymajor, uint32_t yyminor, Debug::Command *command);
+	void Parse(void *yyp, int yymajor, Debug::Token yyminor, Debug::Command *command);
 	void ParseTrace(FILE *TraceFILE, char *zTracePrompt);
+
+
+	// for the common case....
+	void Parse(void *yyp, int yymajor, uint32_t yyminor, Debug::Command *command)
+	{
+		Parse(yyp, yymajor, Debug::Token::Make(yyminor), command);
+	}
+
 
 namespace {
 
@@ -268,10 +278,13 @@ namespace {
 
 
 		# generic identifier
-		[_A-Za-z][_A-Za-z0-9]* {
-			// TODO -- pass into parser, parser can check environment value.
-			fprintf(stderr, "illegal identifier: `%.*s`\n", (int)(te - ts), ts);
-			fgoto error;
+		# since % is a valid character, should drop %/modulo operator.
+		[%_A-Za-z][%_.A-Za-z0-9]* {
+
+			std::unique_ptr<std::string> sp(new std::string(ts, te));
+
+			Parse(parser, tkIDENTIFIER, Token::Make(sp.get(), 0), command);
+			Strings.push_back(std::move(sp));
 		};
 
 
@@ -296,6 +309,10 @@ bool ParseLine(const char *iter, Command *command)
 	%% write data;
 
 	void *parser;
+
+	// string table to avoid memory leaks in parser.
+	std::deque<std::unique_ptr<std::string>> Strings;
+
 
 	parser = ParseAlloc(malloc);
 
