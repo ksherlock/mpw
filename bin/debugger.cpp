@@ -112,7 +112,7 @@ namespace {
 	        buffer2[sizeof(buffer2)-1] = 0;
 	        
 	    
-	        std::printf("%08x:\t%s\t%s\n", address + (unsigned)offset, buffer1, buffer2);
+	        std::printf("%06x:  %s  %s\n", address + (unsigned)offset, buffer1, buffer2);
 	        offset += 16;
 	        data += 16;
 	        size -= 16;
