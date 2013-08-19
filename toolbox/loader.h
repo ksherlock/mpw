@@ -2,7 +2,7 @@
 #define __mpw_loader_h__
 
 #include <string>
-#include <unordered_map>
+#include <map>
 
 #include <cstdint>
 
@@ -21,7 +21,7 @@ namespace Loader {
 
 		// scans segments for MacsBug debug names.
 		// associates them with the start of the segment.
-		void LoadDebugNames(std::unordered_map<std::string, uint32_t> &table);
+		void LoadDebugNames(std::map<std::string, uint32_t> &table);
 
 	}
 

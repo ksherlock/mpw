@@ -36,6 +36,7 @@
 #include <array>
 #include <unordered_set>
 #include <unordered_map>
+#include <map>
 
 #include <bitset>
 
@@ -73,7 +74,7 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
-	std::unordered_map<std::string, uint32_t> SymbolTable;
+	std::map<std::string, uint32_t> SymbolTable;
 
 
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
@@ -839,11 +840,107 @@ void VariableSet(const std::string &key, uint32_t value)
 	SymbolTable.emplace(key, value);
 }
 
+namespace {
+
+	/*
+	 * returns a list of possible matches.
+	 * Item[0] is the longest match.
+	 */
+	char **mpw_completion(const char* text, int _start, int _end)
+	{
+		std::string s(text);
+
+		// returns iter to first element _not less_ than key
+		// ie, >= key.
+		auto iter = SymbolTable.lower_bound(s);
+
+		unsigned count = 0;
+		unsigned length = s.length();
+
+		auto begin = iter;
+
+		for (;;)
+		{
+			if (iter == SymbolTable.end()) break;
+			if (iter->first.compare(0, length, s) != 0) break;
+
+			++count;
+			++iter;
+		}
+		auto end = iter;
+
+		if (!count) return NULL;
+		if (count > 100) return NULL; 
+
+		if (count == 1)
+		{
+			char **buffer = (char **)malloc(2 * sizeof(char *));
+			buffer[0] = strdup(begin->first.c_str());
+			buffer[1] = NULL;
+			return buffer;
+		}
+
+		char **buffer = (char **)malloc((count + 2) * sizeof(char *));
+
+		unsigned i = 0;
+		auto min_length = begin->first.length();
+
+		// item 0 is the longest match. (fill in later.)
+		buffer[i++] = NULL; 
+		for (iter = begin; iter != end; ++iter)
+		{
+			buffer[i++] = strdup(iter->first.c_str());
+			min_length = std::min(min_length, iter->first.length());
+		}
+		buffer[i] = NULL;
+
+
+		// assume the first is the longest, then search until not true.
+		buffer[0] = strdup(begin->first.c_str());
+		for (unsigned i = length; ; ++i)
+		{
+
+			if (i >= min_length)
+			{
+				buffer[0][i] = 0; 
+				break;
+			}
+
+			char c = buffer[0][i];
+			if (!c) break;
+
+			bool nomatch = false;
+			for (int j = 1; ; ++j)
+			{
+				char *cp = buffer[j];
+				if (!cp) break;
+				if (cp[i] != c) nomatch = true;
+			}
+
+			if (nomatch)
+			{
+				buffer[0][i] = 0;
+				break;
+			}
+		}
+
+		return buffer;
+	}
+
+	void readline_init()
+	{
+		rl_readline_name = (char *)"mpw";
+		rl_attempted_completion_function = mpw_completion;
+	}
+}
+
 // TODO -- RUN command - reload, re-initialize, re-execute
 // TODO -- parser calls commands directly (except trace/step/run/etc)
 void Shell()
 {
 	char *cp;
+
+	readline_init();
 
 	add_history("!Andy, it still has history!");
 

@@ -363,7 +363,7 @@ namespace Loader {
 
 
 		// 
-		void LoadDebugNames(std::unordered_map<std::string, uint32_t> &table)
+		void LoadDebugNames(std::map<std::string, uint32_t> &table)
 		{
 
 			if (Segments.empty()) return;
@@ -394,10 +394,6 @@ namespace Loader {
 				 * name is fixed at 8 or 16 bytes or variable length.
 				 * valid characters = [a-zA-Z0-9_%.] and space, to pad fixed length names.
 				 *
-				 * fixed length: not yet supported.
-				 *
-				 *
-
 				 */
 
 				uint32_t start = 0;
