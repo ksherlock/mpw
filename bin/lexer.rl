@@ -105,6 +105,27 @@ namespace {
 	# this exits with cs == lexer_en_error.
 	error := any* ${ fbreak; };
 
+	# semi-colon commands.
+	semi := |*
+
+		[ \t\r\n]+;
+
+		'h'i | 'hd'i | 'hexdump'i {
+			Parse(parser, tkSEMIH, 0, command);
+		};
+
+		'i'i | 'info'i {
+			Parse(parser, tkSEMII, 0, command);
+		};
+
+		'l'i | 'list'i {
+			Parse(parser, tkSEMIL, 0, command);
+		};
+
+
+
+	*|;
+
 	main := |*
 
 		[ \t\r\n]+;
@@ -136,7 +157,13 @@ namespace {
 		'>' { Parse(parser, tkGT, 0, command); };
 
 		':' { Parse(parser, tkCOLON, 0, command); };
+
 		'@' { Parse(parser, tkAT, 0, command); };
+
+		';' {
+			Parse(parser, tkSEMI, 0, command);
+			fgoto semi;
+		};
 
 
 		'$' xdigit + {
@@ -259,22 +286,6 @@ namespace {
 		'r'i | 'run'i {
 			Parse(parser, tkCONTINUE, 0, command);
 		};
-
-
-		# TODO - split the ; commands into two parts.
-		# struct Token {std::string sValue; uint32_t intValue; enum Command { dump, list,  ... }};
-		';h'i | ';hd'i | ';hexdump'i {
-			Parse(parser, tkSEMIH, 0, command);
-		};
-
-		';i'i | ';info'i {
-			Parse(parser, tkSEMII, 0, command);
-		};
-
-		';l'i | ';list'i {
-			Parse(parser, tkSEMIL, 0, command);
-		};
-
 
 
 		# generic identifier

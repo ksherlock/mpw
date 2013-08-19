@@ -158,39 +158,39 @@ stmt ::= LIST expr(a) EOL.
 }
 
 
-stmt ::= expr(a) SEMIH EOL.
+stmt ::= expr(a) SEMI SEMIH EOL.
 {
 	Debug::Dump(a.intValue);
 }
 
-stmt ::= expr(a) COLON expr(b) SEMIH EOL.
+stmt ::= expr(a) COLON expr(b) SEMI SEMIH EOL.
 {
 	Debug::Dump(a.intValue, b.intValue - a.intValue);
 }
 
-stmt ::= expr(a) AT expr(b) SEMIH EOL.
+stmt ::= expr(a) AT expr(b) SEMI SEMIH EOL.
 {
 	Debug::Dump(a.intValue, b.intValue);
 }
 
 
-stmt ::= expr(a) SEMII EOL.
+stmt ::= expr(a) SEMI SEMII EOL.
 {
 	MM::Native::MemoryInfo(a.intValue);
 }
 
 
-stmt ::= expr(a) SEMIL EOL.
+stmt ::= expr(a) SEMI SEMIL EOL.
 {
 	Debug::List(a.intValue);
 }
 
-stmt ::= expr(a) AT expr(b) SEMIL EOL.
+stmt ::= expr(a) AT expr(b) SEMI SEMIL EOL.
 {
 	Debug::List(a.intValue, (int)b.intValue);
 }
 
-stmt ::= expr(a) COLON expr(b) SEMIL EOL.
+stmt ::= expr(a) COLON expr(b) SEMI SEMIL EOL.
 {
 	Debug::List(a.intValue, b.intValue);
 }
