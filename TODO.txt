@@ -1,6 +1,31 @@
 TODO
 
 
+debugger improvements:
+
+completion context:
+
+when in tbrk, lookup based on the toolbox map ninstead of general symbol table?
+
+
+symbol table should be a range.  Debug names are loaded as start:end.  
+In scalar context, just use the start value.  
+In range context, use as a range unless specific range or count provided.
+
+eg:
+
+main;l <- list all of main
+
+new command: protect
+usage: protect range 
+(where range can be explicit or a debug name)
+prevents tracing within the defined code.
+
+
+last address
+expression evaluation updates the last address.  ;command is equivalent to lastaddress;command.
+
+
 - tool to list iigs/mac resource fork (rlist)
 
 
