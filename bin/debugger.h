@@ -3,7 +3,7 @@
 
 
 #include <cstdint>
-#include <unordered_map>
+#include <map>
 #include <functional>
 #include <string>
 
@@ -93,7 +93,7 @@ struct Token {
 
 bool ParseLine(const char *iter, Command *command);
 
-std::unordered_map<std::string, uint32_t> LoadTrapFile(const std::string &path);
+void LoadTrapFile(const std::string &path, std::map<std::string, uint16_t> &map);
 
 uint32_t VariableGet(const std::string &);
 void VariableSet(const std::string &name, uint32_t value);

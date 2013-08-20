@@ -24,150 +24,167 @@
  *
  */
 
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <cstdio>
 
-%%{
-	
-	machine lexer;
+namespace {
+	// private...
+	%%{
+		
+		machine lexer;
 
-	action error {
-		fprintf(stderr, "Invalid line: %d %.*s", line, (int)length, cp);
-		fprintf(stderr, "%s - %x\n", name.c_str(), trap);
-	}
-
-	action addx {
-		trap = (trap << 4) + digittoint(fc);
-	}
-
-	action emplace {
-
-		auto iter = map.find(name);
-
-		if (iter == map.end())
-		{
-			map[std::move(name)] = trap;
+		action addx {
+			value = (value << 4) + digittoint(fc);
 		}
-		else
+
+		ws = [ \t];
+
+		value = 
+			'0x' xdigit+ @addx
+			|
+			'$' xdigit+ @addx
+			|
+			[A-Za-z_] @{ stringValue.push_back(fc); }
+			[A-Za-z0-9_]+ @{ stringValue.push_back(fc); }
+			;
+
+
+		name = 	
+			[A-Za-z0-9_]+ @{
+				name.push_back(fc);
+			}
+		;
+
+		main := 
+
+			name
+			ws*
+			'='
+			ws*
+			value
+		;
+
+		write data;
+	}%%
+
+
+
+	bool ParseLine(const char *p, const char *pe, std::map<std::string, uint16_t> &map)
+	{
+
+		// trap = number
+		// or trap = [previously defined trap]
+
+		std::string name;
+		std::string stringValue;
+		uint32_t value;
+
+		value = 0;
+		const char *eof = pe;
+		int cs;
+
+		%%write init;
+		%%write exec;
+
+		if (cs < %%{ write first_final; }%% )
 		{
-			if (iter->second != trap)
+			return false;
+		}
+
+		// name lookup
+		if (!stringValue.empty())
+		{
+			auto iter = map.find(stringValue);
+			if (iter == map.end())
 			{
-				fprintf(stderr, "Warning: redefining %s ($%04x -> $%04x)\n", 
-					name.c_str(),
-					iter->second, 
-					trap
-				);
-				iter->second = trap;
+				fprintf(stderr, "Undefined trap: %s\n", stringValue.c_str());
+				return false;
+			}
+			value = iter->second;
+		}
+
+		// if loading globals, wouldn't need to do this...
+		if (value > 0xafff || value < 0xa000)
+		{
+			fprintf(stderr, "Invalid trap number: $%04x\n", value);
+			return false;
+		}
+
+		map.emplace(name, (uint16_t)value);
+
+
+		return true;
+	}
+
+
+
+}
+
+namespace Debug {
+
+	void LoadTrapFile(const std::string &path, std::map<std::string, uint16_t> &map)
+	{
+		FILE *fp;
+
+		fp = fopen(path.c_str(), "r");
+		if (!fp)
+		{
+			fprintf(stderr, "Unable to open trap file %s\n", path.c_str());
+			return;
+		}
+
+
+		/*
+		 * getline(3) is 2008 posix. it allocates (and resizes as appropriate)
+		 * the buffer.
+		 *
+		 */
+		char *lineBuffer = NULL;
+		size_t lineSize = 0;
+
+		for(;;)
+		{
+			char *line;
+			ssize_t length;
+
+			length = getline(&lineBuffer, &lineSize, fp);
+			if (!length) continue; //?
+			if (length < 0) break; // eof or error.
+
+			line = lineBuffer;
+
+			// skip any leading space.
+			while (length && isspace(*line))
+			{
+				++line;
+				--length;
+			}
+			if (!length) continue;
+
+			// comments
+			if (*line == '#') continue;
+
+
+			// strip any trailing space.
+			// (will be \n terminated unless there was no \n)
+			while (length && isspace(line[length - 1]))
+			{
+				line[--length] = 0;
+			}
+			if (!length) continue;
+
+			if (!ParseLine(line, line + length, map))
+			{
+				fprintf(stderr, "Error in trap definition: %s\n", line);
 			}
 		}
 
+		fclose(fp);
 	}
 
-	ws = [ \t];
 
 
-	value = 
-		'0x' >{trap = 0; } xdigit+ @addx
-		|
-		'$' >{trap = 0; } xdigit+ @addx
-		# todo -- add identifiers?
-		;
-
-
-	line :=
-		[_A-Za-z][_A-Za-z0-9]* @{
-			name.push_back(fc);
-		}
-
-		ws*
-		'='
-		ws*
-		value
-		'\n' @emplace
-	;
-
-	comment := any* ${ fbreak; };
-
-	main := |*
-		ws; # leading space
-		'\n'; # blank line.
-		'#' => { fgoto comment; };
-		[A-Za-z_] => { fhold; fgoto line; };
-		*|;
-
-}%%
-
-namespace Debug {
-std::unordered_map<std::string, uint32_t> LoadTrapFile(const std::string &path)
-{
-%% write data;
-
-	FILE *fp;
-
-	std::unordered_map<std::string, uint32_t> map;
-
-	fp = fopen(path.c_str(), "r");
-	if (!fp)
-	{
-		fprintf(stderr, "Unable to open file %s\n", path.c_str());
-		return map;
-	}
-
-	// todo -- consider using the debugger parser?  That would allow
-	// full mathematical expressions.
-
-	int line = 0;
-	for(;;)
-	{
-		char *cp;
-
-		size_t length;
-		cp = fgetln(fp, &length);
-		if (!cp) break;
-		++line;
-
-		#if 0
-		while (isspace(*cp) && length)
-		{
-			++cp;
-			length--;
-		}
-		if (!length) continue;
-		#endif
-
-		while (length && isspace(cp[length - 1]))
-			length--;
-		if (!length) continue;
-
-		std::string buffer(cp, cp + length);
-		buffer.push_back('\n');
-
-		const char *p = buffer.c_str();
-		const char *pe = p + buffer.length();
-		//const char *eof = pe;
-		const char *ts;
-		const char *te;
-
-		int cs;
-		int act;
-
-		std::string name;
-		uint32_t trap = 0;
-
-		%% write init;
-		/* ... */
-		%% write exec;
-
-		if (cs == lexer_error)
-		{
-			fprintf(stderr, "Bad line: %.*s\n", (int)length, cp);
-		}
-	}
-
-	fclose(fp);
-	return map;
-}
 
 }
 
@@ -179,8 +196,8 @@ int main(int argc, char **argv)
 	for (int i = 1; i < argc; ++i)
 	{
 		std::string f(argv[i]);
-
-		auto map = Debug::LoadTrapFile(f);
+		std::map<std::string, uint16_t> map;
+		Debug::LoadTrapFile(f, map);
 
 		for(const auto kv  : map)
 		{

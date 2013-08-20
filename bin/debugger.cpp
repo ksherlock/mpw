@@ -75,8 +75,8 @@ namespace {
 	ToolMap tbrkMap; // tool breaks.
 
 	std::map<std::string, uint32_t> SymbolTable;
-
-
+	std::map<std::string, uint16_t> TrapTable;
+	
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
 	{
 	const char *HexMap = "0123456789abcdef";
@@ -952,7 +952,7 @@ void Shell()
 	//	printf("%06x: %s\n", kv.second, kv.first.c_str());
 	//}
 
-	//SymbolTable = LoadTrapFile(MPW::RootDirPathForFile("Traps.text"));
+	LoadTrapFile(MPW::RootDirPathForFile("Traps.text"), TrapTable);
 
 	// start it up
 	printf("MPW Debugger shell\n\n");
