@@ -108,6 +108,8 @@ uint8_t ReadByte(uint32_t);
 void Print(uint32_t value);
 void PrintRegisters();
 
+void Info(uint32_t address);
+
 void Dump(uint32_t address, int count = 256);
 void List(uint32_t address, int count = 20);
 void List(uint32_t pc, uint32_t endpc);

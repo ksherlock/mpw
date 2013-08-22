@@ -176,7 +176,7 @@ stmt ::= expr(a) AT expr(b) SEMI SEMIH EOL.
 
 stmt ::= expr(a) SEMI SEMII EOL.
 {
-	MM::Native::MemoryInfo(a.intValue);
+	Debug::Info(a.intValue);
 }
 
 

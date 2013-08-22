@@ -57,6 +57,7 @@
 #include <mpw/mpw.h>
 
  #include <toolbox/loader.h>
+ #include <toolbox/mm.h>
 
 namespace {
 
@@ -838,6 +839,50 @@ uint32_t VariableGet(const std::string &s)
 void VariableSet(const std::string &key, uint32_t value)
 {
 	SymbolTable.emplace(key, value);
+}
+
+void Info(uint32_t address)
+{
+	// print info on the value.
+
+	Print(address);
+	
+	// 1. as a pointer.
+	MM::Native::MemoryInfo(address);
+
+	// 2. (todo) - check SymbolTable for procedure address.
+
+	// 2. as a tool trap.
+	if (address >= 0xa000 && address <= 0xafff)
+	{
+		const char *cp = TrapName(address);
+		if (cp)
+			printf("Tool: %s\n", cp);
+	}
+
+	// 3. as a global
+	if (address <= 0xffff)
+	{
+		const char *cp = GlobalName(address);
+		if (cp)
+			printf("Global: %s\n", cp);
+
+	}
+
+#if 0
+	// 4 as an error
+	// almost all are negative 16-bit values, 
+	// but may also be a positive 16-bit value.
+	uint16_t error = 0;
+	if (address <= 0xffff) error = address;
+	if ((address & 0xffff8000) == 0xffff8000) error = address;
+	if (error)
+	{
+		const char *cp = ErrorName(error);
+		if (cp)
+			printf("Error: %s\n", cp);
+	}
+#endif
 }
 
 namespace {
