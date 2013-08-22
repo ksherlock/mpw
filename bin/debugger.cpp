@@ -76,6 +76,8 @@ namespace {
 	ToolMap tbrkMap; // tool breaks.
 
 	std::map<std::string, uint32_t> SymbolTable;
+	std::map<std::string, uint16_t> ErrorTable;
+	std::map<std::string, uint16_t> GlobalTable;
 	std::map<std::string, uint16_t> TrapTable;
 	
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
@@ -992,11 +994,8 @@ void Shell()
 
 	Loader::Native::LoadDebugNames(SymbolTable);
 
-	//for (const auto &kv : SymbolTable)
-	//{
-	//	printf("%06x: %s\n", kv.second, kv.first.c_str());
-	//}
-
+	LoadTrapFile(MPW::RootDirPathForFile("Errors.text"), ErrorTable);
+	LoadTrapFile(MPW::RootDirPathForFile("Globals.text"), GlobalTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Traps.text"), TrapTable);
 
 	// start it up
