@@ -45,6 +45,9 @@ namespace {
 			|
 			'$' xdigit+ @addx
 			|
+			'-'? @{ negative = true; }
+			digit+ @{value = value * 10 + (fc - '0'); }
+			|
 			[A-Za-z_] @{ stringValue.push_back(fc); }
 			[A-Za-z0-9_]+ @{ stringValue.push_back(fc); }
 			;
@@ -79,6 +82,7 @@ namespace {
 		std::string name;
 		std::string stringValue;
 		uint32_t value;
+		bool negative = false;
 
 		value = 0;
 		const char *eof = pe;
@@ -91,6 +95,7 @@ namespace {
 		{
 			return false;
 		}
+		if (negative) value = (-value) & 0xffff;
 
 		// name lookup
 		if (!stringValue.empty())
@@ -104,12 +109,14 @@ namespace {
 			value = iter->second;
 		}
 
+		#if 0
 		// if loading globals, wouldn't need to do this...
 		if (value > 0xafff || value < 0xa000)
 		{
 			fprintf(stderr, "Invalid trap number: $%04x\n", value);
 			return false;
 		}
+#endif
 
 		map.emplace(name, (uint16_t)value);
 
