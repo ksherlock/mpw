@@ -1,3 +1,8 @@
+* Debugger improvements:
+- ;i also shows toolbox and global info
+- added a symbol table, pre-populated with addresses from MacsBugs debug names.
+- tab completion for symbol table entries.
+
 * PPCAsm utility now supported
 - added HomeResFile toolbox call.
 
