@@ -1,6 +1,8 @@
 TODO
 
 
+.B .W .L -- add a modifier field.  * uses it for the read size.  all others use it when token converted to integer.
+
 debugger improvements:
 
 completion context:
