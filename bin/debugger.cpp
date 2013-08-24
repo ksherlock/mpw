@@ -75,7 +75,8 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
-	std::map<std::string, uint32_t> SymbolTable;
+	Loader::DebugNameTable SymbolTable;
+
 	std::map<std::string, uint16_t> ErrorTable;
 	std::map<std::string, uint16_t> GlobalTable;
 	std::map<std::string, uint16_t> TrapTable;
@@ -831,16 +832,20 @@ void SetXRegister(unsigned reg, uint32_t value)
 }
 
 
+// todo -- return a range
 uint32_t VariableGet(const std::string &s)
 {
 	auto iter = SymbolTable.find(s);
 	if (iter == SymbolTable.end()) return 0;
-	return iter->second;
+	return iter->second.first;
 }
+
+// TODO -- take a Token and construct a pair, if it's a range.
+// var = expr : expr or var = expr@count
 
 void VariableSet(const std::string &key, uint32_t value)
 {
-	SymbolTable.emplace(key, value);
+	SymbolTable.emplace(key, std::make_pair(value, 0));
 }
 
 void Info(uint32_t address)
@@ -848,11 +853,30 @@ void Info(uint32_t address)
 	// print info on the value.
 
 	Print(address);
-	
+
 	// 1. as a pointer.
 	MM::Native::MemoryInfo(address);
 
 	// 2. (todo) - check SymbolTable for procedure address.
+	for (const auto &kv : SymbolTable)
+	{
+		const auto &name = kv.first;
+		auto range = kv.second;
+
+		//printf("%s: %x %x\n", name.c_str(), range.first, range.second);
+
+		// range end may be 0
+		if ((address == range.first) || (address >= range.first && address < range.second))
+		{
+			uint32_t offset = address - range.first;
+			if (offset)
+				printf("Routine: %s+$%x\n", name.c_str(), offset);
+			else
+				printf("Routine: %s\n", name.c_str());
+			break;
+		}
+	}
+
 
 	// 2. as a tool trap.
 	if (address >= 0xa000 && address <= 0xafff)

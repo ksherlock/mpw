@@ -23,7 +23,9 @@ enum {
 	// ; commands
 	kHexdump = 1,
 	kInfo,
-	kList
+	kList,
+	kBreak,
+	kTBreak
 };
 
 struct Command {
@@ -72,6 +74,9 @@ struct Token {
 	std::string *stringValue;
 	unsigned subtype;
 
+	// unsigned range?
+	// unsigned modifier?
+
 
 #if 0
 	Token& operator=(uint32_t rhs)
@@ -82,7 +87,7 @@ struct Token {
 		return *this;
 	}
 #endif
-	
+
 	operator uint32_t() const
 	{
 		return intValue;

@@ -363,7 +363,7 @@ namespace Loader {
 
 
 		// 
-		void LoadDebugNames(std::map<std::string, uint32_t> &table)
+		void LoadDebugNames(DebugNameTable &table)
 		{
 
 			if (Segments.empty()) return;
@@ -493,7 +493,6 @@ namespace Loader {
 						continue;
 					}
 
-					table.emplace(std::move(s), start + si.address);
 
 
 					// constant data
@@ -504,8 +503,13 @@ namespace Loader {
 						pc = (pc + length + 1) & ~1;
 					}
 
+
+					// TODO -- should this include the name and data?
+					table.emplace(std::move(s), std::make_pair(start + si.address, pc + si.address));
+
 					// in case no link instruction...
 					start = pc;
+
 				}
 
 			}

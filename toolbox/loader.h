@@ -8,6 +8,7 @@
 
 namespace Loader {
 
+	typedef std::map<std::string, std::pair<uint32_t, uint32_t>> DebugNameTable;
 	namespace Native {
 
 		/* 
@@ -21,7 +22,7 @@ namespace Loader {
 
 		// scans segments for MacsBug debug names.
 		// associates them with the start of the segment.
-		void LoadDebugNames(std::map<std::string, uint32_t> &table);
+		void LoadDebugNames(DebugNameTable &table);
 
 	}
 
