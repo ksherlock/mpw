@@ -640,7 +640,7 @@ namespace RM
 		std::string sname = ToolBox::ReadPString(namePtr, false);
 
 		Log("%04x AddResource(%08x, %08x ('%s'), %04x, %s)\n",
-			trap, theData, theType, TypeToString(theType).c_str(), sname.c_str()
+			trap, theData, theType, TypeToString(theType).c_str(), theID, sname.c_str()
 		);
 
 
