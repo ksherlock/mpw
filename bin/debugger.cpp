@@ -211,7 +211,6 @@ namespace {
 	}
 
 
-
 	bool step(bool trace)
 	{
 		// return false to break (toolbreak, address break, etc.)
@@ -219,9 +218,11 @@ namespace {
 		uint16_t op;
 		memBreak = false;
 
+		uint32_t prevPC = cpuGetPC();
 		cpuExecuteInstruction();
 
 		uint32_t pc = cpuGetPC();
+
 		if (trace) disasm(pc, &op);
 		else op = Debug::ReadWord(pc);
 
@@ -246,6 +247,7 @@ namespace {
 
 		if (memBreak)
 		{
+			if (!trace) disasm(pc);
 			printf("Memory break\n");
 			memBreak = false;
 			return false;
@@ -296,6 +298,31 @@ namespace {
 	}
 
 
+	static void LogWrite(int size, uint32_t value)
+	{
+		fprintf(stdout, " write %d bytes", size);
+		switch(size)
+		{
+			case 1:
+				fprintf(stdout, " [%02x]\n", value);
+				break;
+			case 2:
+				fprintf(stdout, " [%04x]\n", value);
+				break;
+			case 3:
+				fprintf(stdout, " [%06x]\n", value);
+				break;
+			case 4:
+				fprintf(stdout, " [%08x]\n", value);
+				break;				
+			default:
+				fprintf(stdout, "\n");
+				break;
+		}
+
+
+	}
+
 	void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
 	{
 
@@ -307,25 +334,7 @@ namespace {
 			fprintf(stdout, "%-20s %08x - ", name, address);
 			if (readWrite)
 			{
-				fprintf(stdout, " write %d bytes", size);
-				switch(size)
-				{
-					case 1:
-						fprintf(stdout, " [%02x]\n", value);
-						break;
-					case 2:
-						fprintf(stdout, " [%04x]\n", value);
-						break;
-					case 3:
-						fprintf(stdout, " [%06x]\n", value);
-						break;
-					case 4:
-						fprintf(stdout, " [%08x]\n", value);
-						break;				
-					default:
-						fprintf(stdout, "\n");
-						break;
-				}
+				LogWrite(size, value);
 			}
 			else
 			{
@@ -344,7 +353,8 @@ namespace {
 
 			if (!wbrkMap.lookup(address)) return;
 
-			printf("Write $%08x\n", address);
+			printf("Memory Break $%08x - ", address);
+			LogWrite(size, value);
 			// todo -- print previous value, old value.
 
 			memBreak = true;
@@ -353,7 +363,7 @@ namespace {
 		{
 			if (!rbrkMap.lookup(address)) return;
 
-			printf("Read $%08x\n", address);
+			printf("Memory Break $%08x - read %d bytes\n", address, size);
 
 			memBreak = true;
 		}
