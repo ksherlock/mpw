@@ -61,6 +61,38 @@
 namespace MPW
 {
 
+	uint32_t ftrap_get_tab_info(uint32_t name, uint32_t parm)
+	{
+		// get_tab_info(const char *name, uint32_t *tabSize)
+
+		// hard code for now.  
+		// Could check xattr for actual value.
+		// That would be rather pointless unless some editor respected
+		// it.
+		// Could check an environment variable.
+
+		std::string sname = ToolBox::ReadCString(name, true);
+
+		Log("     get_tab_info(%s)\n", sname.c_str());
+
+
+		if (parm) memoryWriteLong(8, parm);
+		return 0;
+	}
+
+	uint32_t ftrap_set_tab_info(uint32_t name, uint32_t parm)
+	{
+		// set_tab_info(const char *name, uint32_t tabSize)
+
+		std::string sname = ToolBox::ReadCString(name, true);
+		uint32_t tabSize = parm;
+
+		Log("     set_tab_info(%s, %04x)\n", sname.c_str(), tabSize);
+
+		// setxattr?
+		return 0x40000000 | kEINVAL;
+	}
+
 
 	uint32_t ftrap_delete(uint32_t name)
 	{
@@ -193,10 +225,11 @@ namespace MPW
 			break;
 
 		case kF_GTABINFO:
-			d0 = 0x40000000 | kEINVAL;
+			d0 = ftrap_get_tab_info(name, parm);
 			break;
+
 		case kF_STABINFO:
-			d0 = 0x40000000 | kEINVAL;
+			d0 = ftrap_set_tab_info(name, parm);
 			break;
 			
 		default:
