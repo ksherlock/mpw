@@ -588,6 +588,13 @@ void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
 	}
 }
 
+void MidInstructionExceptionFunc()
+{
+	// todo - cpu exception?
+	fprintf(stderr, "Mid Instruction Exception!\n");
+	//throw std::runtime_error::runtime_error("mid instruction exception");
+}
+
 
 #define MPW_VERSION "0.7.1 [kf]"
 void help()
@@ -919,6 +926,8 @@ int main(int argc, char **argv)
 
 	cpuSetALineExceptionFunc(ToolBox::dispatch);
 	cpuSetFLineExceptionFunc(MPW::dispatch);
+
+	cpuSetMidInstructionExceptionFunc(MidInstructionExceptionFunc);
 
 
 	if (Flags.traceGlobals) //memorySetGlobalLog(kGlobalSize);
