@@ -520,10 +520,13 @@ void InstructionLogger()
 		// check for MacsBug name after rts.
 		std::string s;
 		unsigned b = memoryReadByte(pc);
-		if (b > 0x80 && b < 0xa0)
+		if (b >= 0x80 && b <= 0x9f)
 		{
 			b -= 0x80;
 			pc++;
+
+			if (!b) b = memoryReadByte(pc++);
+
 			s.reserve(b);
 			for (unsigned i = 0; i < b; ++i)
 			{

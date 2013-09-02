@@ -148,10 +148,12 @@ namespace {
 		// check for MacsBug name after rts.
 		std::string s;
 		unsigned b = Debug::ReadByte(pc);
-		if (b > 0x80 && b < 0xa0)
+		if (b >= 0x80 && b <= 0x9f)
 		{
 			b -= 0x80;
 			pc++;
+			if (!b) b = Debug::ReadByte(pc++);
+			
 			s.reserve(b);
 			for (unsigned i = 0; i < b; ++i)
 			{
@@ -159,7 +161,6 @@ namespace {
 			}
 			printf("%s\n", s.c_str());
 		}
-		// could also be in the form 0x80 \p string.
 
 	}
 
