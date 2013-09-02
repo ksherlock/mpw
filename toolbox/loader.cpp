@@ -438,7 +438,7 @@ namespace Loader {
 						++pc;
 
 						if (length == 0)
-							length = memory[++pc];
+							length = memory[pc++];
 
 						s.assign((const char *)memory + pc, length);
 
