@@ -1,3 +1,6 @@
+* AsmMatIIgs fixes
+- added support for faccess F_GTABINFO
+
 * Debugger improvements:
 - ;i also shows toolbox and global info
 - added a symbol table, pre-populated with addresses from MacsBugs debug names.
