@@ -1,3 +1,7 @@
+* FCONVERT/Comp support
+- FX2C and FC2X are now supported
+- cciigs now supports the comp data type.
+
 * AsmMatIIgs fixes
 - added support for faccess F_GTABINFO
 
