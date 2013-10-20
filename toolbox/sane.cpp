@@ -44,8 +44,121 @@ using ToolBox::Log;
 namespace SANE
 {
 
+using std::to_string;
+
+
 	// long double is an 80-bit extended with an extra 48-bits of 0 padding.
 	typedef long double extended;
+
+	// comp is an int64_t but 0x8000_0000_0000_0000 is NaN 
+	//typedef int64_t complex;
+
+	struct complex {
+
+	public:
+		const uint64_t NaN = 0x8000000000000000;
+		complex(const complex &rhs) : _data(rhs._data)
+		{}
+		complex(uint64_t rhs) : _data(rhs)
+		{}
+
+		complex &operator=(const complex &rhs)
+		{
+			_data = rhs._data;
+			return *this;
+		}
+
+		complex &operator=(uint64_t rhs)
+		{
+			_data = rhs;
+			return *this;
+		}
+
+		complex &operator=(long double ld)
+		{
+			switch(fpclassify(ld))
+			{
+				case FP_NAN:
+					_data = NaN;
+					break;
+				case FP_INFINITE:
+					if (signbit(ld))
+					{
+						_data = -INT64_MAX;
+					}
+					else
+					{
+						_data = INT64_MAX;
+					}
+					break;
+				default:
+					_data = ld;
+					break;
+			}
+
+			return *this;
+		}
+
+
+		complex &operator=(double d)
+		{
+			switch(fpclassify(d))
+			{
+				case FP_NAN:
+					_data = NaN;
+					break;
+				case FP_INFINITE:
+					if (signbit(d))
+					{
+						_data = -INT64_MAX;
+					}
+					else
+					{
+						_data = INT64_MAX;
+					}
+					break;
+				default:
+					_data = d;
+					break;
+			}
+
+			return *this;
+		}
+
+
+		operator uint64_t() const {
+			return _data;
+		}
+
+		operator int64_t() const {
+			return _data;
+		}
+
+		operator long double() const {
+			if (_data == NaN)
+				return NAN;
+			return _data;
+		}
+
+		operator double() const {
+			if (_data == NaN)
+				return NAN;
+			return _data;
+		}
+
+
+	private:
+		int64_t _data;
+
+	};
+
+	// can't override std::to_string, but can import std::to_string
+	// then override SANE::to_string.
+	std::string to_string(complex c)
+	{
+		return std::to_string((int64_t)c);
+	}
+
 
 	template <class T>
 	T readnum(uint32_t address);
@@ -61,6 +174,21 @@ namespace SANE
 	{
 		return memoryReadLong(address);
 	}
+
+
+	template<>
+	int64_t readnum<int64_t>(uint32_t address)
+	{
+		return memoryReadLongLong(address);
+	}
+
+
+	template<>
+	complex readnum<complex>(uint32_t address)
+	{
+		return complex(memoryReadLongLong(address));
+	}
+
 
 	template<>
 	float readnum<float>(uint32_t address)
@@ -104,6 +232,7 @@ namespace SANE
 		return *((long double *)buffer);		
 	}
 
+
 	template<class T>
 	void writenum(T value, uint32_t address);
 
@@ -118,6 +247,18 @@ namespace SANE
 	{
 		memoryWriteLong(value, address);
 	}
+
+	template<>
+	void writenum<int64_t>(int64_t value, uint32_t address)
+	{
+		memoryWriteLongLong(value, address);
+	}	
+
+	template<>
+	void writenum<complex>(complex value, uint32_t address)
+	{
+		memoryWriteLongLong(value, address);
+	}	
 
 	template<>
 	void writenum<float>(float value, uint32_t address)
@@ -402,7 +543,7 @@ namespace SANE
 
 		if (ToolBox::Trace)
 		{
-			std::string tmp1 = std::to_string(s);
+			std::string tmp1 = to_string(s);
 			Log("     %s\n", tmp1.c_str());
 		}
 
@@ -585,42 +726,21 @@ namespace SANE
 			case 0x280a: return fcmp<int32_t>("FCPXL");
 
 
-			// conversion
-			case 0x000e: // 2 versions for completeness.
-			case 0x0010:
-				return fconvert<extended, extended>("FX2X");
-				break;
+			// conversion (extended -> ???)
+			case 0x0010: return fconvert<extended, extended>("FX2X");
+			case 0x0810: return fconvert<extended, double>("FX2D");
+			case 0x1010: return fconvert<extended, float>("FX2S");
+			case 0x3010: return fconvert<extended, complex>("FX2C");
+			case 0x2010: return fconvert<extended, int16_t>("FX2I");
+			case 0x2810: return fconvert<extended, int32_t>("FX2L");
 
-			case 0x0810:
-				return fconvert<extended, double>("FX2D");
-				break;
-
-			case 0x1010:
-				return fconvert<extended, float>("FX2S");
-				break;
-
-			// 0x3010 - x to comp
-			case 0x2010:
-				return fconvert<extended, int16_t>("FX2I");
-				break;
-
-			case 0x2810:
-				return fconvert<extended, int32_t>("FX2L");
-				break;
-
-			case 0x080e:
-				return fconvert<double, extended>("FD2X");
-				break;
-			case 0x100e:
-				return fconvert<float, extended>("FS2X");
-				break;
-			// 0x300e - comp to x
-			case 0x200e:
-				return fconvert<int16_t, extended>("FI2X");
-				break;
-			case 0x280e:
-				return fconvert<int32_t, extended>("FL2X");
-				break; 
+			// conversion (??? -> extended)
+			case 0x000e: return fconvert<extended, extended>("FX2X");
+			case 0x080e: return fconvert<double, extended>("FD2X");
+			case 0x100e: return fconvert<float, extended>("FS2X");
+			case 0x300e: return fconvert<complex, extended>("FC2X");
+			case 0x200e: return fconvert<int16_t, extended>("FI2X");
+			case 0x280e: return fconvert<int32_t, extended>("FL2X");
 
 
 			case 0x0009:
