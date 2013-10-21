@@ -62,6 +62,11 @@ using std::to_string;
 		complex(uint64_t rhs) : _data(rhs)
 		{}
 
+		bool isnan() const
+		{
+			return _data == NaN;
+		}
+
 		complex &operator=(const complex &rhs)
 		{
 			_data = rhs._data;
@@ -156,6 +161,8 @@ using std::to_string;
 	// then override SANE::to_string.
 	std::string to_string(complex c)
 	{
+		if (c.isnan()) return std::string("nan");
+		
 		return std::to_string((int64_t)c);
 	}
 
