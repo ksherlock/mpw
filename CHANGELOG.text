@@ -1,3 +1,7 @@
+------------------------
+0.7.1 - October 30, 2013
+------------------------
+
 * FCONVERT/Comp support
 - FX2C and FC2X are now supported
 - cciigs now supports the comp data type.
