@@ -61,6 +61,34 @@
 namespace MPW
 {
 
+
+
+	uint32_t ftrap_set_font_info(uint32_t name, uint32_t parm)
+	{
+		// set_font_info(const char *name, uint32_t fontSize);
+
+		std::string sname = ToolBox::ReadCString(name, true);
+		uint32_t fontSize = parm;
+
+		Log("     set_font_info(%s, %04x)\n", sname.c_str(), fontSize);
+
+		return 0x40000000 | kEINVAL;
+	}
+
+	uint32_t ftrap_get_font_info(uint32_t name, uint32_t parm)
+	{
+		// get_font_info(const char *name, uint32 *fontSize)
+
+		std::string sname = ToolBox::ReadCString(name, true);
+
+		Log("     get_font_info(%s, %04x)\n", sname.c_str(), parm);
+
+		// default to 9pt
+		if (parm) memoryWriteLong(9, parm);
+		return 0;
+	}
+
+
 	uint32_t ftrap_get_tab_info(uint32_t name, uint32_t parm)
 	{
 		// get_tab_info(const char *name, uint32_t *tabSize)
@@ -231,6 +259,15 @@ namespace MPW
 		case kF_STABINFO:
 			d0 = ftrap_set_tab_info(name, parm);
 			break;
+
+		case kF_GFONTINFO:
+			d0 = ftrap_get_font_info(name, parm);
+			break;
+
+		case kF_SFONTINFO:
+			d0 = ftrap_set_font_info(name, parm);
+			break;
+
 			
 		default:
 			d0 = 0x40000000 | kEINVAL;
