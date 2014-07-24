@@ -1455,4 +1455,18 @@ namespace MM
 		return 0;
 	}
 
+	uint16_t MaxApplZone(uint16_t trap)
+	{
+		// PROCEDURE MaxApplZone;
+
+		/*
+		 * on exit:
+		 * D0 Result code
+		 */
+
+		Log("%04x MaxApplZone\n", trap);
+
+		return 0;
+	}
+
 }

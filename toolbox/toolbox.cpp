@@ -254,6 +254,11 @@ namespace ToolBox {
 				d0 = MM::HandleZone(trap);
 				break;
 
+			// MaxApplZone
+			case 0xa063:
+				d0 = MM::MaxApplZone(trap);
+				break;
+
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
 				d0 = OS::ReadDateTime(trap);
