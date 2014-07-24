@@ -161,6 +161,9 @@ namespace ToolBox {
 				d0 = OS::AliasDispatch(trap);
 				break;
 
+			case 0xA1AD:
+				d0 = OS::Gestalt(trap);
+				break;
 
 			// SetPtrSize (p: Ptr; newSize: Size);
 			case 0xa020:
@@ -584,6 +587,23 @@ namespace ToolBox {
 			*ptr++ = (uint8_t)c;
 		}
 		return true;
+	}
+
+	std::string TypeToString(uint32_t type)
+	{
+		char tmp[5] = { 0, 0, 0, 0, 0};
+
+		for (unsigned i = 0; i < 4; ++i)
+		{
+			char c = type & 0xff;
+			type >>= 8;
+
+			c = isprint(c) ? c : '.';
+
+			tmp[3 - i] = c;
+		}
+
+		return std::string(tmp);
 	}
 
 	/*

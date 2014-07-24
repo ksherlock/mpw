@@ -15,6 +15,7 @@ set(TOOLBOX_SRC
 	os_highlevel.cpp
 	os_alias.cpp
 	os_fileinfo.cpp
+	os_gestalt.cpp
 	qd.cpp
 	sane.cpp
 	saneparser.cpp

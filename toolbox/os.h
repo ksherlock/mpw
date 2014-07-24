@@ -90,6 +90,9 @@ namespace OS
 	uint16_t ResolveAliasFile();
 	uint16_t AliasDispatch(uint16_t trap);
 
+	#pragma mark - Gestalt Manager
+	uint16_t Gestalt(uint16_t trap);
+
 }
 
 #endif
