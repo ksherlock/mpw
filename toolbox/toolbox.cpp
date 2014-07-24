@@ -41,6 +41,7 @@
 #include "sane.h"
 #include "utility.h"
 #include "loader.h"
+#include "macos/traps.h"
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
@@ -510,7 +511,8 @@ namespace ToolBox {
 				break;
 
 			default:
-				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
+				fprintf(stderr, "Unsupported tool trap: %04x (%s)\n",
+						trap, TrapName(trap));
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());
 				exit(255);
 		}
