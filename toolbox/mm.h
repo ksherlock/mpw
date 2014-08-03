@@ -81,6 +81,8 @@ namespace MM
 	uint16_t HandleZone(uint16_t trap);
 	uint16_t GetZone(uint16_t trap);
 	uint16_t SetZone(uint16_t trap);
+
+	uint16_t MaxApplZone(uint16_t trap);
 }
 
 

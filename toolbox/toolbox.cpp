@@ -41,6 +41,7 @@
 #include "sane.h"
 #include "utility.h"
 #include "loader.h"
+#include "macos/traps.h"
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
@@ -160,6 +161,9 @@ namespace ToolBox {
 				d0 = OS::AliasDispatch(trap);
 				break;
 
+			case 0xA1AD:
+				d0 = OS::Gestalt(trap);
+				break;
 
 			// SetPtrSize (p: Ptr; newSize: Size);
 			case 0xa020:
@@ -252,6 +256,11 @@ namespace ToolBox {
 
 			case 0xa126:
 				d0 = MM::HandleZone(trap);
+				break;
+
+			// MaxApplZone
+			case 0xa063:
+				d0 = MM::MaxApplZone(trap);
 				break;
 
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
@@ -505,7 +514,8 @@ namespace ToolBox {
 				break;
 
 			default:
-				fprintf(stderr, "Unsupported tool trap: %04x\n", trap);
+				fprintf(stderr, "Unsupported tool trap: %04x (%s)\n",
+						trap, TrapName(trap));
 				fprintf(stderr, "pc: %08x\n", cpuGetPC());
 				exit(255);
 		}
@@ -577,6 +587,23 @@ namespace ToolBox {
 			*ptr++ = (uint8_t)c;
 		}
 		return true;
+	}
+
+	std::string TypeToString(uint32_t type)
+	{
+		char tmp[5] = { 0, 0, 0, 0, 0};
+
+		for (unsigned i = 0; i < 4; ++i)
+		{
+			char c = type & 0xff;
+			type >>= 8;
+
+			c = isprint(c) ? c : '.';
+
+			tmp[3 - i] = c;
+		}
+
+		return std::string(tmp);
 	}
 
 	/*

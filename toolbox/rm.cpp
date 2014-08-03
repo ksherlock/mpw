@@ -49,6 +49,7 @@
 using ToolBox::Log;
 
 using namespace OS::Internal;
+using namespace ToolBox;
 
 namespace
 {
@@ -79,24 +80,6 @@ namespace
 	{
 		memoryWriteWord(error, MacOS::ResErr);
 		return error;
-	}
-
-
-	std::string TypeToString(uint32_t type)
-	{
-		char tmp[5] = { 0, 0, 0, 0, 0};
-
-		for (unsigned i = 0; i < 4; ++i)
-		{
-			char c = type & 0xff;
-			type >>= 8;
-
-			c = isprint(c) ? c : '.';
-
-			tmp[3 - i] = c;
-		}
-
-		return std::string(tmp);
 	}
 
 	bool LoadResType(uint32_t type)
