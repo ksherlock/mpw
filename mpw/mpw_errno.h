@@ -1,10 +1,12 @@
 #ifndef __mpw_errno_h__
 #define __mpw_errno_h__
 
+#include <system_error>
+
 namespace MPW {
 
 	// from MPW errno.h
-	enum {
+	enum mpw_errno {
 		kEPERM = 1,		/* Permission denied */
 		kENOENT = 2,	/* No such file or directory */
 		kENORSRC = 3,	/* No such resource */
@@ -41,6 +43,34 @@ namespace MPW {
 		kERANGE = 34,	/* Math result not representable */
 	};
 
+
+	mpw_errno mpw_errno_from_errno();
+	mpw_errno mpw_errno_from_errno(int error);
+
+	// c++11 error stuff
+	const std::error_category& mpw_system_category();
+
+	inline std::error_code make_error_code(mpw_errno e) noexcept
+	{
+		return std::error_code(static_cast<int>(e), mpw_system_category());
+	}
+
+	inline std::error_condition make_error_condition(mpw_errno e) noexcept
+	{
+		return std::error_condition(static_cast<int>(e), mpw_system_category());
+	}
+
+
+
+}
+
+namespace std {
+
+	template<>
+	struct is_error_code_enum<MPW::mpw_errno> : public true_type {};
+
+	template<>
+	struct is_error_condition_enum<MPW::mpw_errno> : public true_type {};
 }
 
 #endif
