@@ -97,8 +97,8 @@ UWO memoryReadWord(ULO address)
 	if (address & 0x01) memoryOddRead(address);
 
 	if (address + 1 < MemorySize)
-		return (Memory[address++] << 8) 
-			| (Memory[address++] << 0); 
+		return (Memory[address + 0] << 8) 
+			| (Memory[address + 1] << 0); 
 
 	return 0;
 }
@@ -112,10 +112,10 @@ ULO memoryReadLong(ULO address)
 	if (address & 0x01) memoryOddRead(address);
 
 	if (address + 3 < MemorySize)
-		return (Memory[address++] << 24) 
-			| (Memory[address++] << 16)
-			| (Memory[address++] << 8)
-			| (Memory[address++] << 0); 
+		return (Memory[address + 0] << 24) 
+			| (Memory[address + 1] << 16)
+			| (Memory[address + 2] << 8)
+			| (Memory[address + 3] << 0); 
 
 	return 0;
 }
