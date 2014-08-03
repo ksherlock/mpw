@@ -1039,6 +1039,31 @@ namespace OS
 		return 0;
 	}
 
+
+	uint16_t Microseconds(uint16_t trap)
+	{
+
+		// UnsignedWide is a uint64_t 
+		// Microseconds(UnsignedWide * microTickCount)
+		// FOURWORDINLINE(0xA193, 0x225F, 0x22C8, 0x2280);
+
+
+		uint32_t microTickCount;
+		StackFrame<4>(microTickCount);
+
+		Log("%04x %s(%08x)\n", trap, __func__, microTickCount);
+
+		auto now = std::chrono::steady_clock::now();
+
+		uint64_t t = std::chrono::duration_cast< std::chrono::microseconds >(now - BootTime).count();
+
+		if (microTickCount)
+			memoryWriteLongLong(t, microTickCount);
+
+
+		return 0;
+	}
+
 	uint16_t Pack6(uint16_t trap)
 	{
 		char buffer[256];

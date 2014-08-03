@@ -278,6 +278,11 @@ namespace ToolBox {
 				d0 = OS::TickCount(trap);
 				break;
 
+			case 0xa193:
+				d0 = OS::Microseconds(trap);
+				break;
+
+
 			case 0xa9ed:
 				d0 = OS::Pack6(trap);
 				break;
