@@ -15,11 +15,19 @@ Created: Thursday, March 14, 1991 at 3:53 PM
 #define __macos_errors__
 
 #ifdef __cplusplus
+extern "C" {
+#endif
+const char *ErrorName(int16_t trap);
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
 namespace MacOS {
 #endif
 
-enum {
-
+enum macos_error {
+    noErr = 0,
     paramErr = -50,                                 /*error in user parameter list*/
     noHardwareErr = -200,                           /*Sound Manager Error Returns*/
     notEnoughHardwareErr = -201,                    /*Sound Manager Error Returns*/
@@ -39,9 +47,9 @@ enum {
     openErr = -23,                                  /*I/O System Errors*/
     closErr = -24,                                  /*I/O System Errors*/
     dRemovErr = -25,                                /*tried to remove an open driver*/
-    dInstErr = -26                                  /*DrvrInstall couldn't find driver in resources */
-};
-enum {
+    dInstErr = -26,                                 /*DrvrInstall couldn't find driver in resources */
+
+
     abortErr = -27,                                 /*IO call aborted by KillIO*/
     iIOAbortErr = -27,                              /*IO abort error (Printing Manager)*/
     notOpenErr = -28,                               /*Couldn't rd/wr/ctl/sts cause driver not opened*/
@@ -61,9 +69,9 @@ enum {
     tmfoErr = -42,                                  /*too many files open*/
     fnfErr = -43,                                   /*File not found*/
     wPrErr = -44,                                   /*diskette is write protected.*/
-    fLckdErr = -45                                  /*file is locked*/
-};
-enum {
+    fLckdErr = -45,                                 /*file is locked*/
+
+
     vLckdErr = -46,                                 /*volume is locked*/
     fBsyErr = -47,                                  /*File is busy (delete)*/
     dupFNErr = -48,                                 /*duplicate filename (rename)*/
@@ -83,9 +91,9 @@ enum {
     tmwdoErr = -121,                                /*No free WDCB available*/
     badMovErr = -122,                               /*Move into offspring error*/
     wrgVolTypErr = -123,                            /*Wrong volume type error [operation not supported for MFS]*/
-    volGoneErr = -124                               /*Server volume has been disconnected.*/
-};
-enum {
+    volGoneErr = -124,                              /*Server volume has been disconnected.*/
+
+
     fidNotFound = -1300,                            /*no file thread exists.*/
     fidExists = -1301,                              /*file id already exists*/
     notAFileErr = -1302,                            /*directory specified*/
@@ -105,9 +113,9 @@ enum {
     lastDskErr = -64,                               /*I/O System Errors*/
     noDriveErr = -64,                               /*drive not installed*/
     offLinErr = -65,                                /*r/w requested for an off-line drive*/
-    noNybErr = -66                                  /*couldn't find 5 nybbles in 200 tries*/
-};
-enum {
+    noNybErr = -66,                                 /*couldn't find 5 nybbles in 200 tries*/
+
+
     noAdrMkErr = -67,                               /*couldn't find valid addr mark*/
     dataVerErr = -68,                               /*read verify compare failed*/
     badCksmErr = -69,                               /*addr mark checksum didn't check*/
@@ -127,9 +135,9 @@ enum {
     fmt2Err = -83,                                  /*can't get enough sync*/
     verErr = -84,                                   /*track failed to verify*/
     clkRdErr = -85,                                 /*unable to read same clock value twice*/
-    clkWrErr = -86                                  /*time written did not verify*/
-};
-enum {
+    clkWrErr = -86,                                 /*time written did not verify*/
+
+
     prWrErr = -87,                                  /*parameter ram written didn't read-verify*/
     prInitErr = -88,                                /*InitUtil found the parameter ram uninitialized*/
     rcvrErr = -89,                                  /*SCC receiver error (framing; parity; OR)*/
@@ -153,9 +161,9 @@ enum {
     nilHandleErr = -109,                            /*Master Pointer was NIL in HandleZone or other*/
     memWZErr = -111,                                /*WhichZone failed (applied to free block)*/
     memPurErr = -112,                               /*trying to purge a locked or non-purgeable block*/
-    memAdrErr = -110                                /*address was odd; or out of range*/
-};
-enum {
+    memAdrErr = -110,                               /*address was odd; or out of range*/
+
+
     memAZErr = -113,                                /*Address in zone check failed*/
     memPCErr = -114,                                /*Pointer Check failed*/
     memBCErr = -115,                                /*Block Check failed*/
@@ -175,9 +183,9 @@ enum {
     noMemForPictPlaybackErr = -145,
     rgnTooBigError = -147,
     pixMapTooDeepErr = -148,
-    nsStackErr = -149
-};
-enum {
+    nsStackErr = -149,
+
+
     cMatchErr = -150,                               /*Color2Index failed to find an index*/
     cTempMemErr = -151,                             /*failed to allocate memory for temporary structures*/
     cNoMemErr = -152,                               /*failed to allocate memory for structure*/
@@ -199,9 +207,9 @@ enum {
     notEnoughHardware = notEnoughHardwareErr,       /* *** obsolete spelling */
     queueFull = -203,                               /*Sound Manager Error Returns*/
     resProblem = -204,                              /*Sound Manager Error Returns*/
-    badChannel = -205                               /*Sound Manager Error Returns*/
-};
-enum {
+    badChannel = -205,                              /*Sound Manager Error Returns*/
+
+
     badFormat = -206,                               /*Sound Manager Error Returns*/
     notEnoughBufferSpace = -207,                    /* could not allocate enough memory */
     badFileFormat = -208,                           /* was not type AIFF or was of bad format,corrupt */
@@ -221,9 +229,8 @@ enum {
     siBadRefNum = -229,                             /*invalid input device reference number*/
     siInputDeviceErr = -230,                        /*input device hardware failure*/
     siUnknownInfoType = -231,                       /*invalid info type selector (returned by driver)*/
-    siUnknownQuality = -232                         /*invalid quality selector (returned by driver)*/
-};
-enum {
+    siUnknownQuality = -232,                        /*invalid quality selector (returned by driver)*/
+
 
 /*Notification Manager errors*/
     nmTypErr = -299,                                /*wrong queue type*/
@@ -245,9 +252,9 @@ enum {
     smRevisionErr = -303,                           /*Wrong revison level*/
     smNoDir = -304,                                 /*Directory offset is Nil */
     smDisabledSlot = -305,                          /*This slot is disabled (-305 use to be smLWTstBad)*/
-    smNosInfoArray = -306                           /*No sInfoArray. Memory Mgr error.*/
-};
-enum {
+    smNosInfoArray = -306,                          /*No sInfoArray. Memory Mgr error.*/
+
+
     smResrvErr = -307,                              /*Fatal reserved error. Resreved field <> 0.*/
     smUnExBusErr = -308,                            /*Unexpected BusError*/
     smBLFieldBad = -309,                            /*ByteLanes field was bad.*/
@@ -273,9 +280,9 @@ but a special error is needed to patch secondary inits.*/
     smBadRefId = -330,                              /*Reference Id not found in List*/
     smBadsList = -331,                              /*Bad sList: Id1 < Id2 < Id3 ...format is not followed.*/
     smReservedErr = -332,                           /*Reserved field not zero*/
-    smCodeRevErr = -333                             /*Code revision is wrong*/
-};
-enum {
+    smCodeRevErr = -333,                            /*Code revision is wrong*/
+
+
     smCPUErr = -334,                                /*Code revision is wrong*/
     smsPointerNil = -335,                           /*LPointer is nil From sOffsetData. If this error occurs; check sInfo rec for more information.*/
     smNilsBlockErr = -336,                          /*Nil sBlock error (Dont allocate and try to use a nil sBlock)*/
@@ -295,9 +302,9 @@ enum {
     smSRTOvrFlErr = -350,                           /*SRT over flow.*/
     smRecNotFnd = -351,                             /*Record not found in the SRT.*/
     editionMgrInitErr = -450,                       /*edition manager not inited by this app*/
-    badSectionErr = -451                            /*not a valid SectionRecord*/
-};
-enum {
+    badSectionErr = -451,                           /*not a valid SectionRecord*/
+
+
     notRegisteredSectionErr = -452,                 /*not a registered SectionRecord*/
     badEditionFileErr = -453,                       /*edition file is corrupt*/
     badSubPartErr = -454,                           /*can not use sub parts in this release*/
@@ -321,10 +328,10 @@ enum {
     notEnoughMemoryErr = -620,                      /*insufficient physical memory*/
     notHeldErr = -621,                              /*specified range of memory is not held*/
     cannotMakeContiguousErr = -622,                 /*cannot make specified range contiguous*/
-    notLockedErr = -623                             /*specified range of memory is not locked*/
-};
-enum {
-    interruptsMaskedErr = -624,                     /*donÕt call with interrupts masked*/
+    notLockedErr = -623,                            /*specified range of memory is not locked*/
+
+
+    interruptsMaskedErr = -624,                     /*don't call with interrupts masked*/
     cannotDeferErr = -625,                          /*unable to defer additional functions*/
     ddpSktErr = -91,                                /*error in soket number*/
     ddpLenErr = -92,                                /*data length too big*/
@@ -343,9 +350,9 @@ enum {
     aspBufTooSmall = -1067,                         /*Buffer too small*/
     aspNoMoreSess = -1068,                          /*No more sessions on server*/
     aspNoServers = -1069,                           /*No servers at that address*/
-    aspParamErr = -1070                             /*Parameter error*/
-};
-enum {
+    aspParamErr = -1070,                            /*Parameter error*/
+
+
     aspServerBusy = -1071,                          /*Server cannot open another session*/
     aspSessClosed = -1072,                          /*Session closed*/
     aspSizeErr = -1073,                             /*Command block too big*/
@@ -365,9 +372,9 @@ enum {
     noMPPErr = -3102,
     ckSumErr = -3103,
     extractErr = -3104,
-    readQErr = -3105
-};
-enum {
+    readQErr = -3105,
+
+
     atpLenErr = -3106,
     atpBadRsp = -3107,
     recNotFnd = -3108,
@@ -387,9 +394,9 @@ enum {
     afpItemNotFound = -5012,
     afpLockErr = -5013,
     afpMiscErr = -5014,
-    afpNoMoreLocks = -5015
-};
-enum {
+    afpNoMoreLocks = -5015,
+
+
     afpNoServer = -5016,
     afpObjectExists = -5017,
     afpObjectNotFound = -5018,
@@ -409,9 +416,9 @@ enum {
     afpObjectLocked = -5032,                        /*Object is M/R/D/W inhibited*/
     afpContainsSharedErr = -5033,                   /*$FFFFEC57   the folder being shared contains a shared folder */
     afpIDNotFound = -5034,                          /*$FFFFEC56*/
-    afpIDExists = -5035                             /*$FFFFEC55*/
-};
-enum {
+    afpIDExists = -5035,                            /*$FFFFEC55*/
+
+
     afpDiffVolErr = -5036,                          /*$FFFFEC54*/
     afpCatalogChanged = -5037,                      /*$FFFFEC53*/
     afpSameObjectErr = -5038,                       /*$FFFFEC52*/
@@ -433,9 +440,9 @@ enum {
     noSessionErr = -908,                            /* Invalid session reference number */
     badReqErr = -909,                               /* bad parameter or invalid state for operation */
     portNameExistsErr = -910,                       /* port is already open (perhaps in another app) */
-    noUserNameErr = -911                            /* user name unknown on destination machine */
-};
-enum {
+    noUserNameErr = -911,                           /* user name unknown on destination machine */
+
+
     userRejectErr = -912,                           /* Destination rejected the session request */
     noMachineNameErr = -913,                        /* user hasn't named his Macintosh in the Network Setup Control Panel */
     noToolboxNameErr = -914,                        /* A system resource is missing, not too likely */
@@ -455,9 +462,9 @@ enum {
     guestNotAllowedErr = -932,                      /* destination port requires authentication */
     swOverrunErr = 1,                               /*serial driver error masks*/
     parityErr = 16,                                 /*serial driver error masks*/
-    hwOverrunErr = 32                               /*serial driver error masks*/
-};
-enum {
+    hwOverrunErr = 32,                              /*serial driver error masks*/
+
+
     framingErr = 64,                                /*serial driver error masks*/
     dsBusError = 1,                                 /*bus error */
     dsAddressErr = 2,                               /*address error*/
@@ -477,9 +484,9 @@ enum {
     dsFPErr = 16,                                   /*Floating point error*/
     dsNoPackErr = 17,                               /*package 0 not present*/
     dsNoPk1 = 18,                                   /*package 1 not present*/
-    dsNoPk2 = 19                                    /*package 2 not present*/
-};
-enum {
+    dsNoPk2 = 19,                                   /*package 2 not present*/
+
+
     dsNoPk3 = 20,                                   /*package 3 not present*/
     dsNoPk4 = 21,                                   /*package 4 not present*/
     dsNoPk5 = 22,                                   /*package 5 not present*/
@@ -493,16 +500,16 @@ enum {
     dsFinderErr = 41,                               /*can't load the Finder error*/
     dsBadSlotInt = 51,                              /*unserviceable slot interrupt*/
     dsBadSANEOpcode = 81,                           /*bad opcode given to SANE Pack4*/
-    dsBadPatchHeader = 83,                          /*SetTrapAddress saw the Òcome-fromÓ header*/
+    dsBadPatchHeader = 83,                          /*SetTrapAddress saw the "come-from" header*/
     menuPrgErr = 84,                                /*happens when a menu is purged*/
     dsMBarNFnd = 85,                                /*Menu Manager Errors*/
     dsHMenuFindErr = 86,                            /*Menu Manager Errors*/
     dsWDEFNotFound = 87,                            /*could not load WDEF*/
     dsCDEFNotFound = 88,                            /*could not load CDEF*/
-    dsMDEFNotFound = 89                             /*could not load MDEF*/
-};
-enum {
-    dsNoFPU = 90,                                   /*an FPU instruction was executed and the machine doesnÕt have one*/
+    dsMDEFNotFound = 89,                            /*could not load MDEF*/
+
+
+    dsNoFPU = 90,                                   /*an FPU instruction was executed and the machine doesn't have one*/
     dsNoPatch = 98,                                 /*Can't patch for particular Model Mac*/
     dsBadPatch = 99,                                /*Can't load patch resource*/
     dsParityErr = 101,                              /*memory parity error*/
@@ -518,34 +525,71 @@ enum {
     dsForcedQuit = 20002,                           /*allow the user to ExitToShell, return if Cancel*/
 
 /*System Errors that are used after MacsBug is loaded to put up dialogs since these should not cause MacsBug to stop, they must be in the range (30, 42, 16384-32767) negative numbers add to an existing dialog without putting up a whole new dialog*/
-    dsMacsBugInstalled = -10,                       /*say ÒMacsBug InstalledÓ*/
-    dsDisassemblerInstalled = -11,                  /*say ÒDisassembler InstalledÓ*/
-    dsExtensionsDisabled = -13,                     /*say ÒExtensions DisabledÓ*/
+    dsMacsBugInstalled = -10,                       /*say "MacsBug Installed"*/
+    dsDisassemblerInstalled = -11,                  /*say "Disassembler Installed"*/
+    dsExtensionsDisabled = -13,                     /*say "Extensions Disabled"*/
     dsGreeting = 40,                                /*welcome to Macintosh greeting*/
     dsSysErr = 32767,                               /*general system error*/
 
-/*old names here for compatibilityÕs sake*/
-    WDEFNFnd = dsWDEFNotFound
-};
-enum {
+/*old names here for compatibility's sake*/
+    WDEFNFnd = dsWDEFNotFound,
+
+
     CDEFNFnd = dsCDEFNotFound,
     dsNotThe1 = 31,                                 /*not the disk I wanted*/
     dsBadStartupDisk = 42,                          /*unable to mount boot volume (sad Mac only)*/
-    dsSystemFileErr = 43,                           /*canÕt find System file to open (sad Mac only)*/
-    dsHD20Installed = -12,                          /*say ÒHD20 StartupÓ*/
+    dsSystemFileErr = 43,                           /*can't find System file to open (sad Mac only)*/
+    dsHD20Installed = -12,                          /*say "HD20 Startup"*/
     mBarNFnd = -126,                                /*system error code for MBDF not found*/
     hMenuFindErr = -127,                            /*could not find HMenu's parent in MenuKey*/
     userBreak = -490,                               /*user debugger break*/
     strUserBreak = -491,                            /*user debugger break; display string on stack*/
     exUserBreak = -492,                             /*user debugger break; execute debugger commands on stack*/
 
-/*obsolete errors that are no longer used, but I donÕt have the guts to remove from this file*/
+/*obsolete errors that are no longer used, but I don't have the guts to remove from this file*/
     selectorErr = paramErr                          /* bad selector, for selector-based traps */
 };
+
 
 #ifdef __cplusplus
 }
 #endif
     
+
+#ifdef __cplusplus
+
+#include <system_error>
+
+namespace MacOS {
+
+    macos_error macos_error_from_errno();
+    macos_error macos_error_from_errno(int error);
+
+    // c++11 error stuff
+    const std::error_category& macos_system_category();
+
+    inline std::error_code make_error_code(macos_error e) noexcept
+    {
+        return std::error_code(static_cast<int>(e), macos_system_category());
+    }
+
+    inline std::error_condition make_error_condition(macos_error e) noexcept
+    {
+        return std::error_condition(static_cast<int>(e), macos_system_category());
+    }
+}
+
+namespace std {
+
+    template<>
+    struct is_error_code_enum<MacOS::macos_error> : public true_type {};
+
+    template<>
+    struct is_error_condition_enum<MacOS::macos_error> : public true_type {};
+}
+
+
+#endif
+
 
 #endif
