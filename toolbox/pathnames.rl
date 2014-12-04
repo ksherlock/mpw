@@ -127,7 +127,7 @@ namespace ToolBox
 		#ifndef TESTING
 		if (path.find_first_of("${") != path.npos)
 		{
-			path = MPW::ExpandVariables(path);
+			path = MPW::ExpandVariables(path, true);
 		}
 		#endif
 

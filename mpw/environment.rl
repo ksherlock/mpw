@@ -34,7 +34,7 @@ namespace MPW
 {
 	extern std::unordered_map<std::string, std::string> Environment;
 
-	std::string ExpandVariables(const std::string &s);
+	std::string ExpandVariables(const std::string &s, bool pathname = false);
 }
 
 namespace {
@@ -102,11 +102,17 @@ namespace {
 			};
 
 			# backwards compatibility.
+			# lcc generates temporary files named $xxx$
+			# so don't replace in pathnames.
 			'$' [A-Za-z0-9_]+ {
-				std::string name(ts + 1, te);
-				auto iter = Environment.find(name);
-				if (iter != Environment.end())
-					rv.append(iter->second);
+				if (pathname) {
+					rv.append(ts, te);
+				} else {
+					std::string name(ts + 1, te);
+					auto iter = Environment.find(name);
+					if (iter != Environment.end())
+						rv.append(iter->second);
+				}
 			};
 
 			any {
@@ -215,7 +221,7 @@ namespace MPW {
 		return iter->second;
 	}
 
-	std::string ExpandVariables(const std::string &s)
+	std::string ExpandVariables(const std::string &s, bool pathname)
 	{
 		if (s.find_first_of("{$") == s.npos) return s;
 
