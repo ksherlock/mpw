@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuModule_Logging.c,v 1.3 2012/08/12 16:51:02 peschau Exp $ */
+/* @(#) $Id: CpuModule_Logging.c,v 1.3 2012-08-12 16:51:02 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* CPU 68k logging functions                                               */

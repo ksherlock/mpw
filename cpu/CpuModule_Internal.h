@@ -51,7 +51,7 @@ extern void cpuSetCaar(ULO caar);
 extern ULO cpuGetCaar(void);
 extern void cpuSetSR(ULO sr);
 extern ULO cpuGetSR(void);
-extern void cpuSetIrqLevel(ULO irq_level);
+extern BOOLE cpuSetIrqLevel(ULO new_interrupt_level);
 extern ULO cpuGetIrqLevel(void);
 extern void cpuSetIrqAddress(ULO irq_address);
 extern ULO cpuGetIrqAddress(void);
@@ -167,10 +167,11 @@ extern void cpuCallInterruptLoggingFunc(ULO level, ULO vector_address);
 #endif
 
 // Interrupt
-extern void cpuCallCheckPendingInterruptsFunc(void);
 extern ULO cpuActivateSSP(void);
 extern void cpuSetRaiseInterrupt(BOOLE raise_irq);
 extern BOOLE cpuGetRaiseInterrupt(void);
+extern void cpuSetRaiseInterruptLevel(ULO raise_irq_level);
+extern ULO cpuGetRaiseInterruptLevel(void);
 
 // Exceptions
 extern void cpuThrowPrivilegeViolationException(void);

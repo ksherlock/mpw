@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuModule_InternalState.c,v 1.9 2012/08/12 16:51:02 peschau Exp $ */
+/* @(#) $Id: CpuModule_InternalState.c,v 1.9 2012-08-12 16:51:02 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* 68000 internal state                                                    */
@@ -43,8 +43,7 @@ static ULO cpu_caar;
 
 /* Irq management */
 static BOOLE cpu_raise_irq;
-static ULO cpu_irq_level;
-static ULO cpu_irq_address;
+static ULO cpu_raise_irq_level;
 
 /* Reset values */
 static ULO cpu_initial_pc;
@@ -186,12 +185,6 @@ ULO cpuGetCaar(void) {return cpu_caar;}
 void cpuSetSR(ULO sr) {cpu_sr = sr;}
 ULO cpuGetSR(void) {return cpu_sr;}
 
-void cpuSetIrqLevel(ULO irq_level) {cpu_irq_level = irq_level;}
-ULO cpuGetIrqLevel(void) {return cpu_irq_level;}
-
-void cpuSetIrqAddress(ULO irq_address) {cpu_irq_address = irq_address;}
-ULO cpuGetIrqAddress(void) {return cpu_irq_address;}
-
 void cpuSetInstructionTime(ULO cycles) {cpu_instruction_time = cycles;}
 ULO cpuGetInstructionTime(void) {return cpu_instruction_time;}
 
@@ -207,6 +200,10 @@ UWO cpuGetCurrentOpcode(void) {return cpu_current_opcode;}
 
 void cpuSetRaiseInterrupt(BOOLE raise_irq) {cpu_raise_irq = raise_irq;}
 BOOLE cpuGetRaiseInterrupt(void) {return cpu_raise_irq;}
+void cpuSetRaiseInterruptLevel(ULO raise_irq_level) {cpu_raise_irq_level = raise_irq_level;}
+ULO cpuGetRaiseInterruptLevel(void) {return cpu_raise_irq_level;}
+
+ULO cpuGetIrqLevel(void) {return (cpu_sr & 0x0700) >> 8;}
 
 void cpuSetInitialPC(ULO pc) {cpu_initial_pc = pc;}
 ULO cpuGetInitialPC(void) {return cpu_initial_pc;}
@@ -352,8 +349,6 @@ void cpuSaveState(FILE *F)
   fwrite(&cpu_vbr, sizeof(cpu_vbr), 1, F);
   fwrite(&cpu_cacr, sizeof(cpu_cacr), 1, F);
   fwrite(&cpu_caar, sizeof(cpu_caar), 1, F);
-  fwrite(&cpu_irq_level, sizeof(cpu_irq_level), 1, F);
-  fwrite(&cpu_irq_address, sizeof(cpu_irq_address), 1, F);
   fwrite(&cpu_initial_pc, sizeof(cpu_initial_pc), 1, F);
   fwrite(&cpu_initial_sp, sizeof(cpu_initial_sp), 1, F);
 }
@@ -382,8 +377,6 @@ void cpuLoadState(FILE *F)
   fread(&cpu_vbr, sizeof(cpu_vbr), 1, F);
   fread(&cpu_cacr, sizeof(cpu_cacr), 1, F);
   fread(&cpu_caar, sizeof(cpu_caar), 1, F);
-  fread(&cpu_irq_level, sizeof(cpu_irq_level), 1, F);
-  fread(&cpu_irq_address, sizeof(cpu_irq_address), 1, F);
   fread(&cpu_initial_pc, sizeof(cpu_initial_pc), 1, F);
   fread(&cpu_initial_sp, sizeof(cpu_initial_sp), 1, F);
   cpuSetModel(cpu_model_major, cpu_model_minor); // Recalculates stack frames etc.

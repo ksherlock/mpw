@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuModule_Flags.c,v 1.3 2011/07/18 17:22:55 peschau Exp $ */
+/* @(#) $Id: CpuModule_Flags.c,v 1.3 2011-07-18 17:22:55 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* 68000 flag and condition code handling                                  */

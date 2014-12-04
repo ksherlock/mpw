@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuIntegration.c,v 1.10 2013/01/08 19:17:33 peschau Exp $ */
+/* @(#) $Id: CpuIntegration.c,v 1.10 2013-01-08 19:17:33 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* Initialization of 68000 core                                            */
@@ -29,15 +29,12 @@
 #include "CpuModule.h"
 #include "CpuIntegration.h"
 #include "CpuModule_Internal.h"
-//#include "bus.h"
-//#include "fileops.h"
-
+#include "bus.h"
+#include "fileops.h"
+#include "interrupt.h"
 
 jmp_buf cpu_integration_exception_buffer;
-
-/* custom chip intreq bit-number to irq-level */
-static ULO cpu_integration_int_to_level[16] = {1,1,1,2, 3,3,3,4, 4,4,4,5, 5,6,6,7};
-static ULO cpu_integration_irq_source;
+ULO cpu_integration_chip_interrupt_number;
 
 /* Cycles spent by chips (Blitter) as a result of an instruction */
 static ULO cpu_integration_chip_cycles;
@@ -75,7 +72,7 @@ static ULO cpuIntegrationGetSpeedMultiplier(void)
   return cpu_integration_speed_multiplier;
 }
 
-static void cpuIntegrationCalculateMultiplier(void)
+void cpuIntegrationCalculateMultiplier(void)
 {
   ULO multiplier = 12;
 
@@ -144,65 +141,25 @@ ULO cpuIntegrationGetChipSlowdown(void)
   return cpu_integration_chip_slowdown;
 }
 
-ULO cpuIntegrationGetChipIrqToIntLevel(ULO chip_irq)
+void cpuIntegrationSetChipInterruptNumber(ULO chip_interrupt_number)
 {
-  return cpu_integration_int_to_level[chip_irq];
+  cpu_integration_chip_interrupt_number = chip_interrupt_number;
 }
 
-void cpuIntegrationSetIrqSource(ULO irq_source)
+ULO cpuIntegrationGetChipInterruptNumber(void)
 {
-  cpu_integration_irq_source = irq_source;
+  return cpu_integration_chip_interrupt_number;
 }
 
-ULO cpuIntegrationGetIrqSource(void)
+// A wrapper for cpuSetIrqLevel that restarts the
+// scheduling of cpu events if the cpu was stoppped
+void cpuIntegrationSetIrqLevel(ULO new_interrupt_level, ULO chip_interrupt_number)
 {
-  return cpu_integration_irq_source;
-}
-
-/*=====================================================
-  Checking for waiting interrupts
-  =====================================================*/
-
-static BOOLE cpuIntegrationCheckPendingInterruptsFunc(void)
-{
-  ULO current_cpu_level = (cpuGetSR() >> 8) & 7;
-  BOOLE chip_irqs_enabled = !!(intena & 0x4000);
-
-  if (chip_irqs_enabled)
+  if (cpuSetIrqLevel(new_interrupt_level))
   {
-    LON highest_chip_irq;
-    ULO chip_irqs = intreq & intena;
-
-    if (chip_irqs == 0) return FALSE;
-
-    for (highest_chip_irq = 13; highest_chip_irq >= 0; highest_chip_irq--)
-    {
-      if (chip_irqs & (1 << highest_chip_irq))
-      {
-	// Found a chip-irq that is both flagged and enabled.
-	ULO highest_chip_level = cpuIntegrationGetChipIrqToIntLevel(highest_chip_irq);
-	if (highest_chip_level > current_cpu_level)
-	{
-	  cpuSetIrqLevel(highest_chip_level);
-	  cpuSetIrqAddress(memoryReadLong(cpuGetVbr() + 0x60 + highest_chip_level*4));
-	  cpuIntegrationSetIrqSource(highest_chip_irq);
-
-	  if (cpuGetStop())
-	  {
-	    cpuSetStop(FALSE);
-	    cpuEvent.cycle = bus.cycle;
-	  }
-	  return TRUE;
-	}
-      }
-    }
+    cpuEvent.cycle = busGetCycle();
   }
-  return FALSE;
-}
-
-void cpuIntegrationCheckPendingInterrupts(void)
-{
-  cpuCheckPendingInterrupts();
+  cpuIntegrationSetChipInterruptNumber(chip_interrupt_number);
 }
 
 /*=========================================*/
@@ -244,7 +201,7 @@ void cpuInstructionLogOpen(void)
 
 void cpuIntegrationPrintBusCycle(void)
 {
-  fprintf(CPUINSTRUCTIONLOG, "%d:%.5d ", bus.frame_no, bus.cycle);
+  fprintf(CPUINSTRUCTIONLOG, "%I64u:%.5u ", bus.frame_no, bus.cycle);
 }
 
 void cpuIntegrationInstructionLogging(void)
@@ -293,37 +250,13 @@ void cpuIntegrationExceptionLogging(STR *description, ULO original_pc, UWO opcod
   fprintf(CPUINSTRUCTIONLOG, "%s for opcode %.4X at PC %.8X from PC %.8X\n", description, opcode, original_pc, cpuGetPC());
 }
 
-STR *cpuIntegrationGetInterruptName(ULO chip_irq_no)
-{
-  switch (chip_irq_no)
-  {
-  case 0: return "TBE: Output buffer of the serial port is empty.";
-  case 1: return "DSKBLK: Disk DMA transfer ended.";
-  case 2: return "SOFT: Software interrupt.";
-  case 3: return "PORTS: From CIA-A or expansion port.";
-  case 4: return "COPER: Copper interrupt.";
-  case 5: return "VERTB: Start of vertical blank.";
-  case 6: return "BLIT: Blitter done.";
-  case 7: return "AUD0: Audio data on channel 0.";
-  case 8: return "AUD1: Audio data on channel 1.";
-  case 9: return "AUD2: Audio data on channel 2.";
-  case 10: return "AUD3: Audio data on channel 3.";
-  case 11: return "RBF: Input buffer of the serial port full.";
-  case 12: return "DSKSYN: Disk sync value recognized.";
-  case 13: return "EXTER: From CIA-B or expansion port.";
-  case 14: return "INTEN: BUG! Not an interrupt.";
-  case 15: return "NMI: BUG! Not an interrupt.";
-  }
-  return "Illegal interrupt source!";
-}
-
 void cpuIntegrationInterruptLogging(ULO level, ULO vector_address)
 {
   if (cpu_disable_instruction_log) return;
   cpuInstructionLogOpen();
 
   cpuIntegrationPrintBusCycle();
-  fprintf(CPUINSTRUCTIONLOG, "Irq %d to %.6X (%s)\n", level, vector_address, cpuIntegrationGetInterruptName(cpuIntegrationGetIrqSource()));
+  fprintf(CPUINSTRUCTIONLOG, "Irq %u to %.6X (%s)\n", level, vector_address, interruptGetInterruptName(cpuIntegrationGetChipInterruptNumber()));
 }
 
 #endif
@@ -396,7 +329,7 @@ void cpuIntegrationSetDefaultConfig(void)
   cpuIntegrationSetChipSlowdown(1);
   cpuIntegrationSetSpeed(4);
 
-  cpuSetCheckPendingInterruptsFunc(cpuIntegrationCheckPendingInterruptsFunc);
+  cpuSetCheckPendingInterruptsFunc(interruptRaisePending);
   cpuSetMidInstructionExceptionFunc(cpuIntegrationMidInstructionExceptionFunc);
   cpuSetResetExceptionFunc(cpuIntegrationResetExceptionFunc);
 

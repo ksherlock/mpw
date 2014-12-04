@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuModule_Interrupts.c,v 1.5 2012/08/12 16:51:02 peschau Exp $ */
+/* @(#) $Id: CpuModule_Interrupts.c,v 1.5 2012-08-12 16:51:02 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* 68000 interrupt handling                                                */
@@ -31,15 +31,10 @@
 /* Function for checking pending interrupts */
 cpuCheckPendingInterruptsFunc cpu_check_pending_interrupts_func;
 
-void cpuCallCheckPendingInterruptsFunc(void)
-{
-  if (cpuGetRaiseInterrupt()) return;
-  cpuSetRaiseInterrupt(cpu_check_pending_interrupts_func());
-}
-
 void cpuCheckPendingInterrupts(void)
 {
-  cpuCallCheckPendingInterruptsFunc();
+  if (cpuGetRaiseInterrupt()) return;
+  if (cpu_check_pending_interrupts_func) cpu_check_pending_interrupts_func();
 }
 
 void cpuSetCheckPendingInterruptsFunc(cpuCheckPendingInterruptsFunc func)
@@ -70,24 +65,41 @@ ULO cpuActivateSSP(void)
   return currentSP;
 }
 
+// Retrns TRUE if the CPU is in the stopped state,
+// this allows our scheduling queue to start
+// scheduling CPU events again.
+BOOLE cpuSetIrqLevel(ULO new_interrupt_level)
+{
+  cpuSetRaiseInterrupt(TRUE);
+  cpuSetRaiseInterruptLevel(new_interrupt_level);
+
+  if (cpuGetStop())
+  {
+    cpuSetStop(FALSE);
+    return TRUE;
+  }
+  return FALSE;
+}
+
 /*============================================================
   Transfers control to an interrupt routine
   ============================================================*/
 
-// Returns TRUE if the cpu was stopped
-void cpuSetUpInterrupt(void)
+void cpuSetUpInterrupt(ULO new_interrupt_level)
 {
-  UWO vector_offset = (UWO) (0x60 + cpuGetIrqLevel()*4);
+  UWO vector_offset = (UWO) (0x60 + new_interrupt_level*4);
+  ULO vector_address = memoryReadLong(cpuGetVbr() + vector_offset);
+
   cpuActivateSSP(); // Switch to using ssp or msp. Loads a7 and preserves usp if we came from user-mode.
 
   cpuStackFrameGenerate(vector_offset, cpuGetPC()); // This will end up on msp if master is enabled, or on the ssp/isp if not.
 
   cpuSetSR(cpuGetSR() & 0x38ff);  // Clear interrupt level
   cpuSetSR(cpuGetSR() | 0x2000);  // Set supervisor mode
-  cpuSetSR(cpuGetSR() | (UWO)(cpuGetIrqLevel() << 8)); // Set interrupt level
+  cpuSetSR(cpuGetSR() | (UWO)(new_interrupt_level << 8)); // Set interrupt level
 
 #ifdef CPU_INSTRUCTION_LOGGING
-  cpuCallInterruptLoggingFunc(cpuGetIrqLevel(), cpuGetIrqAddress());
+  cpuCallInterruptLoggingFunc(new_interrupt_level, vector_address);
 #endif
 
   if (cpuGetModelMajor() >= 2 && cpuGetModelMajor() < 6)
@@ -101,7 +113,7 @@ void cpuSetUpInterrupt(void)
       cpuSetSR(cpuGetSR() & 0xefff);  // Clear master bit
     }
   }
-  cpuInitializeFromNewPC(cpuGetIrqAddress());
+  cpuInitializeFromNewPC(vector_address);
   cpuSetStop(FALSE);
   cpuSetRaiseInterrupt(FALSE);
 }

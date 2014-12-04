@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuModule_Exceptions.c,v 1.5 2012/08/12 16:51:02 peschau Exp $ */
+/* @(#) $Id: CpuModule_Exceptions.c,v 1.5 2012-08-12 16:51:02 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* CPU 68k exception handling functions                                    */
@@ -94,26 +94,54 @@ static STR *cpuGetExceptionName(ULO vector_offset)
   Sets up an exception
   ===============================================*/
 
+void cpuExceptionFail(BOOLE executejmp)
+{
+  // Avoid endless loop that will crash the emulator.
+  // The (odd) address error exception vector contained an odd address.
+  cpuCallResetExceptionFunc();
+  cpuHardReset();
+  cpuSetInstructionTime(132);
+  if (executejmp)
+  {
+    cpuCallMidInstructionExceptionFunc(); // Supposed to be doing setjmp/longjmp back to machine emulator code
+  }
+}
+
 void cpuThrowException(ULO vector_offset, ULO pc, BOOLE executejmp)
 {
   ULO vector_address;
+  BOOLE is_address_error_on_sub_020 = (cpuGetModelMajor() < 2 && vector_offset == 0xc);
+  BOOLE stack_is_even = !(cpuGetAReg(7) & 1);
+  BOOLE vbr_is_even = !(cpuGetVbr() & 1);
+
+  if ((is_address_error_on_sub_020 && !stack_is_even) || !vbr_is_even)
+  {
+    cpuExceptionFail(executejmp);
+    return;
+  }
 
 #ifdef CPU_INSTRUCTION_LOGGING
   cpuCallExceptionLoggingFunc(cpuGetExceptionName(vector_offset), cpuGetOriginalPC(), cpuGetCurrentOpcode());
 #endif
 
-  cpuActivateSSP(); 
+  cpuActivateSSP();
+
+  stack_is_even = !(cpuGetAReg(7) & 1);
+
+  if (is_address_error_on_sub_020 && !stack_is_even)
+  {
+    cpuExceptionFail(executejmp);
+    return;
+  }
+
   cpuStackFrameGenerate((UWO) vector_offset, pc);
 
   // read a memory position
   vector_address = memoryReadLong(cpuGetVbr() + vector_offset);
-  if (cpuGetModelMajor() < 2 && vector_address & 0x1 && vector_offset == 0xc)
+  if (is_address_error_on_sub_020 && vector_address & 1)
   {
-    // Avoid endless loop that will crash the emulator.
-    // The (odd) address error exception vector contained an odd address.
-    cpuCallResetExceptionFunc();
-    cpuHardReset();
-    cpuSetInstructionTime(132);
+    cpuExceptionFail(executejmp);
+    return;
   }
   else
   {
@@ -192,7 +220,7 @@ void cpuThrowTraceException(void)
 
 void cpuThrowAddressErrorException(void)
 {
-  cpuThrowException(0xc, cpuGetPC(), TRUE);
+  cpuThrowException(0xc, cpuGetPC() - 2, TRUE);
 }
 
 /*=================*/

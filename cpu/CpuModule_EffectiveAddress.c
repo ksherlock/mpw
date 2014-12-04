@@ -1,4 +1,4 @@
-/* @(#) $Id: CpuModule_EffectiveAddress.c,v 1.3 2012/07/15 22:20:35 peschau Exp $ */
+/* @(#) $Id: CpuModule_EffectiveAddress.c,v 1.3 2012-07-15 22:20:35 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* CPU 68k effective address calculation functions                         */
