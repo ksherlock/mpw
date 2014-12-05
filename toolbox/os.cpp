@@ -47,6 +47,7 @@
 
 #include <macos/sysequ.h>
 #include <macos/errors.h>
+#include <macos/traps.h>
 
 #include "os.h"
 #include "os_internal.h"
@@ -1130,7 +1131,10 @@ namespace OS
 		 *
 		 */
 		uint16_t trapNumber = cpuGetDReg(0);
-		Log("%04x GetToolTrapAddress($%04x)\n", trap, trapNumber);
+		const char *trapName = TrapName(trapNumber | 0xa800);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x GetToolTrapAddress($%04x %s)\n", trap, trapNumber, trapName);
 
 		cpuSetAReg(0, 0);
 		return MacOS::dsCoreErr;
@@ -1154,9 +1158,11 @@ namespace OS
 
 		uint16_t trapNumber = cpuGetDReg(0);
 		uint32_t trapAddress = cpuGetAReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa800);
+		if (!trapName) trapName = "Unknown";
 
-		Log("%04x SetToolTrapAddress($%08x, $%04x)\n",
-			trap, trapAddress, trapNumber);
+		Log("%04x SetToolTrapAddress($%08x, $%04x %s)\n",
+			trap, trapAddress, trapNumber, trapName);
 
 
 		return MacOS::dsCoreErr;
@@ -1173,7 +1179,10 @@ namespace OS
 		 *
 		 */
 		uint16_t trapNumber = cpuGetDReg(0);
-		Log("%04x GetOSTrapAddress($%04x)\n", trap, trapNumber);
+		const char *trapName = TrapName(trapNumber | 0xa000);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x GetOSTrapAddress($%04x %s)\n", trap, trapNumber, trapName);
 
 		cpuSetAReg(0, 0);
 		return MacOS::dsCoreErr;
