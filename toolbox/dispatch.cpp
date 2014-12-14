@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Kelvin W Sherlock
+ * Copyright (c) 2014, Kelvin W Sherlock
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,6 +24,7 @@
  *
  */
 
+
 #include <cstdio>
 #include <cstdint>
 #include <cassert>
@@ -45,20 +46,335 @@
 #include "utility.h"
 #include "loader.h"
 #include "stackframe.h"
-#include "macos/traps.h"
+
+#include <macos/sysequ.h>
+#include <macos/errors.h>
+#include <macos/traps.h>
 
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
 
+namespace {
+
+	uint32_t trap_address[1024];
+	uint32_t os_address[256];
+
+
+	inline constexpr bool is_tool_trap(uint16_t trap)
+	{
+		// %1010 | x . . .  | . . . . . . . . |
+		//
+		// x = 1 if this is a toolbox call, x = 0 if this is an os call.
+
+		return (trap & 0x0800) == 0x0800;
+	}
+
+	inline constexpr bool auto_pop(uint16_t trap)
+	{
+		// %1010 | 1 x . .  | . . . . . . . . |
+		//
+		// if x = 1, an extra rts is pushed,
+		return (trap & 0x0c00) == 0x0c00;			
+	}
+
+	inline constexpr bool save_a0(uint16_t trap)
+	{
+		// %1010 | 0 . . x  | . . . . . . . . |
+		// 
+		// if x = 0, a0 is saved and restored.
+		// if x = 1, a0 is not saved and restored.
+		return (trap & 0x0900) == 0x0000;
+	}
+
+	inline constexpr unsigned os_flags(uint16_t trap)
+	{
+		// %1010 | 0 x x .  | . . . . . . . . |
+		return trap & 0x0600;
+	}
+
+}
+
+namespace OS {
+
+	using ToolBox::Log;
+
+#pragma mark - Trap Manager
+
+	uint16_t GetToolTrapAddress(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0 trap number
+		 *
+		 * on exit:
+		 * A0 Address of patch
+		 *
+		 */
+		uint16_t trapNumber = cpuGetDReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa800);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x GetToolTrapAddress($%04x (%s))\n", trap, trapNumber, trapName);
+
+		trapNumber &= 0x03ff;
+
+		if (trap_address[trapNumber])
+		{
+			cpuSetAReg(0, trap_address[trapNumber]);
+			return 0;
+		}
+
+		// todo -- return stub address.
+		cpuSetAReg(0, 0);
+		return MacOS::dsCoreErr;
+	}
+
+	uint16_t SetToolTrapAddress(uint16_t trap)
+	{
+		//pascal void SetToolTrapAddress(long trapAddr, short trapNum);
+
+		/* 
+		 * on entry:
+		 * A0 Address of patch
+		 * D0 trap number
+		 *
+		 * on exit:
+		 *
+		 */
+
+		// this is used by the far model stub, presumably
+		// to replace LoadSeg.
+
+		uint16_t trapNumber = cpuGetDReg(0);
+		uint32_t trapAddress = cpuGetAReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa800);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x SetToolTrapAddress($%08x, $%04x (%s))\n",
+			trap, trapAddress, trapNumber, trapName);
+
+
+		trapNumber &= 0x03ff;
+		trap_address[trapNumber] = trapAddress;
+
+		return 0;
+	}
+
+	uint16_t GetOSTrapAddress(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * D0 trap number
+		 *
+		 * on exit:
+		 * A0 Address of patch
+		 *
+		 */
+		uint16_t trapNumber = cpuGetDReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa000);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x GetOSTrapAddress($%04x (%s))\n", trap, trapNumber, trapName);
+
+		trapNumber &= 0x00ff;
+
+		if (os_address[trapNumber])
+		{
+			cpuSetAReg(0, os_address[trapNumber]);
+			return 0;
+		}
+
+		cpuSetAReg(0, 0);
+		return MacOS::dsCoreErr;
+	}
+}
 
 namespace ToolBox {
 
-	bool Trace = false;
+	bool Init() {
+		// 
+		std::fill(std::begin(trap_address), std::end(trap_address), 0);
+		std::fill(std::begin(os_address), std::end(os_address), 0);
 
+#if 0
+		// alternate entry code
+		ToolGlue = MM::Native::NewPtr(1024 * 4 + 256 * 4 + ..., false, ToolGlue);
+		uint16_t *code = (uint16_t *)Memory + ToolGlue;
 
-#ifdef OLD_TRAP_DISPATCH
+		for (unsigned i = 0; i < 1024; ++i) {
+			*code++ = 0xafff;
+			*code++ = 0xa800 | i; 
+		}
+
+		for (unsigned i = 0; i < 256; ++i) {
+			*code++ = 0xafff;
+			*code++ = 0xa000 | i;
+		}
+		// os return code...
+#endif
+		return true;
+	}
+
+	void native_dispatch(uint16_t trap);
 	void dispatch(uint16_t trap)
+	{
+		uint32_t returnPC = 0;
+
+		bool saveA0 = false;
+		uint32_t a0 = cpuGetAReg(0);
+
+		if (trap == 0xafff)
+		{
+			// called from the trap address stub.
+
+			// uint16_t 0xafff
+			// uint16_t trap
+			// return address, etc, is on stack.
+
+
+			uint32_t pc = cpuGetPC();
+			trap = memoryReadWord(pc);
+
+			if (is_tool_trap(trap))
+			{
+				StackFrame<4>(returnPC);
+			}
+
+			#if 0
+
+			/*
+			 * os stubs: 
+			 * os_return_a0
+			 * pop registers a0, a1, d0, d1, d2
+			 * pop long word
+			 * tst.w d0
+			 * rts
+			 *
+			 * os_return:
+			 * pop registers a0, a1, d0, d1, d2
+			 * pop long word
+			 * tst.w d0
+			 * rts
+			 *
+			 * os_entry_a0:
+			 * 
+			 */
+			else
+			{
+				// os calls push the trap dispatcher pc as well.  
+				uint32_t tmp;
+				uint32_t a0, a1, d0, d1, d2;
+				if (save_a0(trap))
+				{
+					StackFrame<4*8>(returnPC, tmp, a0, a1, d0, d1, d2, tmp);
+				}
+				else
+				{
+					StackFrame<4*7>(returnPC, tmp, a1, d0, d1, d2, tmp);
+				}
+				trap = d1;  // trap w/ flag bits.
+			}
+			#endif
+
+			native_dispatch(trap);
+			cpuInitializeFromNewPC(returnPC);
+			return;
+		}
+
+
+
+		/*
+		 * The auto-pop bit is bit 10 in an A-line instruction for a
+		 * Toolbox routine. Some language systems prefer to generate
+		 * jump-subroutine calls (JSR) to intermediate routines, called
+		 * glue routines, which then call Toolbox routines instead of
+		 * executing the Toolbox routine directly. This glue method
+		 * would normally interfere with Toolbox traps because the
+		 * return address of the glue subroutine is placed on the stack
+		 * between the Toolbox routine's parameters and the address of
+		 * the place where the glue routine was called from (where
+		 * control returns once the Toolbox routine has completed
+		 * execution).
+		 *
+		 * The auto-pop bit forces the trap dispatcher to remove the
+		 * top 4 bytes from the stack before dispatching to the Toolbox
+		 * routine. After the Toolbox routine completes execution,
+		 * control is transferred back to the place where the glue
+		 * routine was called from, not back to the glue routine.
+		 *
+		 * Most development environments, including MPW, do not use
+		 * this feature.
+		 * 
+		 * (Trap Manager, 8-20)
+		 */
+
+		if (auto_pop(trap))
+		{
+			/*
+			 * | args      |
+			 * | returnPC  |
+			 * -------------
+			 */
+
+			StackFrame<4>(returnPC);
+			trap &= ~0x0400;
+		}
+
+
+		if (is_tool_trap(trap))
+		{
+			uint16_t tt = trap & 0x03ff;
+			uint32_t address = trap_address[tt];
+			if (address)
+			{
+				/*
+				 * parameters were pushed on the stack but
+				 * the a-line instruction was intercepted
+				 * before an exception occurred.  Therefore,
+				 * we need to push the return address on the 
+				 * stack and set the new pc to the trap address.
+				 *
+				 * returnPC may have been previously set from the
+				 * auto pop bit.
+				 */
+
+				Push<4>(returnPC == 0 ? cpuGetPC() : returnPC);
+				Log("$04x *%s - $%08x", trap, TrapName(trap), address);
+				cpuInitializeFromNewPC(address);
+				return;
+			}
+		}
+		else
+		{
+			// os calls - check the return/save a0 bit.
+			// if bit 8 is 0, a0 is saved and restored.
+			// if bit 8 is 1, a0 is modified.
+			// Trap Manager 8-12.
+
+			// not actually an issue yet, will only matter
+			// if os address is overridden. 
+
+			if (save_a0(trap)) {
+				saveA0 = true;
+			}
+			uint16_t tt = trap & 0x00ff;
+
+			uint32_t address = os_address[tt];
+
+			if (address) {
+				assert("OS trap overrides are not yet supported.");
+			}
+		}
+
+
+		native_dispatch(trap);
+
+		if (saveA0) cpuSetAReg(0, a0);
+		if (returnPC) cpuInitializeFromNewPC(returnPC);
+	}
+
+	void native_dispatch(uint16_t trap)
 	{
 
 		uint32_t d0 = 0;
@@ -532,6 +848,9 @@ namespace ToolBox {
 				exit(255);
 		}
 
+		// n.b. - os calls return via d0 and tst.w d0.
+		// toolcalls return any error info as the return
+		// value on the stack.
 		if (d0)
 		{
 			int16_t v = (int16_t)d0;
@@ -542,82 +861,6 @@ namespace ToolBox {
 		cpuSetDReg(0, d0);
 		cpuSetFlagsNZ00NewW(d0);
 
-	}
-#endif
-
-	std::string ReadCString(uint32_t address, bool fname)
-	{
-		std::string tmp;
-
-		if (address)
-		{
-			tmp.assign((char *)memoryPointer(address));
-		}
-
-		if (fname) tmp = MacToUnix(tmp);
-
-		return tmp;
-	}
-	
-	std::string ReadPString(uint32_t address, bool fname)
-	{
-		std::string tmp;
-
-		if (address)
-		{
-			unsigned length = memoryReadByte(address);
-		
-			tmp.assign((char *)memoryPointer(address + 1), length);
-
-			if (fname) tmp = MacToUnix(tmp);
-			
-		}
-
-		return tmp;
-	}
-
-	std::string ReadString(uint32_t address, uint32_t length)
-	{
-		std::string tmp;
-
-		if (address)
-		{
-			tmp.assign((char *)memoryPointer(address), length);
-		}
-		return tmp;
-	}
-
-
-	bool WritePString(uint32_t address, const std::string &s)
-	{
-		int length = s.length();
-		if (length > 255) return false;
-		if (address == 0) return false;
-
-		uint8_t *ptr = memoryPointer(address);
-		*ptr++  = (uint8_t)length;
-		for (char c : s)
-		{
-			*ptr++ = (uint8_t)c;
-		}
-		return true;
-	}
-
-	std::string TypeToString(uint32_t type)
-	{
-		char tmp[5] = { 0, 0, 0, 0, 0};
-
-		for (unsigned i = 0; i < 4; ++i)
-		{
-			char c = type & 0xff;
-			type >>= 8;
-
-			c = isprint(c) ? c : '.';
-
-			tmp[3 - i] = c;
-		}
-
-		return std::string(tmp);
 	}
 
 }

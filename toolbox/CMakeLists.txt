@@ -21,6 +21,7 @@ set(TOOLBOX_SRC
 	saneparser.cpp
 	pathnames.cpp
 	utility.cpp
+	dispatch.cpp
 )
 
 

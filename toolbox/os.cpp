@@ -1120,6 +1120,7 @@ namespace OS
 
 	#pragma mark - Trap Manager
 
+#ifdef OLD_TRAP_DISPATCH
 	uint16_t GetToolTrapAddress(uint16_t trap)
 	{
 		/* 
@@ -1187,7 +1188,7 @@ namespace OS
 		cpuSetAReg(0, 0);
 		return MacOS::dsCoreErr;
 	}
-
+#endif
 
 
 }
