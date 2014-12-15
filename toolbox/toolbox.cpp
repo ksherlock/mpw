@@ -263,6 +263,10 @@ namespace ToolBox {
 				d0 = MM::MaxApplZone(trap);
 				break;
 
+			case 0xa162:
+				d0 = MM::PurgeSpace(trap);
+				break;
+
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
 				d0 = OS::ReadDateTime(trap);

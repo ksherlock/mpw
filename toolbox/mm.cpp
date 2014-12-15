@@ -1469,4 +1469,20 @@ namespace MM
 		return 0;
 	}
 
+	uint32_t PurgeSpace(uint16_t trap)
+	{
+		// PROCEDURE PurgeSpace (VAR total: LongInt; VAR contig: LongInt);
+
+		/*
+		 * Registers on exit:
+		 * A0 Maximum number of contiguous bytes after purge 
+		 * D0 Total free memory after purge
+		 */
+
+		Log("%04x PurgeSpace()\n", trap);
+
+		 SetMemError(0);
+		 cpuSetAReg(0, mplite_maxmem(&pool));
+		 return mplite_freemem(&pool);
+	}
 }
