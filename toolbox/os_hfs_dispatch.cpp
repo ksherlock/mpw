@@ -25,6 +25,7 @@
  */
 
 #include <cerrno>
+ #include <cassert>
 #include <cctype>
 #include <ctime>
 #include <algorithm>
@@ -223,6 +224,37 @@ namespace OS {
 		return 0;
 	}
 
+
+	uint16_t PBSetCatInfo(uint32_t parm)
+	{
+
+		uint16_t d0;
+
+		// yuck. this is sort of a getdirent/stat call....
+
+		//uint32_t ioCompletion = memoryReadLong(parm + 12);
+		uint32_t ioNamePtr = memoryReadLong(parm + 18);
+		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
+		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
+		//int16_t ioFDirIndex = memoryReadWord(parm + 28);
+
+		if (!ioNamePtr)
+		{
+			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			assert("PGSetCatInfo - no name.");
+			return MacOS::bdNamErr;
+		}
+
+		std::string sname = ToolBox::ReadPString(ioNamePtr, true);
+
+		Log("     PBSetCatInfo(%s)\n", sname.c_str());
+
+		// todo -- should set the finder info, I suppose.
+
+		return 0;
+	}
+
+
 	uint16_t PBOpenDF(uint32_t paramBlock)
 	{
 		Log("     PBOpenDF\n");
@@ -286,6 +318,10 @@ namespace OS {
 
 			case 0x0009:
 				return PBGetCatInfo(paramBlock);
+				break;
+
+			case 0x000a:
+				return PBSetCatInfo(paramBlock);
 				break;
 
 			case 0x001a:
