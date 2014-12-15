@@ -9,7 +9,7 @@ struct Settings {
 	// command-line settings.
 
 	uint32_t memorySize = 16 * 1024 * 1024;
-	uint32_t stackSize = 16 * 1024;
+	uint32_t stackSize = 32 * 1024;
 	uint32_t machine = 68030;
 
 	bool traceCPU = false;
