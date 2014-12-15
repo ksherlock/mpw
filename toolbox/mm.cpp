@@ -40,6 +40,8 @@
 #include <macos/sysequ.h>
 #include <macos/errors.h>
 
+#include "stackframe.h"
+
 using ToolBox::Log;
 
 namespace 
@@ -1485,4 +1487,23 @@ namespace MM
 		 cpuSetAReg(0, mplite_maxmem(&pool));
 		 return mplite_freemem(&pool);
 	}
+
+	uint16_t TempMaxMem(void)
+	{
+		// FUNCTION TempMaxMem (VAR grow: Size): Size;
+
+		uint32_t address;
+
+		uint32_t sp = StackFrame<4>(address);
+
+		Log("     TempMaxMem(%08x)\n", address);
+
+		if (address) memoryWriteLong(0, address);
+
+		ToolReturn<4>(sp, mplite_maxmem(&pool));
+		SetMemError(0); // not sure if this is correct.  oh well.
+
+		return 0;
+	}
+
 }
