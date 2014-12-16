@@ -369,6 +369,10 @@ namespace ToolBox {
 				d0 = RM::Get1IndType(trap);
 				break;
 
+			case 0xa81a:
+				d0 = RM::HOpenResFile(trap);
+				break;
+
 			case 0xa81c:
 				d0 = RM::Count1Types(trap);
 				break;

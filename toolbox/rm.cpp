@@ -45,7 +45,7 @@
 #include <macos/errors.h>
 
 #include "stackframe.h"
-
+#include "fs_spec.h"
 using ToolBox::Log;
 
 using namespace OS::Internal;
@@ -494,6 +494,63 @@ namespace RM
 		return SetResError(error);
 	}
 
+	uint16_t HOpenResFile(uint16_t trap)
+	{
+		// FUNCTION HOpenResFile (vRefNum: Integer; dirID: LongInt;
+		// fileName: Str255; permission: SignedByte): Integer;
+
+		ResFileRefNum refNum;
+		FSRef ref;
+		OSErr error;
+
+		uint32_t sp;
+
+		uint16_t vRefNum;
+		uint32_t dirID;
+		uint32_t fileName;
+		uint16_t permission;
+
+		sp = StackFrame<12>(vRefNum, dirID, fileName, permission);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+
+		Log("%04x HOpenResFile(%04x, %08x, %s, %04x)\n", 
+			trap, vRefNum, dirID, sname.c_str(), permission);
+
+		if (vRefNum) {
+			fprintf(stderr, "HOpenResFile: vRefNum not supported yet.\n");
+			exit(1);
+		}
+
+		sname = OS::FSSpecManager::ExpandPath(sname, dirID);
+		if (sname.empty())
+		{
+			error = MacOS::dirNFErr;
+			ToolReturn<2>(sp, (uint16_t)-1);
+			return SetResError(error);
+		}
+
+		error = ::FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
+		if (error != noErr)
+		{
+			ToolReturn<2>(sp, (uint16_t)-1);
+			return SetResError(error);
+		}
+
+        HFSUniStr255 fork = {0,{0}};
+        ::FSGetResourceForkName(&fork);
+
+		refNum = -1;
+		error = ::FSOpenResourceFile(&ref, 
+			fork.length, 
+			fork.unicode, 
+			permission, 
+			&refNum);
+
+		ToolReturn<2>(sp, (uint16_t)refNum);
+
+		return SetResError(0);
+	}
 
 
 	uint16_t OpenRFPerm(uint16_t trap)
