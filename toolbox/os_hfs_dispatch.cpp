@@ -119,15 +119,61 @@ namespace OS {
 
 	uint16_t PBGetCatInfo(uint32_t parm)
 	{
+
+		enum { // FileParam
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioFRefNum = 24,
+			_ioFVersNum = 26,
+			_filler1 = 27,
+			_ioFDirIndex = 28,
+			_ioFlAttrib = 30,
+			_ioACUser = 31,
+
+			/* HFileInfo */
+			_ioFlFndrInfo = 32,
+			_ioDirID = 48,
+			_ioFlStBlk = 52,
+			_ioFlLgLen = 54,
+			_ioFlPyLen = 58,
+			_ioFlRStBlk = 62,
+			_ioFlRLgLen = 64,
+			_ioFlRPyLen = 68,
+			_ioFlCrDat = 72,
+			_ioFlMdDat = 76,
+			_ioFlBkDat = 80,
+			_ioFlXFndrInfo = 84,
+			_ioFlParID = 100,
+			_ioFlClpSiz = 104,
+
+			/* DirInfo */
+			_ioDrUsrWds = 32,
+			_ioDrDirID = 48,
+			_ioDrNmFls = 52,
+			_filler3 = 54,
+			_ioDrCrDat = 72,
+			_ioDrMdDat = 76,
+			_ioDrBkDat = 80,
+			_ioDrFndrInfo = 84,
+			_ioDrParID = 100,
+		};
+
+
 		uint16_t d0;
 
 		// yuck. this is sort of a getdirent/stat call....
 
-		//uint32_t ioCompletion = memoryReadLong(parm + 12);
-		uint32_t ioNamePtr = memoryReadLong(parm + 18);
-		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
-		int16_t ioFDirIndex = memoryReadWord(parm + 28);
+		//uint32_t ioCompletion = memoryReadLong(parm + _ioCompletion);
+		uint32_t ioNamePtr = memoryReadLong(parm + _ioNamePtr);
+		//uint16_t ioVRefNum = memoryReadWord(parm + _ioVRefNum);
+		//uint8_t ioFVersNum = memoryReadByte(parm + _ioFVersNum);
+		int16_t ioFDirIndex = memoryReadWord(parm + _ioFDirIndex);
 
 		if (ioFDirIndex <= 0)
 		{
@@ -136,7 +182,7 @@ namespace OS {
 
 			if (!ioNamePtr)
 			{
-				memoryWriteWord(MacOS::bdNamErr, parm + 16);
+				memoryWriteWord(MacOS::bdNamErr, parm + _ioResult);
 				return MacOS::bdNamErr;
 			}
 
@@ -150,68 +196,74 @@ namespace OS {
 			{
 				d0 = errno_to_oserr(errno);
 
-				memoryWriteWord(d0, parm + 16);
+				memoryWriteWord(d0, parm + _ioResult);
 				return d0;
 			}
 
 			if (S_ISDIR(st.st_mode))
 			{
 				// bit 4 - is a directory.
-				memoryWriteByte(1 << 4, parm + 30); // ioFlAttrib
-				memoryWriteByte(0, parm + 31); //ioACUser
+				memoryWriteByte(1 << 4, parm + _ioFlAttrib);
+				memoryWriteByte(0, parm + _ioACUser);
 
-				std::memset(memoryPointer(parm + 32), 0, 16); // DInfo
-				memoryWriteLong(0, parm + 48); // ioDrDirID
-				memoryWriteWord(0, parm + 52); // ioDrNmFls - # of files in dir
+				std::memset(memoryPointer(parm + _ioDrUsrWds), 0, 16); // DInfo
+				memoryWriteLong(0, parm + _ioDrDirID);
 
-				memoryWriteLong(UnixToMac(st.st_birthtime), parm + 60); // create
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + 64); // modify
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + 68); // backup
+				// the links count should be ~= number of dirents ( +2 for . and ..)
+				int links = st.st_nlink - 2;
+				if (links < 0) links = 0;
+				if (links > 65535) links = 65535;
 
-				std::memset(memoryPointer(parm + 72), 0, 16); // DXInfo
-				memoryWriteLong(0, parm + 88); // ioDrParID
+				memoryWriteWord(links, parm + _ioDrNmFls); // ioDrNmFls - # of files in dir
+
+				memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioDrCrDat); // create
+				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrMdDat); // modify
+				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrBkDat); // backup
+
+				std::memset(memoryPointer(parm + _ioDrFndrInfo), 0, 16); // DXInfo
+				memoryWriteLong(0, parm + _ioDrParID);
 			}
 			else
 			{
-				memoryWriteByte(0, parm + 30);
+				memoryWriteByte(0, parm + _ioFlAttrib);
 
-				memoryWriteByte(0, parm + 31); //ioACUser				
-				Internal::GetFinderInfo(sname, memoryPointer(parm + 32), false); // finder info
-				memoryWriteLong(0, parm + 48); // ioDrDirID
-				memoryWriteWord(0, parm + 52); // ioFlStBlk
-				memoryWriteLong(st.st_size, parm + 54); // ioFlLgLen
-				memoryWriteLong(st.st_size, parm + 58); // ioFlPyLen
+				memoryWriteByte(0, parm + _ioACUser);				
+				Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false); // finder info
+				memoryWriteLong(0, parm + _ioDirID);
+				memoryWriteWord(0, parm + _ioFlStBlk);
+				memoryWriteLong(st.st_size, parm + _ioFlLgLen);
+				memoryWriteLong(st.st_size, parm + _ioFlPyLen);
 
 				// resource info... below
 
-				memoryWriteLong(UnixToMac(st.st_birthtime), parm + 72); // create
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + 76); // modify
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + 80); // backup
+				memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioFlCrDat); // create
+				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlMdDat); // modify
+				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlBkDat); // backup
 
-				std::memset(memoryPointer(parm + 84), 0, 16); // FXInfo
+				std::memset(memoryPointer(parm + _ioFlXFndrInfo), 0, 16); // FXInfo
 
-				memoryWriteWord(0, parm + 100); // ioFlParID
-				memoryWriteWord(0, parm + 104); // ioFlClpSiz
+				memoryWriteWord(0, parm + _ioFlParID);
+				memoryWriteWord(0, parm + _ioFlClpSiz);
 
 				sname.append(_PATH_RSRCFORKSPEC);
 				if (::stat(sname.c_str(), &st) >= 0)
 				{
-					memoryWriteWord(0, parm + 62);
-					memoryWriteLong(st.st_size, parm + 64);
-					memoryWriteLong(st.st_size, parm + 68);
+					memoryWriteWord(0, parm + _ioFlRStBlk);
+					memoryWriteLong(st.st_size, parm + _ioFlRLgLen);
+					memoryWriteLong(st.st_size, parm + _ioFlRPyLen);
 				}
 				else
 				{
-					memoryWriteWord(0, parm + 62);
-					memoryWriteLong(0, parm + 64);
-					memoryWriteLong(0, parm + 68);
+					memoryWriteWord(0, parm + _ioFlRStBlk);
+					memoryWriteLong(0, parm + _ioFlRLgLen);
+					memoryWriteLong(0, parm + _ioFlRPyLen);
 				}
 
 
 			}
 
 			// no error.
-			memoryWriteWord(0, parm + 16);
+			memoryWriteWord(0, parm + _ioResult);
 			return 0;
 		}
 
@@ -228,19 +280,62 @@ namespace OS {
 	uint16_t PBSetCatInfo(uint32_t parm)
 	{
 
+		enum { // FileParam
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioFRefNum = 24,
+			_ioFVersNum = 26,
+			_filler1 = 27,
+			_ioFDirIndex = 28,
+			_ioFlAttrib = 30,
+			_ioACUser = 31,
+
+			/* HFileInfo */
+			_ioFlFndrInfo = 32,
+			_ioDirID = 48,
+			_ioFlStBlk = 52,
+			_ioFlLgLen = 54,
+			_ioFlPyLen = 58,
+			_ioFlRStBlk = 62,
+			_ioFlRLgLen = 64,
+			_ioFlRPyLen = 68,
+			_ioFlCrDat = 72,
+			_ioFlMdDat = 76,
+			_ioFlBkDat = 80,
+			_ioFlXFndrInfo = 84,
+			_ioFlParID = 100,
+			_ioFlClpSiz = 104,
+
+			/* DirInfo */
+			_ioDrUsrWds = 32,
+			_ioDrDirID = 48,
+			_ioDrNmFls = 52,
+			_filler3 = 54,
+			_ioDrCrDat = 72,
+			_ioDrMdDat = 76,
+			_ioDrBkDat = 80,
+			_ioDrFndrInfo = 84,
+			_ioDrParID = 100,
+		};
+
 		uint16_t d0;
 
-		// yuck. this is sort of a getdirent/stat call....
 
-		//uint32_t ioCompletion = memoryReadLong(parm + 12);
-		uint32_t ioNamePtr = memoryReadLong(parm + 18);
-		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
-		//int16_t ioFDirIndex = memoryReadWord(parm + 28);
+		//uint32_t ioCompletion = memoryReadLong(parm + _ioCompletion);
+		uint32_t ioNamePtr = memoryReadLong(parm + _ioNamePtr);
+		//uint16_t ioVRefNum = memoryReadWord(parm + _ioVRefNum);
+		//uint8_t ioFVersNum = memoryReadByte(parm + _ioFVersNum);
+		//int16_t ioFDirIndex = memoryReadWord(parm + _ioFDirIndex);
 
 		if (!ioNamePtr)
 		{
-			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			memoryWriteWord(MacOS::bdNamErr, parm + _ioResult);
 			assert("PGSetCatInfo - no name.");
 			return MacOS::bdNamErr;
 		}
@@ -249,9 +344,36 @@ namespace OS {
 
 		Log("     PBSetCatInfo(%s)\n", sname.c_str());
 
-		// todo -- should set the finder info, I suppose.
 
-		return 0;
+		// check if the file actually exists
+		{
+			struct stat st;
+			int ok;
+
+			ok = ::stat(sname.c_str(), &st);
+			if (ok < 0)
+			{
+				d0 = errno_to_oserr(errno);
+				memoryWriteWord(d0, parm + _ioResult);
+				return d0; 
+			}
+
+			// just nop if it's a directory.
+			if (S_ISDIR(st.st_mode))
+			{
+				d0 = 0;
+				memoryWriteWord(d0, parm + _ioResult);
+				return d0; 
+			}
+		}
+
+
+		// set the finder info.  could also call utimes, I suppose.
+		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false);
+
+		memoryWriteWord(d0, parm + _ioResult);
+		return d0;
+
 	}
 
 
