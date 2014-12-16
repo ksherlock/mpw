@@ -51,102 +51,11 @@
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
-
+#include "fs_spec.h"
 
 using ToolBox::Log;
 using OS::Internal::errno_to_oserr;
 
-namespace {
-
-	// FSSpec garbage
-	class FSSpecManager
-	{
-	public:
-
-		static const std::string &pathForID(int32_t id);
-		static int32_t idForPath(const std::string &path, bool insert = true);
-
-		static void Init();
-
-	private:
-
-		struct Entry
-		{
-			#if 0
-			Entry(std::string &&p) : path(p), hash(std::hash(path))
-			{}
-			Entry(const std::string &p) : path(p), hash(std::hash(path))
-			{} 
-			#endif
-
-			Entry(const std::string &p, size_t h) :
-				path(p), hash(h)
-			{}
-
-			Entry(std::string &&p, size_t h) :
-				path(p), hash(h)
-			{}
-
-			std::string path;
-			size_t hash;
-		};
-
-		static std::deque<Entry> _pathQueue;
-	};
-
-	std::deque<FSSpecManager::Entry> FSSpecManager::_pathQueue;
-
-	void FSSpecManager::Init()
-	{
-		static bool initialized = false;
-
-		if (!initialized)
-		{
-			// "/" is item #1
-			idForPath("/", true);
-			initialized = true;
-		}
-
-	}
-
-	int32_t FSSpecManager::idForPath(const std::string &path, bool insert)
-	{
-		/*
-		char buffer[PATH_MAX + 1];
-
-		char *cp = realpath(path.c_str(), buffer);
-		if (!cp) return -1;
-
-		std::string s(cp);
-		*/
-
-		std::hash<std::string> hasher;
-		size_t hash = hasher(path);
-
-		int i = 1;
-		for (const auto &e : _pathQueue)
-		{
-			if (e.hash == hash && e.path == path) return i;
-			++i;
-		}
-
-		if (!insert) return -1;
-
-		_pathQueue.emplace_back(FSSpecManager::Entry(path, hash));
-		return _pathQueue.size();
-	}
-
-
-	const std::string &FSSpecManager::pathForID(int32_t id)
-	{
-		static std::string NullString;
-		if (id < 1) return NullString;
-		if (id > _pathQueue.size()) return NullString;
-
-		return _pathQueue[id - 1].path;
-	}
-
-}
 
 namespace OS {
 
@@ -190,7 +99,7 @@ namespace OS {
 		{
 			// SC uses dirID + relative path.
 
-			std::string root = FSSpecManager::pathForID(dirID);
+			std::string root = FSSpecManager::PathForID(dirID);
 			if (root.empty())
 			{
 				std::memset(memoryPointer(spec), 0, 8);
@@ -239,7 +148,7 @@ namespace OS {
 				path = path.substr(0, pos + 1); // include the /
 			}
 
-			int parentID = FSSpecManager::idForPath(path, true);
+			int parentID = FSSpecManager::IDForPath(path, true);
 
 			memoryWriteWord(vRefNum, spec + 0);
 			memoryWriteLong(parentID, spec + 2);
@@ -274,7 +183,7 @@ namespace OS {
 		int parentID = memoryReadLong(spec + 2);
 
 		std::string leaf = ToolBox::ReadPString(spec + 6, false);
-		std::string path = FSSpecManager::pathForID(parentID);
+		std::string path = FSSpecManager::PathForID(parentID);
 
 		path += leaf;
 
@@ -299,7 +208,7 @@ namespace OS {
 		int parentID = memoryReadLong(spec + 2);
 
 		std::string leaf = ToolBox::ReadPString(spec + 6, false);
-		std::string path = FSSpecManager::pathForID(parentID);
+		std::string path = FSSpecManager::PathForID(parentID);
 
 		path += leaf;
 
@@ -325,7 +234,7 @@ namespace OS {
 		int parentID = memoryReadLong(spec + 2);
 
 		std::string leaf = ToolBox::ReadPString(spec + 6, false);
-		std::string path = FSSpecManager::pathForID(parentID);
+		std::string path = FSSpecManager::PathForID(parentID);
 
 		path += leaf;
 
@@ -354,8 +263,6 @@ namespace OS {
 	{
 
 		uint16_t selector;
-
-		FSSpecManager::Init();
 
 		selector = cpuGetDReg(0) & 0xffff;
 		Log("%04x HighLevelHFSDispatch(%04x)\n", trap, selector);
@@ -436,7 +343,7 @@ namespace OS {
 
 		if (ioDirID && !absolute)
 		{
-			std::string dir = FSSpecManager::pathForID(ioDirID);
+			std::string dir = FSSpecManager::PathForID(ioDirID);
 			if (dir.empty())
 			{
 				d0 = MacOS::dirNFErr;
