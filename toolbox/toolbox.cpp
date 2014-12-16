@@ -155,6 +155,10 @@ namespace ToolBox {
 				d0 = OS::SetFPos(trap);
 				break;
 
+			case 0xa051:
+				d0 = OS::ReadXPRam(trap);
+				break;
+
 			case 0xa060:
 				d0 = OS::FSDispatch(trap);
 				break;
