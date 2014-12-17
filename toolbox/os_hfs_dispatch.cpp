@@ -368,7 +368,7 @@ namespace OS {
 		}
 
 
-		// set the finder info.  could also call utimes, I suppose.
+		// set the finder info.  could also call utimes or setattrlist, I suppose.
 		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false);
 
 		memoryWriteWord(d0, parm + _ioResult);
