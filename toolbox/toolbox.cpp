@@ -42,6 +42,8 @@
 #include "utility.h"
 #include "loader.h"
 #include "macos/traps.h"
+#include "stackframe.h"
+
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
@@ -49,6 +51,27 @@ namespace ToolBox {
 
 	bool Trace = false;
 
+
+	uint16_t OSDispatch(uint16_t trap)
+	{
+		uint16_t selector;
+
+
+		StackFrame<2>(selector);
+		Log("%04x OSDispatch(%04x)\n", trap, selector);
+
+		switch(selector)
+		{
+			case 0x0015:
+				return MM::TempMaxMem();
+
+			default:
+				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
+					selector);
+				exit(1);			
+		}
+
+	}
 
 	void dispatch(uint16_t trap)
 	{
@@ -130,6 +153,10 @@ namespace ToolBox {
 
 			case 0xa044:
 				d0 = OS::SetFPos(trap);
+				break;
+
+			case 0xa051:
+				d0 = OS::ReadXPRam(trap);
 				break;
 
 			case 0xa060:
@@ -263,6 +290,10 @@ namespace ToolBox {
 				d0 = MM::MaxApplZone(trap);
 				break;
 
+			case 0xa162:
+				d0 = MM::PurgeSpace(trap);
+				break;
+
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
 			case 0xa039:
 				d0 = OS::ReadDateTime(trap);
@@ -340,6 +371,10 @@ namespace ToolBox {
 
 			case 0xa80f:
 				d0 = RM::Get1IndType(trap);
+				break;
+
+			case 0xa81a:
+				d0 = RM::HOpenResFile(trap);
 				break;
 
 			case 0xa81c:
@@ -516,6 +551,10 @@ namespace ToolBox {
 
 			case 0xa85d:
 				d0 = Utility::BitTst(trap);
+				break;
+
+			case 0xa88f:
+				d0 = OSDispatch(trap);
 				break;
 
 			default:

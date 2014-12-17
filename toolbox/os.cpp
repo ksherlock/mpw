@@ -1180,5 +1180,21 @@ namespace OS
 	}
 
 
+	#pragma mark XP - RAM
+
+	// these are not particularly documented.
+	uint16_t ReadXPRam(uint16_t trap)
+	{
+		// a0 = address?
+		// d0 = count? item?
+		Log("%04x ReadXPRam()\n", trap);
+		return MacOS::prWrErr;
+	}
+
+	uint16_t WriteXPRam(uint16_t trap)
+	{
+		Log("%04x WriteXPRam()\n", trap);
+		return MacOS::prWrErr;
+	}
 
 }

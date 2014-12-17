@@ -40,6 +40,8 @@
 #include <macos/sysequ.h>
 #include <macos/errors.h>
 
+#include "stackframe.h"
+
 using ToolBox::Log;
 
 namespace 
@@ -1465,6 +1467,41 @@ namespace MM
 		 */
 
 		Log("%04x MaxApplZone\n", trap);
+
+		return 0;
+	}
+
+	uint32_t PurgeSpace(uint16_t trap)
+	{
+		// PROCEDURE PurgeSpace (VAR total: LongInt; VAR contig: LongInt);
+
+		/*
+		 * Registers on exit:
+		 * A0 Maximum number of contiguous bytes after purge 
+		 * D0 Total free memory after purge
+		 */
+
+		Log("%04x PurgeSpace()\n", trap);
+
+		 SetMemError(0);
+		 cpuSetAReg(0, mplite_maxmem(&pool));
+		 return mplite_freemem(&pool);
+	}
+
+	uint16_t TempMaxMem(void)
+	{
+		// FUNCTION TempMaxMem (VAR grow: Size): Size;
+
+		uint32_t address;
+
+		uint32_t sp = StackFrame<4>(address);
+
+		Log("     TempMaxMem(%08x)\n", address);
+
+		if (address) memoryWriteLong(0, address);
+
+		ToolReturn<4>(sp, mplite_maxmem(&pool));
+		SetMemError(0); // not sure if this is correct.  oh well.
 
 		return 0;
 	}

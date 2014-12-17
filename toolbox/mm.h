@@ -41,6 +41,7 @@ namespace MM
 	uint32_t MaxBlock(uint16_t trap);
 	uint32_t FreeMem(uint16_t trap);
 	uint16_t ReserveMem(uint16_t trap);
+	uint32_t PurgeSpace(uint16_t trap);
 	
 
 	uint16_t DisposeHandle(uint16_t trap);
@@ -83,6 +84,10 @@ namespace MM
 	uint16_t SetZone(uint16_t trap);
 
 	uint16_t MaxApplZone(uint16_t trap);
+
+	// OS Dispatch
+
+	uint16_t TempMaxMem(void);
 }
 
 

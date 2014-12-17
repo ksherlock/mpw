@@ -418,7 +418,7 @@ void GlobalInit()
 	// so put stack at top of memory?
 	
 	// 0x0130 -- ApplLimit
-	memoryWriteLong(Flags.memorySize - 1, MacOS::ApplLimit);
+	memoryWriteLong(Flags.memorySize - Flags.stackSize - 1, MacOS::ApplLimit);
 }
 
 
@@ -429,6 +429,7 @@ void CreateStack()
 	uint32_t address;
 	uint16_t error;
 
+#if 0
 	Flags.stackSize = (Flags.stackSize + 3) & ~0x03;
 
 	error = MM::Native::NewPtr(Flags.stackSize, true, address);
@@ -437,7 +438,11 @@ void CreateStack()
 		fprintf(stderr, "Unable to allocate stack (%08x bytes)\n", Flags.stackSize);
 		exit(EX_CONFIG);
 	}
+#else
 
+	address = Flags.memorySize - Flags.stackSize;
+
+#endif
 
 	Flags.stackRange.first = address;
 	Flags.stackRange.second = address + Flags.stackSize;
@@ -865,6 +870,9 @@ int main(int argc, char **argv)
 		exit(EX_USAGE);
 	}
 
+	Flags.stackSize = (Flags.stackSize + 0xff) & ~0xff;
+	Flags.memorySize = (Flags.memorySize + 0xff) & ~0xff;
+
 	if (Flags.stackSize < 0x100)
 	{
 		fprintf(stderr, "Invalid stack size\n");
@@ -874,6 +882,12 @@ int main(int argc, char **argv)
 	if (Flags.memorySize < 0x200)
 	{
 		fprintf(stderr, "Invalid ram size\n");
+		exit(EX_CONFIG);
+	}
+
+	if (Flags.stackSize >= Flags.memorySize)
+	{
+		fprintf(stderr, "Invalid stack/ram size\n");
 		exit(EX_CONFIG);
 	}
 
@@ -903,14 +917,13 @@ int main(int argc, char **argv)
 	// should we subtract memory from the top
 	// for the stack vs allocating it?
 
-	MM::Init(Memory, MemorySize, kGlobalSize);
+	MM::Init(Memory, MemorySize - Flags.stackSize, kGlobalSize);
 	OS::Init();
 	MPW::Init(argc, argv, defines);
 
 
 	cpuStartup();
 	cpuSetModel(3,0);
-
 
 	CreateStack();
 

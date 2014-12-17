@@ -47,6 +47,11 @@ namespace SANE
 using std::to_string;
 
 
+	namespace {
+
+		uint16_t Environment = 0;
+	}
+
 	// long double is an 80-bit extended with an extra 48-bits of 0 padding.
 	typedef long double extended;
 
@@ -667,6 +672,36 @@ using std::to_string;
 		return 0;
 	}
 
+	#pragma mark - environment
+
+	uint16_t fgetenv(void)
+	{
+		uint32_t address;
+		uint16_t op;
+
+		StackFrame<6>(address, op);
+		Log("     FGETENV(%08x)\n", address);
+
+		memoryWriteWord(Environment, address);
+		return 0;
+	}
+
+	uint16_t fsetenv(void)
+	{
+		uint32_t address;
+		uint16_t value;
+		uint16_t op;
+
+
+		StackFrame<6>(address, op);
+		value = memoryReadWord(address);
+		Log("     FSETENV(%08x (%04x))\n", address, value);
+
+		Environment = value;
+		return 0;
+	}
+
+
 
 	extern "C" void cpuSetFlagsAbs(UWO f);
 	uint16_t fp68k(uint16_t trap)
@@ -677,7 +712,7 @@ using std::to_string;
 		sp = cpuGetAReg(7);
 		op = memoryReadWord(sp);
 
-		Log("%04x FP68K(%04x)\n", op);
+		Log("%04x FP68K(%04x)\n", trap, op);
 
 		cpuSetFlagsAbs(0x4);
 
@@ -756,6 +791,8 @@ using std::to_string;
 				break;
 
 
+			case 0x0003: return fgetenv();
+			case 0x0001: return fsetenv();
 		}
 
 
