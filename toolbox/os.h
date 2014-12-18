@@ -98,6 +98,11 @@ namespace OS
 	uint16_t ReadXPRam(uint16_t trap);
 	uint16_t WriteXPRam(uint16_t trap);
 
+	uint16_t InsTime(uint16_t trap);
+	uint16_t InsXTime(uint16_t trap);
+	uint16_t PrimeTime(uint16_t trap);
+	uint16_t RmvTime(uint16_t trap);
+
 }
 
 #endif

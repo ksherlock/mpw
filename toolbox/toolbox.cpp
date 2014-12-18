@@ -358,6 +358,19 @@ namespace ToolBox {
 				d0 = MM::EmptyHandle(trap);
 				break;
 
+
+			case 0xa058:
+				d0 = OS::InsTime(trap);
+				break;
+
+			case 0xa059:
+				d0 = OS::RmvTime(trap);
+				break;
+
+			case 0xa05a:
+				d0 = OS::PrimeTime(trap);
+				break;
+
 			// resource manager stuff.
 
 			// Count1Resources (theType: ResType): Integer;

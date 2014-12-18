@@ -1197,4 +1197,182 @@ namespace OS
 		return MacOS::prWrErr;
 	}
 
+	#pragma mark - Timer
+
+	struct TimerEntry {
+		uint32_t tmTaskPtr = 0; // address of the queue.  passed back in A1.
+		uint32_t tmAddr = 0;
+		bool extended = false;
+		bool active = false;
+
+		std::chrono::time_point<std::chrono::steady_clock> when;
+
+		TimerEntry(uint32_t a, uint32_t b) : tmTaskPtr(a), tmAddr(b)
+		{}
+	};
+
+	// heap sorted by next task to run?
+	static std::deque<TimerEntry> TimerQueue;
+
+	namespace TMTask {
+		enum  {
+			_qLink = 0,
+			_qType = 4,
+			_tmAddr = 6,
+			_tmCount = 10,
+			_tmWakeUp = 14,
+			_tmReserved = 18
+		};
+	}
+
+	uint16_t InsTime(uint16_t trap)
+	{
+		// PROCEDURE InsTime (tmTaskPtr: QElemPtr);
+
+		// this adds an entry to the queue but does not schedule it.
+
+		/*
+		 * on entry
+		 * A0 Address of the task record
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		using namespace TMTask;
+
+		uint32_t tmTaskPtr = cpuGetAReg(0);
+
+		Log("%04x InsTime(%08x)\n", trap, tmTaskPtr);
+
+		if (tmTaskPtr)
+		{
+			memoryWriteLong(0, tmTaskPtr + _qLink);
+			memoryWriteWord(0, tmTaskPtr + _qType);
+			memoryWriteLong(0, tmTaskPtr + _tmCount);
+			memoryWriteLong(0, tmTaskPtr + _tmWakeUp);
+			memoryWriteLong(0, tmTaskPtr + _tmReserved);
+
+			TimerQueue.emplace_back(tmTaskPtr, memoryReadLong(tmTaskPtr + _tmAddr));
+		}
+
+		return MacOS::noErr;
+	}
+
+	uint16_t PrimeTime(uint16_t trap)
+	{
+		// PROCEDURE PrimeTime (tmTaskPtr: QElemPtr; count: LongInt);
+		// this activates an entry.
+
+		/*
+		 * on entry
+		 * A0 Address of the task record
+		 * D0 Specified delay time (long)
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		using namespace TMTask;
+
+		uint32_t tmTaskPtr = cpuGetAReg(0);
+		uint32_t count = cpuGetDReg(0);
+
+		Log("%04x PrimeTime(%08x, %08x)\n", trap, tmTaskPtr, count);
+
+		if (tmTaskPtr)
+		{
+			auto iter = std::find_if(TimerQueue.begin(), TimerQueue.end(), [tmTaskPtr](const TimerEntry &e){
+				return e.tmTaskPtr == tmTaskPtr;
+			});
+
+			if (iter != TimerQueue.end() && !iter->active)
+			{
+				auto now = std::chrono::steady_clock::now();
+
+				iter->active = true;
+
+				if (count == 0) {
+					// retain the original time or set it to now.
+					iter->when = std::max(now, iter->when);
+				}
+				else
+				{
+					int64_t micro;
+					if (count < 0x80000000)
+						micro = count * 1000;
+					else
+						micro = -(int32_t)count;
+
+
+					iter->when = now + std::chrono::microseconds(micro);
+
+				}
+				memoryWriteWord(tmTaskPtr + _qType, 0x8000);
+			}
+		}
+
+
+		return MacOS::noErr;
+
+	}
+
+	uint16_t RmvTime(uint16_t trap)
+	{
+		// PROCEDURE RmvTime (tmTaskPtr: QElemPtr);
+
+		// unschedule (but not actually remove)
+
+		/*
+		 * on entry
+		 * A0 Address of the task record
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		using namespace TMTask;
+
+		uint32_t tmTaskPtr = cpuGetAReg(0);
+
+		Log("%04x RmvTime(%08x)\n", trap, tmTaskPtr);
+
+		if (tmTaskPtr)
+		{
+			auto iter = std::find_if(TimerQueue.begin(), TimerQueue.end(), [tmTaskPtr](const TimerEntry &e){
+				return e.tmTaskPtr == tmTaskPtr;
+			});
+
+			if (iter != TimerQueue.end())
+			{
+				uint32_t count = 0;
+				if (iter->active)
+				{
+					iter->active = false;
+
+
+					// update tmCount to the amount of time remaining.
+					// uses negative microseconds
+					// or positive milliseconds.
+
+					auto now = std::chrono::steady_clock::now();
+
+					int64_t micro = std::chrono::duration_cast< std::chrono::microseconds >(iter->when - now).count();
+
+					if (micro < 0)
+						count = 0;
+					else if (micro < 0x80000000)
+						count = -micro;
+					else
+						count = micro / 10000;
+				}
+
+				memoryWriteWord(tmTaskPtr + _qType, 0);
+				memoryWriteLong(tmTaskPtr + _tmCount, count);
+			}
+		}
+
+		return MacOS::noErr;
+	}
+
 }

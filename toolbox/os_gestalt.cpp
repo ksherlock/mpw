@@ -65,6 +65,7 @@ namespace OS {
 
 	std::map<uint32_t, uint32_t> GestaltMap = {
 		{'alis', 1}, // Alias Manager
+		{'tmgr', 2}, // Time Manager (2 = revised, 3 = extended.)
 	};
 
 	uint16_t Gestalt(uint16_t trap)
