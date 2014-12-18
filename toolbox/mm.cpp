@@ -562,6 +562,9 @@ namespace MM
 
 	uint16_t BlockMove(uint16_t trap)
 	{
+		// also implements BlockMoveData.
+		// BlockMove will flush caches, BlockMoveData will not.
+		
 		/* 
 		 * on entry:
 		 * A0 Pointer to source

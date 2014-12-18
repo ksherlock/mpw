@@ -223,7 +223,8 @@ namespace ToolBox {
 				break;
 
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
-			case 0xa02e:
+			case 0xa02e: // BlockMove
+			case 0xa22e: // BlockMoveData
 				d0 = MM::BlockMove(trap);
 				break;
 
