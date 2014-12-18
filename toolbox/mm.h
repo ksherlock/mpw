@@ -88,6 +88,7 @@ namespace MM
 	// OS Dispatch
 
 	uint16_t TempMaxMem(void);
+	uint16_t TempFreeMem(void);
 }
 
 

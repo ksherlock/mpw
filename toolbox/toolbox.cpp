@@ -65,6 +65,9 @@ namespace ToolBox {
 			case 0x0015:
 				return MM::TempMaxMem();
 
+			case 0x0018:
+				return MM::TempFreeMem();
+
 			default:
 				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
 					selector);

@@ -1504,9 +1504,19 @@ namespace MM
 		if (address) memoryWriteLong(0, address);
 
 		ToolReturn<4>(sp, mplite_maxmem(&pool));
-		SetMemError(0); // not sure if this is correct.  oh well.
 
-		return 0;
+		return SetMemError(0);
 	}
 
+	uint16_t TempFreeMem(void)
+	{
+
+		// FUNCTION TempFreeMem: LongInt;
+
+		Log("     TempFreeMem()\n");
+
+		ToolReturn<4>(-1, mplite_freemem(&pool));
+
+		return SetMemError(0);
+	}
 }
