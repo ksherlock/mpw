@@ -747,17 +747,9 @@ namespace MM
 
 		SetMemError(0);
 
-		// find the pointer base...
-		// todo -- call lower bound, then iter-- ?
-		for (const auto & iter : PtrMap)
-		{
-			if (sp >= iter.first && sp < iter.first + iter.second)
-			{
-				return sp - iter.first;
-			}
-		}
+		// MemorySize is the top of the heap. stack is after it.
 
-		return 0;
+		return sp - MemorySize;
 	}
 
 
