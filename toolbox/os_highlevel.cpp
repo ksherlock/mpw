@@ -240,7 +240,7 @@ namespace OS {
 
 		path += leaf;
 
-		Log("    ResolveAliasFile(%s)\n", path.c_str());
+		Log("     ResolveAliasFile(%s)\n", path.c_str());
 
 		struct stat st;
 		int rv;
