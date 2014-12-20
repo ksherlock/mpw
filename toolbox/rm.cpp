@@ -43,6 +43,7 @@
 
 #include <macos/sysequ.h>
 #include <macos/errors.h>
+ #include <macos/tool_return.h>
 
 #include "stackframe.h"
 #include "fs_spec.h"
@@ -50,6 +51,8 @@ using ToolBox::Log;
 
 using namespace OS::Internal;
 using namespace ToolBox;
+
+using MacOS::tool_return;
 
 namespace
 {
@@ -101,6 +104,8 @@ namespace
 			case 0x434f4445: // 'CODE' (Link)
 			case 0x5041434b: // 'PACK' (PascalIIgs)
 			case 0x4b4f4445: // 'KODE' (Link 32-bit Startup)
+			case 0x45525253: // 'ERRS' (PPCLink)
+			case 0x63667267: // 'cfrg' (PPCLink)
 				return true;
 			default:
 				return false;
@@ -453,6 +458,32 @@ namespace RM
 	}
 
 
+	tool_return<int16_t> OpenResCommon(const std::string &path, uint16_t permission = 0)
+	{
+		OSErr error;
+		FSRef ref;
+		ResFileRefNum refNum;
+
+		error = ::FSPathMakeRef( (const UInt8 *)path.c_str(), &ref, NULL);
+		if (error != noErr)
+			return (MacOS::macos_error)error;
+
+        HFSUniStr255 fork = {0,{0}};
+        ::FSGetResourceForkName(&fork);
+
+        refNum = -1;
+    	error = ::FSOpenResourceFile(&ref, 
+    		fork.length, 
+    		fork.unicode, 
+    		permission, 
+    		&refNum);
+
+    	if (error != noErr)
+			return (MacOS::macos_error)error;
+
+		return refNum;
+	}
+
 	uint16_t OpenResFile(uint16_t trap)
 	{
 		// OpenResFile (fileName: Str255) : INTEGER;
@@ -550,6 +581,32 @@ namespace RM
 		ToolReturn<2>(sp, (uint16_t)refNum);
 
 		return SetResError(0);
+	}
+
+	uint16_t FSpOpenResFile(void)
+	{
+		// FUNCTION FSpOpenResFile (spec: FSSpec; permission: SignedByte): Integer;
+
+		uint32_t sp;
+		uint32_t spec;
+		uint16_t permission;
+
+		sp = StackFrame<6>(spec, permission);
+
+
+		int parentID = memoryReadLong(spec + 2);
+
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+		sname = OS::FSSpecManager::ExpandPath(sname, parentID);
+
+		Log("     FSpOpenResFile(%s, %04x)\n",  sname.c_str(), permission);
+
+
+		auto rv = OpenResCommon(sname, permission);
+
+		ToolReturn<2>(sp, rv.value_or(-1));
+
+		return SetResError(rv.error());
 	}
 
 

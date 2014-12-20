@@ -48,6 +48,7 @@
 #include <macos/errors.h>
 
 #include "os.h"
+#include "rm.h"
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
@@ -222,6 +223,7 @@ namespace OS {
 
 
 
+
 	uint16_t ResolveAliasFile()
 	{
 		uint32_t spec;
@@ -262,6 +264,24 @@ namespace OS {
 	uint16_t HighLevelHFSDispatch(uint16_t trap)
 	{
 
+		/*
+		 * $0001 FSMakeFSSpec
+		 * $0002 FSpOpenDF
+		 * $0003 FSpOpenRF
+		 * $0004 FSpCreate
+		 * $0005 FSpDirCreate
+		 * $0006 FSpDelete
+		 * $0007 FSpGetFInfo
+		 * $0008 FSpSetFInfo
+		 * $0009 FSpSetFLock
+		 * $000A FSpRstFLock
+		 * $000B FSpRename
+		 * $000C FSpCatMove
+		 * $000D FSpOpenResFile
+		 * $000E FSpCreateResFile
+		 * $000F FSpExchangeFiles
+		 */		
+
 		uint16_t selector;
 
 		selector = cpuGetDReg(0) & 0xffff;
@@ -280,6 +300,9 @@ namespace OS {
 			case 0x0008:
 				return FSpSetFInfo();
 				break;
+
+			case 0x000d:
+				return RM::FSpOpenResFile();
 
 			default:
 				fprintf(stderr, "selector %04x not yet supported\n", selector);
