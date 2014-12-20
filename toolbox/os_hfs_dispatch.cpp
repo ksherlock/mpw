@@ -396,6 +396,21 @@ namespace OS {
 	}
 
 
+	uint16_t PBHOpenDeny(uint32_t paramBlock)
+	{
+		// AccessParam.ioDenyModes short word matches
+		// up with the permission byte considering it's big-endian.
+		
+		Log("     PBHOpenDeny\n");
+		return OS::Open(0xa000);
+	}
+
+	uint16_t PBHOpenRFDeny(uint32_t paramBlock)
+	{
+		Log("     PBHOpenRFDeny\n");
+		return OS::OpenRF(0xa000);
+	}
+
 	uint16_t FSDispatch(uint16_t trap)
 	{
 
@@ -448,6 +463,12 @@ namespace OS {
 
 			case 0x001a:
 				return PBHOpenDF(paramBlock);
+
+			case 0x0038:
+				return PBHOpenDeny(paramBlock);
+
+			case 0x0039:
+				return PBHOpenRFDeny(paramBlock);
 
 			default:
 				fprintf(stderr, "HFSDispatch: selector %08x not implemented\n", 

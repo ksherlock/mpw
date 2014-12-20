@@ -470,6 +470,7 @@ namespace OS { namespace Internal {
 		if (filename.empty()) return MacOS::bdNamErr;
 
 		int access = 0;
+		ioPermission &= ~0x30; // drop deny read/write
 		switch(ioPermission)
 		{
 			case fsWrPerm:

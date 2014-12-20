@@ -9,11 +9,13 @@ namespace OS
 {
 
 	enum {
-		fsCurPerm = 0,
-		fsRdPerm = 1,
-		fsWrPerm = 2,
-		fsRdWrPerm = 3,
-		fsRdWrShPerm = 4,
+		fsCurPerm = 0x00,
+		fsRdPerm = 0x01,
+		fsWrPerm = 0x02,
+		fsRdWrPerm = 0x03,
+		fsRdWrShPerm = 0x04,
+		fsRdDenyPerm = 0x10,
+		fsWrDenyPerm = 0x20
 	};
 
 	enum {
