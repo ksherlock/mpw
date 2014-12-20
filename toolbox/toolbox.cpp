@@ -289,6 +289,10 @@ namespace ToolBox {
 				d0 = MM::HandleZone(trap);
 				break;
 
+			case 0xa128:
+				d0 = MM::RecoverHandle(trap);
+				break;
+
 			// MaxApplZone
 			case 0xa063:
 				d0 = MM::MaxApplZone(trap);

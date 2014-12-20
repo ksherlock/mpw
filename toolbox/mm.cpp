@@ -1063,112 +1063,51 @@ namespace MM
 		Log("%04x SetHandleSize(%08x, %08x)\n", trap, hh, newSize);
 
 		return Native::SetHandleSize(hh, newSize);
+	}
 
-#if 0
-		auto iter = HandleMap.find(hh);
+	uint32_t RecoverHandle(uint16_t trap)
+	{
+		// FUNCTION RecoverHandle (p: Ptr): Handle;
 
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-		// todo -- if handle ptr is null, other logic?
-		// todo -- if locked, can't move.
-
-		auto &info = iter->second;
-
-		// 0 - no change in size.
-		if (info.size == newSize) return SetMemError(0);
-
-		uint32_t mcptr = info.address;
-		uint8_t *ptr = mcptr + Memory;
+		/*
+		 * on entry:
+		 * A0 Master pointer
+		 *
+		 * on exit:
+		 * A0 Handle to master pointer’s relocatable block 
+		 * D0 Unchanged
+		 *
+		 */
 
 
-		// 1. - resizing to 0.
-		if (!newSize)
+		uint32_t p = cpuGetAReg(0);
+		uint32_t hh = 0;
+
+		Log("%04x RecoverHandle(%08x)\n", trap, p);
+
+		uint16_t error = MacOS::memBCErr;
+		for (const auto kv : HandleMap)
 		{
-			if (info.locked) return SetMemError(MacOS::memLockedErr);
+			const HandleInfo &info = kv.second;
 
-			mplite_free(&pool, ptr);
-			info.address = 0;
-			info.size = 0;
+			if (!info.address) continue;
 
-			memoryWriteLong(info.address, hh);
-			return SetMemError(0);
+			uint32_t begin = info.address;
+			uint32_t end = info.address + info.size;
+			if (!info.size) end++;
+			if (p >= begin && p < end)
+			{
+				hh = kv.first;
+				error = MacOS::noErr;
+				break;
+			}
 		}
 
-		// 2. - resizing from 0.
+		SetMemError(error);
+		cpuSetAReg(0, hh);
 
-		if (!mcptr)
-		{
-			if (info.locked) return SetMemError(MacOS::memLockedErr);
-
-			ptr = (uint8_t *)mplite_malloc(&pool, newSize);
-			if (!ptr) return SetMemError(MacOS::memFullErr);
-
-			mcptr = ptr - Memory;
-			info.address = mcptr;
-			info.size = newSize;
-
-			memoryWriteLong(info.address, hh);
-			return SetMemError(0);
-		}
-
-		for (unsigned i = 0; i < 2; ++i)
-		{
-
-			// 3. - locked
-			if (info.locked)
-			{
-				if (mplite_resize(&pool, ptr, mplite_roundup(&pool, newSize)) == MPLITE_OK)
-				{
-					info.size = newSize;
-					return SetMemError(0);
-				}
-			}
-			else
-			{
-
-				// 4. - resize.
-
-				ptr = (uint8_t *)mplite_realloc(&pool, ptr, mplite_roundup(&pool, newSize));
-
-				if (ptr)
-				{
-					mcptr = ptr - Memory;
-					info.address = mcptr;
-					info.size = newSize;
-
-					memoryWriteLong(info.address, hh);
-					return SetMemError(0);
-				}
-
-			}
-
-			fprintf(stderr, "mplite_realloc failed.\n");
-			Native::PrintMemoryStats();
-			
-
-			if (i > 0) return SetMemError(MacOS::memFullErr);
-
-			// purge...
-			for (auto & kv : HandleMap)
-			{
-				uint32_t handle = kv.first;
-				auto &info = kv.second;
-
-				if (handle == hh) continue;
-				if (info.size && info.purgeable && !info.locked)
-				{
-					mplite_free(&pool, Memory + info.address);
-					info.size = 0;
-					info.address = 0;
-
-					// also need to update memory
-					memoryWriteLong(0, handle);
-				}
-			}
-
-		}
-
-		return SetMemError(MacOS::memFullErr);
-#endif
+		// return d0 register unchanged.
+		return cpuGetDReg(0);
 	}
 
 
