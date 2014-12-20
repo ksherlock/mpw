@@ -577,6 +577,20 @@ namespace MacOS {
     {
         return std::error_condition(static_cast<int>(e), macos_system_category());
     }
+
+    inline void throw_macos_error(int e)
+    {
+        throw std::system_error(e, macos_system_category());
+    }
+    inline void throw_macos_error(int e, const char *what)
+    {
+        throw std::system_error(e, macos_system_category(), what);
+    }
+    inline void throw_macos_error(int e, const std::string &what)
+    {
+        throw std::system_error(e, macos_system_category(), what);
+    }
+
 }
 
 namespace std {
