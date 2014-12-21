@@ -35,6 +35,8 @@
 #include <sys/xattr.h>
 #include <sys/stat.h>
 #include <sys/paths.h>
+
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -71,6 +73,31 @@ namespace OS {
 
 	// MacOS: -> { -1, 1, "MacOS" }
 	// MacOS:dumper -> {-1, 2 "dumper"}
+
+	std::string realpath(const std::string &path)
+	{
+		char buffer[PATH_MAX + 1];
+
+		// TODO -- FSSpecs are valid for non-existant files
+		// but not non-existant directories.
+		// realpath does not behave in such a manner.
+
+
+
+
+		// expand the path.  Also handles relative paths.
+		char *cp = ::realpath(path.c_str(), buffer);
+		if (!cp)
+		{
+			// temporary workaround - return if it's just a filename w/o a path.
+			if (path.find('/') == path.npos) return path;
+
+			fprintf(stderr, "realpath failed %s\n", path.c_str());
+			return "";
+		}
+
+		return std::string(cp);
+	}
 
 	uint16_t FSMakeFSSpec(void)
 	{
@@ -114,42 +141,32 @@ namespace OS {
 		bool absolute = sname.length() ? sname[0] == '/' : false;
 		if (absolute || (vRefNum == 0 && dirID == 0))
 		{
-			char buffer[PATH_MAX + 1];
-
-			// TODO -- FSSpecs are valid for non-existant files
-			// but not non-existant directories.
-			// realpath does not behave in such a manner.
-
-			// expand the path.  Also handles relative paths.
-			char *cp = realpath(sname.c_str(), buffer);
-			if (!cp)
-			{
-				std::memset(memoryPointer(spec), 0, 8);
-				return MacOS::mFulErr;
-			}
 
 			std::string leaf;
 			std::string path;
+			int parentID;
 
-
-			path.assign(cp);
-
-			// if sname is null then the target is the default directory... 
-			// so this should be ok.
+			path = realpath(sname);
+			if (path.empty())
+			{
+				std::memset(memoryPointer(spec), 0, 8);
+				return MacOS::mFulErr;	
+			}
 
 			int pos = path.find_last_of('/');
 			if (pos == path.npos)
 			{
-				// ? should never happen...
-				std::swap(leaf, path);
+				// file is relative to cwd.
+				leaf = std::move(path);
+				parentID = 0;
 			}
 			else
 			{
 				leaf = path.substr(pos + 1);
 				path = path.substr(0, pos + 1); // include the /
+				parentID = FSSpecManager::IDForPath(path, true);
 			}
 
-			int parentID = FSSpecManager::IDForPath(path, true);
 
 			memoryWriteWord(vRefNum, spec + 0);
 			memoryWriteLong(parentID, spec + 2);
@@ -305,7 +322,7 @@ namespace OS {
 				return RM::FSpOpenResFile();
 
 			default:
-				fprintf(stderr, "selector %04x not yet supported\n", selector);
+				fprintf(stderr, "HighLevelHFSDispatch selector %04x not yet supported\n", selector);
 				exit(1);
 
 		}
