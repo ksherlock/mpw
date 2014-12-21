@@ -119,8 +119,6 @@ namespace MPW {
 	void ftrap_write(uint16_t trap);
 	void ftrap_ioctl(uint16_t trap);
 
-	// native errno to an MPW errno.
-	int errno_to_errno(int xerrno);
 }
 
 #endif

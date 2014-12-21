@@ -335,7 +335,7 @@ namespace MPW
 		off_t rv = ::lseek(fd, offset, nativeWhence);
 		if (rv < 0)
 		{
-			d0 = errno_to_errno(errno);
+			d0 = mpw_errno_from_errno();
 			f.error = macos_error_from_errno();
 			//perror(NULL);
 		}
@@ -376,7 +376,7 @@ namespace MPW
 				int ok = ftruncate(fd, arg);
 				if (ok == 0) return 0;
 				f.error = macos_error_from_errno();
-				return errno_to_errno(errno);
+				return (int)mpw_errno_from_errno();
 			},
 			[](int fd){
 				return kEINVAL;
