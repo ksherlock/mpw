@@ -443,9 +443,14 @@ namespace OS { namespace Internal {
 		if (filename.empty()) return MacOS::bdNamErr;
 
 		int access = 0;
-		ioPermission &= ~0x30; // drop deny read/write
+		if (ioPermission != 0x33) ioPermission &= ~0x30; // drop deny read/write
 		switch(ioPermission)
 		{
+			case 0x33:
+				// PBHOpenDeny exclusive access.
+				access = O_RDWR | O_CREAT; // | O_EXCL;
+				break;
+
 			case fsWrPerm:
 			case fsRdWrPerm:
 			case fsRdWrShPerm:
@@ -466,7 +471,7 @@ namespace OS { namespace Internal {
 
 		Log("     open(%s, %04x)\n", xname.c_str(), access);
 
-		fd = ::open(xname.c_str(), access);
+		fd = ::open(xname.c_str(), access, 0666);
 		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
 		{
 			fd = ::open(xname.c_str(), O_RDONLY);
