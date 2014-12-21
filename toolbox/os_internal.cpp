@@ -41,38 +41,11 @@
 #include <machine/endian.h>
 
 using ToolBox::Log;
+using MacOS::macos_error_from_errno;
 
 namespace OS { namespace Internal {
 
 
-	uint16_t errno_to_oserr(int xerrno)
-	{
-		
-		switch (xerrno)
-		{
-			case 0: return 0;
-			case EBADF: return MacOS::rfNumErr;
-			case EIO: return MacOS::ioErr;
-			case EACCES: return MacOS::permErr;
-			case ENOENT: return MacOS::fnfErr;
-			case ENOTDIR: return MacOS::dirNFErr;
-			case EISDIR: return MacOS::notAFileErr;
-			case ENOTSUP: return MacOS::extFSErr;
-			case EROFS: return MacOS::wPrErr;
-
-			case EEXIST: return MacOS::dupFNErr;
-
-			case EBUSY: return MacOS::fBsyErr;
-
-			case EDQUOT: return MacOS::dskFulErr;
-			case ENOSPC: return MacOS::dskFulErr;
-
-
-			default:
-				return MacOS::ioErr;
-		}
-
-	}
 
 
 	/*
@@ -126,7 +99,7 @@ namespace OS { namespace Internal {
 			{
 				case ENOENT:
 				case EACCES:
-					return errno_to_oserr(errno);
+					return macos_error_from_errno();
 			}
 
 			// check for prodos ftype/auxtype
@@ -268,7 +241,7 @@ namespace OS { namespace Internal {
 				{
 					case ENOENT:
 					case EACCES:
-						return errno_to_oserr(errno);
+						return macos_error_from_errno();
 				}
 			}
 			std::memmove(buffer, info, 16);
@@ -291,7 +264,7 @@ namespace OS { namespace Internal {
 		}
 
 		rv = ::setxattr(pathName.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-		if (rv < 0) return errno_to_oserr(errno);
+		if (rv < 0) return macos_error_from_errno();
 
 		return 0;
 	}
@@ -318,7 +291,7 @@ namespace OS { namespace Internal {
 		}
 
 		rv = ::lseek(refNum, offset, mode);
-		if (rv < 0) return errno_to_oserr(errno);
+		if (rv < 0) return macos_error_from_errno();
 		return rv;
 	}
 
@@ -501,7 +474,7 @@ namespace OS { namespace Internal {
 
 		if (fd < 0)
 		{
-			return errno_to_oserr(errno);
+			return macos_error_from_errno();
 		}
 
 		// allocate the fd entry

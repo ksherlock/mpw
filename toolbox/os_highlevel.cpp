@@ -55,7 +55,7 @@
 #include "fs_spec.h"
 
 using ToolBox::Log;
-using OS::Internal::errno_to_oserr;
+using MacOS::macos_error_from_errno;
 
 
 namespace OS {
@@ -246,7 +246,7 @@ namespace OS {
 		int rv;
 
 		rv = ::stat(path.c_str(), &st);
-		if (rv < 0) return errno_to_oserr(errno);
+		if (rv < 0) return macos_error_from_errno();
 
 		if (targetIsFolder)
 		{

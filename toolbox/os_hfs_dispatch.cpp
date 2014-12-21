@@ -55,7 +55,7 @@
 
 using ToolBox::Log;
 
-using OS::Internal::errno_to_oserr;
+using MacOS::macos_error_from_errno;
 
 namespace OS {
 
@@ -194,7 +194,7 @@ namespace OS {
 
 			if (::stat(sname.c_str(), &st) < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 
 				memoryWriteWord(d0, parm + _ioResult);
 				return d0;
@@ -353,7 +353,7 @@ namespace OS {
 			ok = ::stat(sname.c_str(), &st);
 			if (ok < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 				memoryWriteWord(d0, parm + _ioResult);
 				return d0; 
 			}

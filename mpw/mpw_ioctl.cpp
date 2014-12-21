@@ -52,7 +52,7 @@
 #include <toolbox/os.h>
 #include <toolbox/os_internal.h>
 
-
+using MacOS::macos_error_from_errno;
 
 
 namespace MPW
@@ -336,7 +336,7 @@ namespace MPW
 		if (rv < 0)
 		{
 			d0 = errno_to_errno(errno);
-			f.error = OS::Internal::errno_to_oserr(errno);
+			f.error = macos_error_from_errno();
 			//perror(NULL);
 		}
 		else
@@ -375,7 +375,7 @@ namespace MPW
 			[arg, &f](int fd, OS::Internal::FDEntry &e){
 				int ok = ftruncate(fd, arg);
 				if (ok == 0) return 0;
-				f.error = OS::Internal::errno_to_oserr(errno);
+				f.error = macos_error_from_errno();
 				return errno_to_errno(errno);
 			},
 			[](int fd){

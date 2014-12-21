@@ -56,7 +56,7 @@
 
 using ToolBox::Log;
 
-using OS::Internal::errno_to_oserr;
+using MacOS::macos_error_from_errno;
 
 namespace {
 
@@ -288,7 +288,7 @@ namespace OS
 
 
 		int rv = OS::Internal::FDEntry::close(ioRefNum, true);
-		if (rv < 0) d0 = errno_to_oserr(errno);
+		if (rv < 0) d0 = macos_error_from_errno();
 		else d0 = 0;
 
 		memoryWriteWord(d0, parm + 16);
@@ -324,7 +324,7 @@ namespace OS
 
 		if (fd < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 		else
 		{
@@ -499,7 +499,7 @@ namespace OS
 		}
 		if (count < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 
 		memoryWriteLong(pos, parm + 46); // new offset.
@@ -555,7 +555,7 @@ namespace OS
 
 		if (count < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 
 		memoryWriteLong(pos, parm + 46); // new offset.
@@ -592,7 +592,7 @@ namespace OS
 
 		int ok = ::unlink(sname.c_str());
 		if (ok < 0)
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		else
 			d0 = 0;
 
@@ -616,7 +616,7 @@ namespace OS
 
 		if (::fstat(ioRefNum, &st) < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 			size = 0;
 		}
 		else
@@ -645,7 +645,7 @@ namespace OS
 
 		int rv = ::ftruncate(ioRefNum, ioMisc);
 
-		d0 = rv < 0  ? errno_to_oserr(errno) : 0;
+		d0 = rv < 0  ? macos_error_from_errno() : 0;
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
@@ -665,7 +665,7 @@ namespace OS
 		int rv = ::lseek(ioRefNum, 0, SEEK_CUR);
 		if (rv < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 		else
 		{
@@ -824,7 +824,7 @@ namespace OS
 
 			if (::stat(sname.c_str(), &st) < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 
 				memoryWriteWord(d0, parm + 16);
 				return d0;
@@ -927,7 +927,7 @@ namespace OS
 			ok = ::stat(sname.c_str(), &st);
 			if (ok < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 				memoryWriteWord(d0, parm + 16);
 				return d0; 
 			}

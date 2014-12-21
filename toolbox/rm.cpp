@@ -53,6 +53,7 @@ using namespace OS::Internal;
 using namespace ToolBox;
 
 using MacOS::tool_return;
+using MacOS::macos_error_from_errno;
 
 namespace
 {
@@ -445,7 +446,7 @@ namespace RM
 		fd = ::open(sname.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 		if (fd < 0)
 		{
-			if (errno != EEXIST) return SetResError(errno_to_oserr(errno));
+			if (errno != EEXIST) return SetResError(macos_error_from_errno());
 		}
 		if (fd >= 0) close(fd);
 
