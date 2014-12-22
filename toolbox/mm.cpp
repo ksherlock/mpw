@@ -73,7 +73,7 @@ namespace
 	// map of handle -> size [? just use Ptr map?]
 	std::map<uint32_t, HandleInfo> HandleMap;
 
-	inline uint16_t SetMemError(uint16_t error)
+	inline int16_t SetMemError(int16_t error)
 	{
 		memoryWriteWord(error, MacOS::MemErr);
 		return error;
@@ -394,6 +394,8 @@ namespace MM
 
 		uint16_t SetHandleSize(uint32_t handle, uint32_t newSize)
 		{
+			if (handle == 0) return SetMemError(MacOS::nilHandleErr);
+
 			const auto iter = HandleMap.find(handle);
 
 			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
@@ -1032,9 +1034,21 @@ namespace MM
 		 *
 		 */
 
+		/*
+		 * The trap dispatcher sets the condition codes before returning
+		 * from a trap by testing the low-order word of register D0 with
+		 * a TST.W instruction. Because the block size returned in D0 by
+		 * _GetHandleSize is a full 32-bit long word, the word-length
+		 * test sets the condition codes incorrectly in this case. To
+		 * branch on the contents of D0, use your own TST.L instruction
+		 * on return from the trap to test the full 32 bits of the register.
+		*/
+
 		uint32_t hh = cpuGetAReg(0);
 
-		Log("%08x GetHandleSize(%08x)\n", trap, hh);
+		Log("%04x GetHandleSize(%08x)\n", trap, hh);
+
+		if (hh == 0) return SetMemError(MacOS::nilHandleErr); // ????
 
 		auto iter = HandleMap.find(hh);
 
