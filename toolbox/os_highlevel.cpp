@@ -59,6 +59,9 @@
 using ToolBox::Log;
 using MacOS::macos_error_from_errno;
 
+extern "C" {
+	char * fs_spec_realpath(const char * __restrict path, char * __restrict resolved);
+}
 
 namespace OS {
 
@@ -83,15 +86,10 @@ namespace OS {
 		// realpath does not behave in such a manner.
 
 
-
-
 		// expand the path.  Also handles relative paths.
-		char *cp = ::realpath(path.c_str(), buffer);
+		char *cp = ::fs_spec_realpath(path.c_str(), buffer);
 		if (!cp)
 		{
-			// temporary workaround - return if it's just a filename w/o a path.
-			if (path.find('/') == path.npos) return path;
-
 			fprintf(stderr, "realpath failed %s\n", path.c_str());
 			return "";
 		}

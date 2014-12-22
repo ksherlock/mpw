@@ -32,7 +32,7 @@ static char sccsid[] = "@(#)realpath.c	8.1 (Berkeley) 2/16/94";
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#include "namespace.h"
+//#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
 
@@ -40,15 +40,23 @@ __FBSDID("$FreeBSD$");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
+//#include "un-namespace.h"
+
+#define FS_SPEC
 
 /*
  * Find the real name of path, by removing all ".", ".." and symlink
  * components.  Returns (resolved) on success, or (NULL) on failure,
  * in which case the path which caused trouble is left in (resolved).
  */
+
+#ifdef FS_SPEC
+char *
+fs_spec_realpath(const char * __restrict path, char * __restrict resolved)
+#else
 char *
 realpath(const char * __restrict path, char * __restrict resolved)
+#endif
 {
 	struct stat sb;
 	char *p, *q, *s;
@@ -56,6 +64,10 @@ realpath(const char * __restrict path, char * __restrict resolved)
 	unsigned symlinks;
 	int m, slen;
 	char left[PATH_MAX], next_token[PATH_MAX], symlink[PATH_MAX];
+
+	#ifdef FS_SPEC
+	int serrno = errno;
+	#endif
 
 	if (path == NULL) {
 		errno = EINVAL;
@@ -162,6 +174,12 @@ realpath(const char * __restrict path, char * __restrict resolved)
 			return (NULL);
 		}
 		if (lstat(resolved, &sb) != 0) {
+			#ifdef FS_SPEC
+			if (errno == ENOENT && p == NULL) {
+				errno = serrno;
+				return (resolved);
+			}
+			#endif
 			if (m)
 				free(resolved);
 			return (NULL);
