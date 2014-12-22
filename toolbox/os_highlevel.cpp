@@ -81,10 +81,9 @@ namespace OS {
 	{
 		char buffer[PATH_MAX + 1];
 
-		// TODO -- FSSpecs are valid for non-existant files
+		// FSSpecs are valid for non-existant files
 		// but not non-existant directories.
 		// realpath does not behave in such a manner.
-
 
 		// expand the path.  Also handles relative paths.
 		char *cp = ::fs_spec_realpath(path.c_str(), buffer);
@@ -111,8 +110,6 @@ namespace OS {
 		uint32_t dirID;
 		uint32_t fileName;
 		uint32_t spec;
-
-
 
 
 		StackFrame<14>(vRefNum, dirID, fileName, spec);
@@ -171,7 +168,6 @@ namespace OS {
 			// write the filename...
 			ToolBox::WritePString(spec + 6, leaf);
 
-			// TODO -- return fnf if file does not exist.
 			return 0;
 		}
 
@@ -193,6 +189,7 @@ namespace OS {
 
 		uint32_t spec;
 		uint32_t finderInfo;
+		uint16_t d0;
 
 		StackFrame<8>(spec, finderInfo);
 
@@ -206,9 +203,8 @@ namespace OS {
 		Log("     FSpGetFInfo(%s, %08x)\n",  path.c_str(), finderInfo);
 
 
-
-		Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
-		return 0;
+		d0 = Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
+		return d0;
 	}
 
 	uint16_t FSpSetFInfo()
@@ -217,7 +213,7 @@ namespace OS {
 
 		uint32_t spec;
 		uint32_t finderInfo;
-		uint16_t d0;
+		uint16_t d0 = 0;
 
 		StackFrame<8>(spec, finderInfo);
 
@@ -241,10 +237,16 @@ namespace OS {
 
 	uint16_t ResolveAliasFile()
 	{
+		// FUNCTION ResolveAliasFile (VAR theSpec: FSSpec;
+		//                            resolveAliasChains: Boolean;
+		//                            VAR targetIsFolder: Boolean;
+		//                            VAR wasAliased: Boolean): OSErr;
+
 		uint32_t spec;
 		uint16_t resolveAliasChains;
 		uint32_t targetIsFolder;
 		uint32_t wasAliased;
+		uint16_t d0 = 0;
 
 		StackFrame<14>(spec, resolveAliasChains, targetIsFolder, wasAliased);
 
@@ -261,17 +263,16 @@ namespace OS {
 		int rv;
 
 		rv = ::stat(path.c_str(), &st);
-		if (rv < 0) return macos_error_from_errno();
+		if (rv < 0)
+			return macos_error_from_errno();
 
 		if (targetIsFolder)
-		{
-			memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
-		}
+				memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
 
 		// don't bother pretending a soft link is an alias.
 		if (wasAliased) memoryWriteWord(0, wasAliased);
 
-		return 0;
+		return d0;
 	}
 
 
@@ -298,6 +299,7 @@ namespace OS {
 		 */		
 
 		uint16_t selector;
+		uint16_t d0;
 
 		selector = cpuGetDReg(0) & 0xffff;
 		Log("%04x HighLevelHFSDispatch(%04x)\n", trap, selector);
@@ -305,28 +307,33 @@ namespace OS {
 		switch (selector)
 		{
 			case 0x0001:
-				return FSMakeFSSpec();
+				d0 = FSMakeFSSpec();
 				break;
 
 			case 0x0007:
-				return FSpGetFInfo();
+				d0 = FSpGetFInfo();
 				break;
 
 			case 0x0008:
-				return FSpSetFInfo();
+				d0 = FSpSetFInfo();
 				break;
 
 			case 0x000d:
-				return RM::FSpOpenResFile();
+				d0 = RM::FSpOpenResFile();
+				break;
 
 			case 0x000e:
-				return RM::FSpCreateResFile();
+				d0 = RM::FSpCreateResFile();
+				break;
 
 			default:
 				fprintf(stderr, "HighLevelHFSDispatch selector %04x not yet supported\n", selector);
 				exit(1);
 
 		}
+
+		ToolReturn<2>(-1, d0);
+		return d0;
 
 	}
 
