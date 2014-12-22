@@ -58,6 +58,7 @@ namespace RM
 
 
 	uint16_t FSpOpenResFile(void);
+	uint16_t FSpCreateResFile(void);
 
 }
 

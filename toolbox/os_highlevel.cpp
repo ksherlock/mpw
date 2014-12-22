@@ -321,6 +321,9 @@ namespace OS {
 			case 0x000d:
 				return RM::FSpOpenResFile();
 
+			case 0x000e:
+				return RM::FSpCreateResFile();
+
 			default:
 				fprintf(stderr, "HighLevelHFSDispatch selector %04x not yet supported\n", selector);
 				exit(1);
