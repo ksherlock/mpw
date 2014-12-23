@@ -233,6 +233,73 @@ namespace OS {
 	}
 
 
+	uint16_t FSpCreate(void)
+	{
+
+		// FUNCTION FSpCreate (spec: FSSpec; creator: OSType;
+		//                     fileType: OSType; scriptTag: ScriptCode): 
+		// OSErr;
+
+		uint16_t d0 = 0;
+		uint32_t sp;
+		uint32_t spec;
+		uint32_t creator;
+		uint32_t fileType;
+		uint16_t scriptTag;
+		int fd;
+
+		sp = StackFrame<14>(spec, creator, fileType, scriptTag);
+
+
+		int parentID = memoryReadLong(spec + 2);
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+
+		Log("     FSpCreate(%s, %08x ('%s'), %08x ('%s'), %02x)\n",  
+			sname.c_str(), 
+			creator, ToolBox::TypeToString(creator).c_str(),
+			fileType, ToolBox::TypeToString(fileType).c_str(),
+			scriptTag);
+
+		sname = OS::FSSpecManager::ExpandPath(sname, parentID);
+		if (sname.empty())
+		{
+			return MacOS::dirNFErr;
+		}
+
+
+		fd = ::open(sname.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+
+		if (fd < 0)
+		{
+			return macos_error_from_errno();
+		}
+		else
+		{
+			::close(fd);
+		}
+
+		{
+			char buffer[32];
+			std::memset(buffer, 0, sizeof(buffer));
+			buffer[0] = fileType >> 24;
+			buffer[1] = fileType >> 16;
+			buffer[2] = fileType >> 8;
+			buffer[3] = fileType >> 0;
+
+			buffer[4] = creator >> 24;
+			buffer[5] = creator >> 16;
+			buffer[6] = creator >> 8;
+			buffer[7] = creator >> 0;
+
+			std::memcpy(buffer+4, &creator, 4);
+			// since this is a new file, set the entire finder info.
+			d0 = OS::Internal::SetFinderInfo(sname, buffer, true);
+		}
+
+
+		return d0;
+	}
+
 
 
 	uint16_t ResolveAliasFile()
@@ -312,6 +379,10 @@ namespace OS {
 		{
 			case 0x0001:
 				d0 = FSMakeFSSpec();
+				break;
+
+			case 0x0004:
+				d0 = FSpCreate();
 				break;
 
 			case 0x0007:
