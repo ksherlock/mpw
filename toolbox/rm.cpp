@@ -1111,6 +1111,7 @@ namespace RM
 		auto iter = rhandle_map.find(theResource);
 		if (iter == rhandle_map.end())
 		{
+			ToolReturn<2>(sp, -1);
 			return SetResError(MacOS::resNotFound);
 		}
 
