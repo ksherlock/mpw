@@ -57,9 +57,11 @@ namespace OS {
 
 
 
+
 	uint16_t AliasDispatch(uint16_t trap)
 	{
 
+		uint16_t d0;
 		uint16_t selector = cpuGetDReg(0);
 
 		Log("%04x AliasDispatch($%04x)\n", trap, selector);
@@ -68,7 +70,7 @@ namespace OS {
 		{
 
 			case 0x000c:
-				return ResolveAliasFile();
+				d0 = ResolveAliasFile();
 				break;
 
 			default:
@@ -77,8 +79,8 @@ namespace OS {
 				exit(1);		
 		}
 
-
-		return 0;
+		ToolReturn<2>(-1, d0);
+		return d0;
 	}
 
 }
