@@ -284,9 +284,12 @@ namespace MM
 
 			// todo -- size 0 should have a ptr to differentiate
 			// from purged.
-			if (size)
-			{
-				ptr = (uint8_t *)mplite_malloc(&pool, size);
+
+			// PPCLink calls NewHandle(0) but expects a valid pointer
+			// Assertion failed: *fHandle != NULL
+			//if (size)
+			//{
+				ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
 				if (!ptr)
 				{
 					HandleQueue.push_back(hh);
@@ -296,7 +299,7 @@ namespace MM
 
 				if (clear)
 					std::memset(ptr, 0, size);
-			}
+			//}
 
 			// need a handle -> ptr map?
 			HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
@@ -411,7 +414,14 @@ namespace MM
 			// 1. - resizing to 0.
 			if (!newSize)
 			{
-				if (info.locked) return SetMemError(MacOS::memLockedErr);
+				if (info.locked) 
+				{
+					//return SetMemError(MacOS::memLockedErr);
+
+					// ppclink resizes locked handles.
+					info.size = 0;
+					return SetMemError(0);
+				}
 
 				// todo -- size 0 should have a ptr to differentiate
 				// from purged.
