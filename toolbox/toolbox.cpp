@@ -65,6 +65,9 @@ namespace ToolBox {
 			case 0x0015:
 				return MM::TempMaxMem();
 
+			case 0x0018:
+				return MM::TempFreeMem();
+
 			default:
 				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
 					selector);
@@ -223,7 +226,8 @@ namespace ToolBox {
 				break;
 
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
-			case 0xa02e:
+			case 0xa02e: // BlockMove
+			case 0xa22e: // BlockMoveData
 				d0 = MM::BlockMove(trap);
 				break;
 
@@ -283,6 +287,10 @@ namespace ToolBox {
 
 			case 0xa126:
 				d0 = MM::HandleZone(trap);
+				break;
+
+			case 0xa128:
+				d0 = MM::RecoverHandle(trap);
 				break;
 
 			// MaxApplZone
@@ -356,6 +364,19 @@ namespace ToolBox {
 				
 			case 0xA02B:
 				d0 = MM::EmptyHandle(trap);
+				break;
+
+
+			case 0xa058:
+				d0 = OS::InsTime(trap);
+				break;
+
+			case 0xa059:
+				d0 = OS::RmvTime(trap);
+				break;
+
+			case 0xa05a:
+				d0 = OS::PrimeTime(trap);
 				break;
 
 			// resource manager stuff.

@@ -73,52 +73,7 @@ namespace MPW
 
 	bool Trace = false;
 
-	int errno_to_errno(int xerrno)
-	{
-		switch (xerrno)
-		{
-		case EPERM: return kEPERM;
-		case ENOENT: return kENOENT;
 
-		#ifdef ENORSRC
-		case ENORSRC: return kENORSRC;
-		#endif
-
-		case EINTR: return kEINTR;
-		case EIO: return kEIO;
-		case ENXIO: return kENXIO;
-		case E2BIG: return kE2BIG;
-		case ENOEXEC: return kENOEXEC;
-		case EBADF: return kEBADF;
-		case ECHILD: return kECHILD;
-		case EAGAIN: return kEAGAIN;
-		case ENOMEM: return kENOMEM;
-		case EACCES: return kEACCES;
-		case EFAULT: return kEFAULT;
-		case ENOTBLK: return kENOTBLK;
-		case EBUSY: return kEBUSY;
-		case EEXIST: return kEEXIST;
-		case EXDEV: return kEXDEV;
-		case ENODEV: return kENODEV;
-		case ENOTDIR: return kENOTDIR;
-		case EISDIR: return kEISDIR;
-		case EINVAL: return kEINVAL;
-		case ENFILE: return kENFILE;
-		case EMFILE: return kEMFILE;
-		case ENOTTY: return kENOTTY;
-		case ETXTBSY: return kETXTBSY;
-		case EFBIG: return kEFBIG;
-		case ENOSPC: return kENOSPC;
-		case ESPIPE: return kESPIPE;
-		case EROFS: return kEROFS;
-		case EMLINK: return kEMLINK;
-		case EPIPE: return kEPIPE;
-		case EDOM: return kEDOM;
-		case ERANGE: return kERANGE;
-		}
-		return kEINVAL;
-
-	}
 
 	static bool isdir(const std::string &path)
 	{

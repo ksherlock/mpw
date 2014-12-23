@@ -52,11 +52,11 @@
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
-
+#include "fs_spec.h"
 
 using ToolBox::Log;
 
-using OS::Internal::errno_to_oserr;
+using MacOS::macos_error_from_errno;
 
 namespace {
 
@@ -288,7 +288,7 @@ namespace OS
 
 
 		int rv = OS::Internal::FDEntry::close(ioRefNum, true);
-		if (rv < 0) d0 = errno_to_oserr(errno);
+		if (rv < 0) d0 = macos_error_from_errno();
 		else d0 = 0;
 
 		memoryWriteWord(d0, parm + 16);
@@ -324,7 +324,7 @@ namespace OS
 
 		if (fd < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 		else
 		{
@@ -339,6 +339,31 @@ namespace OS
 
 	uint16_t Open(uint16_t trap)
 	{
+
+		enum {
+			/* IOParam */
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioRefNum = 24,
+			_ioVersNum = 26,
+			_ioPermssn = 27,
+			_ioMisc = 28,
+			_ioBuffer = 32,
+			_ioReqCount = 36,
+			_ioActCount = 40,
+			_ioPosMode = 44,
+			_ioPosOffset = 46,
+
+			_ioDirID = 48,
+
+		};
+
 		uint32_t d0;
 
 		int fd;
@@ -348,25 +373,54 @@ namespace OS
 
 		Log("%04x Open(%08x)\n", trap, parm);
 
-		uint32_t namePtr = memoryReadLong(parm + 18);
+		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
+		uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
 
-		uint8_t ioPermission = memoryReadByte(parm + 27); 
+		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn); 
 
 		std::string sname = ToolBox::ReadPString(namePtr, true);
+		sname = FSSpecManager::ExpandPath(sname, ioDirID);
+
+
 
 		fd = Internal::FDEntry::open(sname, ioPermission, false);
 		d0 = fd < 0 ? fd : 0;
 		if (fd >= 0)
 		{
-			memoryWriteWord(fd, parm + 24);				
+			memoryWriteWord(fd, parm + _ioRefNum);				
 		}
 
-		memoryWriteWord(d0, parm + 16);
+		memoryWriteWord(d0, parm + _ioResult);
 		return d0;
 	}
 
 	uint16_t OpenRF(uint16_t trap)
 	{
+
+		enum {
+			/* IOParam */
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioRefNum = 24,
+			_ioVersNum = 26,
+			_ioPermssn = 27,
+			_ioMisc = 28,
+			_ioBuffer = 32,
+			_ioReqCount = 36,
+			_ioActCount = 40,
+			_ioPosMode = 44,
+			_ioPosOffset = 46,
+
+			_ioDirID = 48,
+
+		};
+
 		uint32_t d0;
 
 		int fd;
@@ -376,20 +430,22 @@ namespace OS
 
 		Log("%04x OpenRF(%08x)\n", trap, parm);
 
-		uint32_t namePtr = memoryReadLong(parm + 18);
+		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
+		uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
 
-		uint8_t ioPermission = memoryReadByte(parm + 27); 
+		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn); 
 
 		std::string sname = ToolBox::ReadPString(namePtr, true);
+		sname = FSSpecManager::ExpandPath(sname, ioDirID);
 
 		fd = Internal::FDEntry::open(sname, ioPermission, true);
 		d0 = fd < 0 ? fd : 0;
 		if (fd >= 0)
 		{
-			memoryWriteWord(fd, parm + 24);				
+			memoryWriteWord(fd, parm + _ioRefNum);				
 		}
 
-		memoryWriteWord(d0, parm + 16);
+		memoryWriteWord(d0, parm + _ioResult);
 		return d0;
 	}
 
@@ -443,7 +499,7 @@ namespace OS
 		}
 		if (count < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 
 		memoryWriteLong(pos, parm + 46); // new offset.
@@ -499,7 +555,7 @@ namespace OS
 
 		if (count < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 
 		memoryWriteLong(pos, parm + 46); // new offset.
@@ -536,7 +592,7 @@ namespace OS
 
 		int ok = ::unlink(sname.c_str());
 		if (ok < 0)
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		else
 			d0 = 0;
 
@@ -560,7 +616,7 @@ namespace OS
 
 		if (::fstat(ioRefNum, &st) < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 			size = 0;
 		}
 		else
@@ -589,7 +645,7 @@ namespace OS
 
 		int rv = ::ftruncate(ioRefNum, ioMisc);
 
-		d0 = rv < 0  ? errno_to_oserr(errno) : 0;
+		d0 = rv < 0  ? macos_error_from_errno() : 0;
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
@@ -609,7 +665,7 @@ namespace OS
 		int rv = ::lseek(ioRefNum, 0, SEEK_CUR);
 		if (rv < 0)
 		{
-			d0 = errno_to_oserr(errno);
+			d0 = macos_error_from_errno();
 		}
 		else
 		{
@@ -768,7 +824,7 @@ namespace OS
 
 			if (::stat(sname.c_str(), &st) < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 
 				memoryWriteWord(d0, parm + 16);
 				return d0;
@@ -871,7 +927,7 @@ namespace OS
 			ok = ::stat(sname.c_str(), &st);
 			if (ok < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 				memoryWriteWord(d0, parm + 16);
 				return d0; 
 			}
@@ -1195,6 +1251,184 @@ namespace OS
 	{
 		Log("%04x WriteXPRam()\n", trap);
 		return MacOS::prWrErr;
+	}
+
+	#pragma mark - Timer
+
+	struct TimerEntry {
+		uint32_t tmTaskPtr = 0; // address of the queue.  passed back in A1.
+		uint32_t tmAddr = 0;
+		bool extended = false;
+		bool active = false;
+
+		std::chrono::time_point<std::chrono::steady_clock> when;
+
+		TimerEntry(uint32_t a, uint32_t b) : tmTaskPtr(a), tmAddr(b)
+		{}
+	};
+
+	// heap sorted by next task to run?
+	static std::deque<TimerEntry> TimerQueue;
+
+	namespace TMTask {
+		enum  {
+			_qLink = 0,
+			_qType = 4,
+			_tmAddr = 6,
+			_tmCount = 10,
+			_tmWakeUp = 14,
+			_tmReserved = 18
+		};
+	}
+
+	uint16_t InsTime(uint16_t trap)
+	{
+		// PROCEDURE InsTime (tmTaskPtr: QElemPtr);
+
+		// this adds an entry to the queue but does not schedule it.
+
+		/*
+		 * on entry
+		 * A0 Address of the task record
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		using namespace TMTask;
+
+		uint32_t tmTaskPtr = cpuGetAReg(0);
+
+		Log("%04x InsTime(%08x)\n", trap, tmTaskPtr);
+
+		if (tmTaskPtr)
+		{
+			memoryWriteLong(0, tmTaskPtr + _qLink);
+			memoryWriteWord(0, tmTaskPtr + _qType);
+			memoryWriteLong(0, tmTaskPtr + _tmCount);
+			memoryWriteLong(0, tmTaskPtr + _tmWakeUp);
+			memoryWriteLong(0, tmTaskPtr + _tmReserved);
+
+			TimerQueue.emplace_back(tmTaskPtr, memoryReadLong(tmTaskPtr + _tmAddr));
+		}
+
+		return MacOS::noErr;
+	}
+
+	uint16_t PrimeTime(uint16_t trap)
+	{
+		// PROCEDURE PrimeTime (tmTaskPtr: QElemPtr; count: LongInt);
+		// this activates an entry.
+
+		/*
+		 * on entry
+		 * A0 Address of the task record
+		 * D0 Specified delay time (long)
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		using namespace TMTask;
+
+		uint32_t tmTaskPtr = cpuGetAReg(0);
+		uint32_t count = cpuGetDReg(0);
+
+		Log("%04x PrimeTime(%08x, %08x)\n", trap, tmTaskPtr, count);
+
+		if (tmTaskPtr)
+		{
+			auto iter = std::find_if(TimerQueue.begin(), TimerQueue.end(), [tmTaskPtr](const TimerEntry &e){
+				return e.tmTaskPtr == tmTaskPtr;
+			});
+
+			if (iter != TimerQueue.end() && !iter->active)
+			{
+				auto now = std::chrono::steady_clock::now();
+
+				iter->active = true;
+
+				if (count == 0) {
+					// retain the original time or set it to now.
+					iter->when = std::max(now, iter->when);
+				}
+				else
+				{
+					int64_t micro;
+					if (count < 0x80000000)
+						micro = count * 1000;
+					else
+						micro = -(int32_t)count;
+
+
+					iter->when = now + std::chrono::microseconds(micro);
+
+				}
+				memoryWriteWord(tmTaskPtr + _qType, 0x8000);
+			}
+		}
+
+
+		return MacOS::noErr;
+
+	}
+
+	uint16_t RmvTime(uint16_t trap)
+	{
+		// PROCEDURE RmvTime (tmTaskPtr: QElemPtr);
+
+		// unschedule (but not actually remove)
+
+		/*
+		 * on entry
+		 * A0 Address of the task record
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		using namespace TMTask;
+
+		uint32_t tmTaskPtr = cpuGetAReg(0);
+
+		Log("%04x RmvTime(%08x)\n", trap, tmTaskPtr);
+
+		if (tmTaskPtr)
+		{
+			auto iter = std::find_if(TimerQueue.begin(), TimerQueue.end(), [tmTaskPtr](const TimerEntry &e){
+				return e.tmTaskPtr == tmTaskPtr;
+			});
+
+			if (iter != TimerQueue.end())
+			{
+				uint32_t count = 0;
+				if (iter->active)
+				{
+					iter->active = false;
+
+
+					// update tmCount to the amount of time remaining.
+					// uses negative microseconds
+					// or positive milliseconds.
+
+					auto now = std::chrono::steady_clock::now();
+
+					int64_t micro = std::chrono::duration_cast< std::chrono::microseconds >(iter->when - now).count();
+
+					if (micro < 0)
+						count = 0;
+					else if (micro < 0x80000000)
+						count = -micro;
+					else
+						count = micro / 10000;
+				}
+
+				memoryWriteWord(tmTaskPtr + _qType, 0);
+				memoryWriteLong(tmTaskPtr + _tmCount, count);
+			}
+		}
+
+		return MacOS::noErr;
 	}
 
 }

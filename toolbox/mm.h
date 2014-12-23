@@ -59,6 +59,8 @@ namespace MM
 	uint16_t SetHandleSize(uint16_t);
 	uint16_t SetPtrSize(uint16_t);
 
+	uint32_t RecoverHandle(uint16_t);
+
 	uint16_t HGetState(uint16_t trap);
 
 	uint16_t HLock(uint16_t trap);
@@ -88,6 +90,7 @@ namespace MM
 	// OS Dispatch
 
 	uint16_t TempMaxMem(void);
+	uint16_t TempFreeMem(void);
 }
 
 

@@ -35,6 +35,8 @@
 #include <sys/xattr.h>
 #include <sys/stat.h>
 #include <sys/paths.h>
+
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -48,14 +50,18 @@
 #include <macos/errors.h>
 
 #include "os.h"
+#include "rm.h"
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
 #include "fs_spec.h"
 
 using ToolBox::Log;
-using OS::Internal::errno_to_oserr;
+using MacOS::macos_error_from_errno;
 
+extern "C" {
+	char * fs_spec_realpath(const char * __restrict path, char * __restrict resolved);
+}
 
 namespace OS {
 
@@ -71,6 +77,25 @@ namespace OS {
 	// MacOS: -> { -1, 1, "MacOS" }
 	// MacOS:dumper -> {-1, 2 "dumper"}
 
+	std::string realpath(const std::string &path)
+	{
+		char buffer[PATH_MAX + 1];
+
+		// FSSpecs are valid for non-existant files
+		// but not non-existant directories.
+		// realpath does not behave in such a manner.
+
+		// expand the path.  Also handles relative paths.
+		char *cp = ::fs_spec_realpath(path.c_str(), buffer);
+		if (!cp)
+		{
+			fprintf(stderr, "realpath failed %s\n", path.c_str());
+			return "";
+		}
+
+		return std::string(cp);
+	}
+
 	uint16_t FSMakeFSSpec(void)
 	{
 		// FSMakeFSSpec(vRefNum: Integer; dirID: LongInt; fileName: Str255; VAR spec: FSSpec): OSErr;
@@ -85,8 +110,6 @@ namespace OS {
 		uint32_t dirID;
 		uint32_t fileName;
 		uint32_t spec;
-
-
 
 
 		StackFrame<14>(vRefNum, dirID, fileName, spec);
@@ -113,49 +136,38 @@ namespace OS {
 		bool absolute = sname.length() ? sname[0] == '/' : false;
 		if (absolute || (vRefNum == 0 && dirID == 0))
 		{
-			char buffer[PATH_MAX + 1];
-
-			// TODO -- FSSpecs are valid for non-existant files
-			// but not non-existant directories.
-			// realpath does not behave in such a manner.
-
-			// expand the path.  Also handles relative paths.
-			char *cp = realpath(sname.c_str(), buffer);
-			if (!cp)
-			{
-				std::memset(memoryPointer(spec), 0, 8);
-				return MacOS::mFulErr;
-			}
 
 			std::string leaf;
 			std::string path;
+			int parentID;
 
-
-			path.assign(cp);
-
-			// if sname is null then the target is the default directory... 
-			// so this should be ok.
+			path = realpath(sname);
+			if (path.empty())
+			{
+				std::memset(memoryPointer(spec), 0, 8);
+				return MacOS::mFulErr;	
+			}
 
 			int pos = path.find_last_of('/');
 			if (pos == path.npos)
 			{
-				// ? should never happen...
-				std::swap(leaf, path);
+				// file is relative to cwd.
+				leaf = std::move(path);
+				parentID = 0;
 			}
 			else
 			{
 				leaf = path.substr(pos + 1);
 				path = path.substr(0, pos + 1); // include the /
+				parentID = FSSpecManager::IDForPath(path, true);
 			}
 
-			int parentID = FSSpecManager::IDForPath(path, true);
 
 			memoryWriteWord(vRefNum, spec + 0);
 			memoryWriteLong(parentID, spec + 2);
 			// write the filename...
 			ToolBox::WritePString(spec + 6, leaf);
 
-			// TODO -- return fnf if file does not exist.
 			return 0;
 		}
 
@@ -177,6 +189,7 @@ namespace OS {
 
 		uint32_t spec;
 		uint32_t finderInfo;
+		uint16_t d0;
 
 		StackFrame<8>(spec, finderInfo);
 
@@ -190,9 +203,8 @@ namespace OS {
 		Log("     FSpGetFInfo(%s, %08x)\n",  path.c_str(), finderInfo);
 
 
-
-		Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
-		return 0;
+		d0 = Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
+		return d0;
 	}
 
 	uint16_t FSpSetFInfo()
@@ -201,7 +213,7 @@ namespace OS {
 
 		uint32_t spec;
 		uint32_t finderInfo;
-		uint16_t d0;
+		uint16_t d0 = 0;
 
 		StackFrame<8>(spec, finderInfo);
 
@@ -222,12 +234,19 @@ namespace OS {
 
 
 
+
 	uint16_t ResolveAliasFile()
 	{
+		// FUNCTION ResolveAliasFile (VAR theSpec: FSSpec;
+		//                            resolveAliasChains: Boolean;
+		//                            VAR targetIsFolder: Boolean;
+		//                            VAR wasAliased: Boolean): OSErr;
+
 		uint32_t spec;
 		uint16_t resolveAliasChains;
 		uint32_t targetIsFolder;
 		uint32_t wasAliased;
+		uint16_t d0 = 0;
 
 		StackFrame<14>(spec, resolveAliasChains, targetIsFolder, wasAliased);
 
@@ -238,23 +257,22 @@ namespace OS {
 
 		path += leaf;
 
-		Log("    ResolveAliasFile(%s)\n", path.c_str());
+		Log("     ResolveAliasFile(%s)\n", path.c_str());
 
 		struct stat st;
 		int rv;
 
 		rv = ::stat(path.c_str(), &st);
-		if (rv < 0) return errno_to_oserr(errno);
+		if (rv < 0)
+			return macos_error_from_errno();
 
 		if (targetIsFolder)
-		{
-			memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
-		}
+				memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
 
 		// don't bother pretending a soft link is an alias.
 		if (wasAliased) memoryWriteWord(0, wasAliased);
 
-		return 0;
+		return d0;
 	}
 
 
@@ -262,7 +280,26 @@ namespace OS {
 	uint16_t HighLevelHFSDispatch(uint16_t trap)
 	{
 
+		/*
+		 * $0001 FSMakeFSSpec
+		 * $0002 FSpOpenDF
+		 * $0003 FSpOpenRF
+		 * $0004 FSpCreate
+		 * $0005 FSpDirCreate
+		 * $0006 FSpDelete
+		 * $0007 FSpGetFInfo
+		 * $0008 FSpSetFInfo
+		 * $0009 FSpSetFLock
+		 * $000A FSpRstFLock
+		 * $000B FSpRename
+		 * $000C FSpCatMove
+		 * $000D FSpOpenResFile
+		 * $000E FSpCreateResFile
+		 * $000F FSpExchangeFiles
+		 */		
+
 		uint16_t selector;
+		uint16_t d0;
 
 		selector = cpuGetDReg(0) & 0xffff;
 		Log("%04x HighLevelHFSDispatch(%04x)\n", trap, selector);
@@ -270,22 +307,33 @@ namespace OS {
 		switch (selector)
 		{
 			case 0x0001:
-				return FSMakeFSSpec();
+				d0 = FSMakeFSSpec();
 				break;
 
 			case 0x0007:
-				return FSpGetFInfo();
+				d0 = FSpGetFInfo();
 				break;
 
 			case 0x0008:
-				return FSpSetFInfo();
+				d0 = FSpSetFInfo();
+				break;
+
+			case 0x000d:
+				d0 = RM::FSpOpenResFile();
+				break;
+
+			case 0x000e:
+				d0 = RM::FSpCreateResFile();
 				break;
 
 			default:
-				fprintf(stderr, "selector %04x not yet supported\n", selector);
+				fprintf(stderr, "HighLevelHFSDispatch selector %04x not yet supported\n", selector);
 				exit(1);
 
 		}
+
+		ToolReturn<2>(-1, d0);
+		return d0;
 
 	}
 

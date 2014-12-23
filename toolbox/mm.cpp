@@ -73,7 +73,7 @@ namespace
 	// map of handle -> size [? just use Ptr map?]
 	std::map<uint32_t, HandleInfo> HandleMap;
 
-	inline uint16_t SetMemError(uint16_t error)
+	inline int16_t SetMemError(int16_t error)
 	{
 		memoryWriteWord(error, MacOS::MemErr);
 		return error;
@@ -284,9 +284,12 @@ namespace MM
 
 			// todo -- size 0 should have a ptr to differentiate
 			// from purged.
-			if (size)
-			{
-				ptr = (uint8_t *)mplite_malloc(&pool, size);
+
+			// PPCLink calls NewHandle(0) but expects a valid pointer
+			// Assertion failed: *fHandle != NULL
+			//if (size)
+			//{
+				ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
 				if (!ptr)
 				{
 					HandleQueue.push_back(hh);
@@ -296,7 +299,7 @@ namespace MM
 
 				if (clear)
 					std::memset(ptr, 0, size);
-			}
+			//}
 
 			// need a handle -> ptr map?
 			HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
@@ -394,6 +397,8 @@ namespace MM
 
 		uint16_t SetHandleSize(uint32_t handle, uint32_t newSize)
 		{
+			if (handle == 0) return SetMemError(MacOS::nilHandleErr);
+
 			const auto iter = HandleMap.find(handle);
 
 			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
@@ -409,7 +414,14 @@ namespace MM
 			// 1. - resizing to 0.
 			if (!newSize)
 			{
-				if (info.locked) return SetMemError(MacOS::memLockedErr);
+				if (info.locked) 
+				{
+					//return SetMemError(MacOS::memLockedErr);
+
+					// ppclink resizes locked handles.
+					info.size = 0;
+					return SetMemError(0);
+				}
 
 				// todo -- size 0 should have a ptr to differentiate
 				// from purged.
@@ -562,6 +574,9 @@ namespace MM
 
 	uint16_t BlockMove(uint16_t trap)
 	{
+		// also implements BlockMoveData.
+		// BlockMove will flush caches, BlockMoveData will not.
+		
 		/* 
 		 * on entry:
 		 * A0 Pointer to source
@@ -744,17 +759,9 @@ namespace MM
 
 		SetMemError(0);
 
-		// find the pointer base...
-		// todo -- call lower bound, then iter-- ?
-		for (const auto & iter : PtrMap)
-		{
-			if (sp >= iter.first && sp < iter.first + iter.second)
-			{
-				return sp - iter.first;
-			}
-		}
+		// MemorySize is the top of the heap. stack is after it.
 
-		return 0;
+		return sp - MemorySize;
 	}
 
 
@@ -1037,9 +1044,21 @@ namespace MM
 		 *
 		 */
 
+		/*
+		 * The trap dispatcher sets the condition codes before returning
+		 * from a trap by testing the low-order word of register D0 with
+		 * a TST.W instruction. Because the block size returned in D0 by
+		 * _GetHandleSize is a full 32-bit long word, the word-length
+		 * test sets the condition codes incorrectly in this case. To
+		 * branch on the contents of D0, use your own TST.L instruction
+		 * on return from the trap to test the full 32 bits of the register.
+		*/
+
 		uint32_t hh = cpuGetAReg(0);
 
-		Log("%08x GetHandleSize(%08x)\n", trap, hh);
+		Log("%04x GetHandleSize(%08x)\n", trap, hh);
+
+		if (hh == 0) return SetMemError(MacOS::nilHandleErr); // ????
 
 		auto iter = HandleMap.find(hh);
 
@@ -1068,112 +1087,51 @@ namespace MM
 		Log("%04x SetHandleSize(%08x, %08x)\n", trap, hh, newSize);
 
 		return Native::SetHandleSize(hh, newSize);
+	}
 
-#if 0
-		auto iter = HandleMap.find(hh);
+	uint32_t RecoverHandle(uint16_t trap)
+	{
+		// FUNCTION RecoverHandle (p: Ptr): Handle;
 
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-		// todo -- if handle ptr is null, other logic?
-		// todo -- if locked, can't move.
-
-		auto &info = iter->second;
-
-		// 0 - no change in size.
-		if (info.size == newSize) return SetMemError(0);
-
-		uint32_t mcptr = info.address;
-		uint8_t *ptr = mcptr + Memory;
+		/*
+		 * on entry:
+		 * A0 Master pointer
+		 *
+		 * on exit:
+		 * A0 Handle to master pointer’s relocatable block 
+		 * D0 Unchanged
+		 *
+		 */
 
 
-		// 1. - resizing to 0.
-		if (!newSize)
+		uint32_t p = cpuGetAReg(0);
+		uint32_t hh = 0;
+
+		Log("%04x RecoverHandle(%08x)\n", trap, p);
+
+		uint16_t error = MacOS::memBCErr;
+		for (const auto kv : HandleMap)
 		{
-			if (info.locked) return SetMemError(MacOS::memLockedErr);
+			const HandleInfo &info = kv.second;
 
-			mplite_free(&pool, ptr);
-			info.address = 0;
-			info.size = 0;
+			if (!info.address) continue;
 
-			memoryWriteLong(info.address, hh);
-			return SetMemError(0);
+			uint32_t begin = info.address;
+			uint32_t end = info.address + info.size;
+			if (!info.size) end++;
+			if (p >= begin && p < end)
+			{
+				hh = kv.first;
+				error = MacOS::noErr;
+				break;
+			}
 		}
 
-		// 2. - resizing from 0.
+		SetMemError(error);
+		cpuSetAReg(0, hh);
 
-		if (!mcptr)
-		{
-			if (info.locked) return SetMemError(MacOS::memLockedErr);
-
-			ptr = (uint8_t *)mplite_malloc(&pool, newSize);
-			if (!ptr) return SetMemError(MacOS::memFullErr);
-
-			mcptr = ptr - Memory;
-			info.address = mcptr;
-			info.size = newSize;
-
-			memoryWriteLong(info.address, hh);
-			return SetMemError(0);
-		}
-
-		for (unsigned i = 0; i < 2; ++i)
-		{
-
-			// 3. - locked
-			if (info.locked)
-			{
-				if (mplite_resize(&pool, ptr, mplite_roundup(&pool, newSize)) == MPLITE_OK)
-				{
-					info.size = newSize;
-					return SetMemError(0);
-				}
-			}
-			else
-			{
-
-				// 4. - resize.
-
-				ptr = (uint8_t *)mplite_realloc(&pool, ptr, mplite_roundup(&pool, newSize));
-
-				if (ptr)
-				{
-					mcptr = ptr - Memory;
-					info.address = mcptr;
-					info.size = newSize;
-
-					memoryWriteLong(info.address, hh);
-					return SetMemError(0);
-				}
-
-			}
-
-			fprintf(stderr, "mplite_realloc failed.\n");
-			Native::PrintMemoryStats();
-			
-
-			if (i > 0) return SetMemError(MacOS::memFullErr);
-
-			// purge...
-			for (auto & kv : HandleMap)
-			{
-				uint32_t handle = kv.first;
-				auto &info = kv.second;
-
-				if (handle == hh) continue;
-				if (info.size && info.purgeable && !info.locked)
-				{
-					mplite_free(&pool, Memory + info.address);
-					info.size = 0;
-					info.address = 0;
-
-					// also need to update memory
-					memoryWriteLong(0, handle);
-				}
-			}
-
-		}
-
-		return SetMemError(MacOS::memFullErr);
-#endif
+		// return d0 register unchanged.
+		return cpuGetDReg(0);
 	}
 
 
@@ -1501,9 +1459,19 @@ namespace MM
 		if (address) memoryWriteLong(0, address);
 
 		ToolReturn<4>(sp, mplite_maxmem(&pool));
-		SetMemError(0); // not sure if this is correct.  oh well.
 
-		return 0;
+		return SetMemError(0);
 	}
 
+	uint16_t TempFreeMem(void)
+	{
+
+		// FUNCTION TempFreeMem: LongInt;
+
+		Log("     TempFreeMem()\n");
+
+		ToolReturn<4>(-1, mplite_freemem(&pool));
+
+		return SetMemError(0);
+	}
 }

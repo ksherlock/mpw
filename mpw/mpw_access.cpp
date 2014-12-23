@@ -133,7 +133,7 @@ namespace MPW
 		Log("     delete(%s)\n", sname.c_str());
 
 		rv = ::unlink(sname.c_str());
-		if (rv < 0) return 0x40000000 | errno_to_errno(errno);
+		if (rv < 0) return 0x40000000 | mpw_errno_from_errno();
 		
 		return 0;
 	}
@@ -192,7 +192,7 @@ namespace MPW
 		if (fd < 0)
 		{
 			// return an errno.
-			d0 = 0x40000000 | errno_to_errno(errno);
+			d0 = 0x40000000 | mpw_errno_from_errno();
 			f.error = MacOS::ioErr;
 			f.cookie = 0;
 		}

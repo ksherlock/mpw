@@ -22,6 +22,7 @@ set(TOOLBOX_SRC
 	pathnames.cpp
 	utility.cpp
 	fs_spec.cpp
+	realpath.c
 )
 
 

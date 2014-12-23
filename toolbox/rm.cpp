@@ -43,6 +43,7 @@
 
 #include <macos/sysequ.h>
 #include <macos/errors.h>
+#include <macos/tool_return.h>
 
 #include "stackframe.h"
 #include "fs_spec.h"
@@ -50,6 +51,10 @@ using ToolBox::Log;
 
 using namespace OS::Internal;
 using namespace ToolBox;
+
+using MacOS::tool_return;
+using MacOS::macos_error_from_errno;
+using MacOS::macos_error;
 
 namespace
 {
@@ -101,6 +106,8 @@ namespace
 			case 0x434f4445: // 'CODE' (Link)
 			case 0x5041434b: // 'PACK' (PascalIIgs)
 			case 0x4b4f4445: // 'KODE' (Link 32-bit Startup)
+			case 0x45525253: // 'ERRS' (PPCLink)
+			case 0x63667267: // 'cfrg' (PPCLink)
 				return true;
 			default:
 				return false;
@@ -398,6 +405,39 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+
+	tool_return<void> CreateResFile(const std::string &path)
+	{
+
+		if (path.empty()) return MacOS::paramErr;
+
+		FSRef ref;
+		OSErr error;
+		int fd;
+
+		error = ::FSPathMakeRef((const UInt8 *)path.c_str(), &ref, NULL);
+		if (error != noErr)
+			return macos_error(error);
+
+		// FSCreateResourceFork only works with existing files.
+
+		fd = ::open(path.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+		if (fd < 0)
+		{
+			if (errno != EEXIST) return macos_error_from_errno();
+		}
+		if (fd >= 0) close(fd);
+
+
+		HFSUniStr255 fork = {0,{0}};
+		::FSGetResourceForkName(&fork);
+
+
+		error = ::FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
+
+		return macos_error(error);
+	}
+
 	uint16_t CreateResFile(uint16_t trap)
 	{
 		// PROCEDURE CreateResFile (fileName: Str255);
@@ -440,12 +480,12 @@ namespace RM
 		fd = ::open(sname.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 		if (fd < 0)
 		{
-			if (errno != EEXIST) return SetResError(errno_to_oserr(errno));
+			if (errno != EEXIST) return SetResError(macos_error_from_errno());
 		}
 		if (fd >= 0) close(fd);
 
-        HFSUniStr255 fork = {0,{0}};
-        ::FSGetResourceForkName(&fork);
+		HFSUniStr255 fork = {0,{0}};
+		::FSGetResourceForkName(&fork);
 
 		error = ::FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
 
@@ -453,17 +493,97 @@ namespace RM
 	}
 
 
+	uint16_t FSpCreateResFile(void)
+	{
+
+		// PROCEDURE FSpCreateResFile (spec: FSSpec; creator, fileType: OSType; scriptTag: ScriptCode);
+
+		// creates the file, if necessary.
+
+		uint32_t sp;
+		uint32_t spec;
+		uint32_t creator;
+		uint32_t fileType;
+		uint16_t scriptTag;
+
+		sp = StackFrame<14>(spec, creator, fileType, scriptTag);
+
+
+		int parentID = memoryReadLong(spec + 2);
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+
+		Log("     FSpCreateResFile(%s, %08x ('%s'), %08x ('%s'), %02x)\n",  
+			sname.c_str(), 
+			creator, ToolBox::TypeToString(creator).c_str(),
+			fileType, ToolBox::TypeToString(fileType).c_str(),
+			scriptTag);
+
+
+		sname = OS::FSSpecManager::ExpandPath(sname, parentID);
+		if (sname.empty())
+		{
+			return SetResError(MacOS::dirNFErr);
+		}
+
+		auto rv = CreateResFile(sname);
+		// returns errFSForkExists if fork already exists.
+		// therefore, if no error, set the ftype/ctype.
+		if (rv.error() == 0)
+		{
+			char buffer[32];
+			std::memset(buffer, 0, sizeof(buffer));
+			buffer[0] = fileType >> 24;
+			buffer[1] = fileType >> 16;
+			buffer[2] = fileType >> 8;
+			buffer[3] = fileType >> 0;
+
+			buffer[4] = creator >> 24;
+			buffer[5] = creator >> 16;
+			buffer[6] = creator >> 8;
+			buffer[7] = creator >> 0;
+
+			std::memcpy(buffer+4, &creator, 4);
+			OS::Internal::SetFinderInfo(sname, buffer, false);
+		}
+
+		return SetResError(rv.error() == errFSForkExists ? 0 : rv.error());
+	}
+
+
+
+
+	tool_return<int16_t> OpenResCommon(const std::string &path, uint16_t permission = 0)
+	{
+		OSErr error;
+		FSRef ref;
+		ResFileRefNum refNum;
+
+		error = ::FSPathMakeRef( (const UInt8 *)path.c_str(), &ref, NULL);
+		if (error != noErr)
+			return (MacOS::macos_error)error;
+
+		HFSUniStr255 fork = {0,{0}};
+		::FSGetResourceForkName(&fork);
+
+		refNum = -1;
+		error = ::FSOpenResourceFile(&ref, 
+			fork.length,
+			fork.unicode,
+			permission, 
+			&refNum);
+
+		if (error != noErr)
+			return (MacOS::macos_error)error;
+
+		return refNum;
+	}
+
 	uint16_t OpenResFile(uint16_t trap)
 	{
 		// OpenResFile (fileName: Str255) : INTEGER;
 		
-		ResFileRefNum refNum;
-		FSRef ref;
-
 		uint32_t sp;
 		uint32_t fileName;
-		uint16_t permission;
-		OSErr error;
 
 		sp = StackFrame<4>(fileName);
 
@@ -471,37 +591,17 @@ namespace RM
 
 		Log("%04x OpenResFile(%s)\n", trap, sname.c_str());
 
-		error = ::FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
-		if (error != noErr)
-		{
-			ToolReturn<2>(sp, (uint16_t)-1);
-			return SetResError(error);
-		}
+		auto rv = OpenResCommon(sname);
 
-        HFSUniStr255 fork = {0,{0}};
-        ::FSGetResourceForkName(&fork);
+		ToolReturn<2>(sp, rv.value_or(-1));
 
-        refNum = -1;
-        permission = 0; // whatever is allowed.
-    	error = ::FSOpenResourceFile(&ref, 
-    		fork.length, 
-    		fork.unicode, 
-    		permission, 
-    		&refNum);
-
-		ToolReturn<2>(sp, (uint16_t)refNum);
-
-		return SetResError(error);
+		return SetResError(rv.error());
 	}
 
 	uint16_t HOpenResFile(uint16_t trap)
 	{
 		// FUNCTION HOpenResFile (vRefNum: Integer; dirID: LongInt;
 		// fileName: Str255; permission: SignedByte): Integer;
-
-		ResFileRefNum refNum;
-		FSRef ref;
-		OSErr error;
 
 		uint32_t sp;
 
@@ -525,32 +625,49 @@ namespace RM
 		sname = OS::FSSpecManager::ExpandPath(sname, dirID);
 		if (sname.empty())
 		{
-			error = MacOS::dirNFErr;
 			ToolReturn<2>(sp, (uint16_t)-1);
-			return SetResError(error);
+			return SetResError(MacOS::dirNFErr);
 		}
 
-		error = ::FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
-		if (error != noErr)
+		auto rv = OpenResCommon(sname, permission);
+
+		ToolReturn<2>(sp, rv.value_or(-1));
+
+		return SetResError(rv.error());
+	}
+
+	uint16_t FSpOpenResFile(void)
+	{
+		// FUNCTION FSpOpenResFile (spec: FSSpec; permission: SignedByte): Integer;
+
+		uint32_t sp;
+		uint32_t spec;
+		uint16_t permission;
+
+		sp = StackFrame<6>(spec, permission);
+
+
+		int parentID = memoryReadLong(spec + 2);
+
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+
+		Log("     FSpOpenResFile(%s, %04x)\n",  sname.c_str(), permission);
+
+
+		sname = OS::FSSpecManager::ExpandPath(sname, parentID);
+		if (sname.empty())
 		{
 			ToolReturn<2>(sp, (uint16_t)-1);
-			return SetResError(error);
+			return SetResError(MacOS::dirNFErr);
 		}
 
-        HFSUniStr255 fork = {0,{0}};
-        ::FSGetResourceForkName(&fork);
+		auto rv = OpenResCommon(sname, permission);
 
-		refNum = -1;
-		error = ::FSOpenResourceFile(&ref, 
-			fork.length, 
-			fork.unicode, 
-			permission, 
-			&refNum);
+		ToolReturn<2>(sp, rv.value_or(-1));
 
-		ToolReturn<2>(sp, (uint16_t)refNum);
-
-		return SetResError(0);
+		return SetResError(rv.error());
 	}
+
 
 
 	uint16_t OpenRFPerm(uint16_t trap)

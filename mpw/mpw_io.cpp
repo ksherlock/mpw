@@ -26,6 +26,7 @@
 
 #include "mpw.h"
 #include "mpw_internal.h"
+#include "mpw_errno.h"
 
 #include <algorithm>
 #include <memory>
@@ -81,7 +82,7 @@ namespace MPW
 		{
 			//f.count = 0;
 			f.error = MacOS::ioErr; // ioErr
-			d0 = errno_to_errno(errno);
+			d0 = mpw_errno_from_errno();
 		}
 		else
 		{
@@ -126,7 +127,7 @@ namespace MPW
 		{
 			//f.count = 0;
 			f.error = MacOS::ioErr; // ioErr
-			d0 = errno_to_errno(errno);
+			d0 = mpw_errno_from_errno();
 		}
 		else
 		{

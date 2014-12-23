@@ -55,7 +55,7 @@
 
 using ToolBox::Log;
 
-using OS::Internal::errno_to_oserr;
+using MacOS::macos_error_from_errno;
 
 namespace OS {
 
@@ -194,7 +194,7 @@ namespace OS {
 
 			if (::stat(sname.c_str(), &st) < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 
 				memoryWriteWord(d0, parm + _ioResult);
 				return d0;
@@ -353,7 +353,7 @@ namespace OS {
 			ok = ::stat(sname.c_str(), &st);
 			if (ok < 0)
 			{
-				d0 = errno_to_oserr(errno);
+				d0 = macos_error_from_errno();
 				memoryWriteWord(d0, parm + _ioResult);
 				return d0; 
 			}
@@ -395,6 +395,21 @@ namespace OS {
 		return OS::Open(0xa000);
 	}
 
+
+	uint16_t PBHOpenDeny(uint32_t paramBlock)
+	{
+		// AccessParam.ioDenyModes short word matches
+		// up with the permission byte considering it's big-endian.
+		
+		Log("     PBHOpenDeny\n");
+		return OS::Open(0xa000);
+	}
+
+	uint16_t PBHOpenRFDeny(uint32_t paramBlock)
+	{
+		Log("     PBHOpenRFDeny\n");
+		return OS::OpenRF(0xa000);
+	}
 
 	uint16_t FSDispatch(uint16_t trap)
 	{
@@ -448,6 +463,12 @@ namespace OS {
 
 			case 0x001a:
 				return PBHOpenDF(paramBlock);
+
+			case 0x0038:
+				return PBHOpenDeny(paramBlock);
+
+			case 0x0039:
+				return PBHOpenRFDeny(paramBlock);
 
 			default:
 				fprintf(stderr, "HFSDispatch: selector %08x not implemented\n", 

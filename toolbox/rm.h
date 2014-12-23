@@ -57,6 +57,9 @@ namespace RM
 	uint16_t Get1IndType(uint16_t trap);
 
 
+	uint16_t FSpOpenResFile(void);
+	uint16_t FSpCreateResFile(void);
+
 }
 
 
