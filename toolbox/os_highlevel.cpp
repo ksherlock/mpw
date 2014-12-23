@@ -246,7 +246,6 @@ namespace OS {
 		uint16_t resolveAliasChains;
 		uint32_t targetIsFolder;
 		uint32_t wasAliased;
-		uint16_t d0 = 0;
 
 		StackFrame<14>(spec, resolveAliasChains, targetIsFolder, wasAliased);
 
@@ -264,7 +263,12 @@ namespace OS {
 
 		rv = ::stat(path.c_str(), &st);
 		if (rv < 0)
+		{
+			if (wasAliased) memoryWriteWord(0, wasAliased);
+			if (targetIsFolder) memoryWriteWord(0, targetIsFolder);
+
 			return macos_error_from_errno();
+		}
 
 		if (targetIsFolder)
 				memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
@@ -272,7 +276,7 @@ namespace OS {
 		// don't bother pretending a soft link is an alias.
 		if (wasAliased) memoryWriteWord(0, wasAliased);
 
-		return d0;
+		return 0;
 	}
 
 
