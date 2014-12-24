@@ -37,6 +37,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
+#include <queue>
 
 #include <bitset>
 
@@ -62,6 +63,7 @@
 namespace {
 
 	const uint32_t kGlobalSize = 0x10000;
+	const uint32_t kBackTraceSize = 20;
 
 	bool sigInt = false;
 	bool memBreak = false;
@@ -80,6 +82,26 @@ namespace {
 	std::map<std::string, uint16_t> ErrorTable;
 	std::map<std::string, uint16_t> GlobalTable;
 	std::map<std::string, uint16_t> TrapTable;
+
+
+	struct BackTraceInfo {
+		uint32_t a[8];
+		uint32_t d[8];
+		uint32_t pc;
+		uint16_t csr;
+
+		BackTraceInfo(bool populate = false) {
+			if (populate)
+			{
+				for (unsigned i = 0; i < 8; ++i) a[i] = cpuGetAReg(i);
+				for (unsigned i = 0; i < 8; ++i) d[i] = cpuGetDReg(i);
+				pc = cpuGetPC();
+				csr = cpuGetSR();
+			}
+		}
+	};
+
+	std::deque<BackTraceInfo> BackTrace;
 	
 	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
 	{
@@ -125,8 +147,9 @@ namespace {
 	}
 
 
-	void printMacsbug(uint32_t pc, uint32_t opcode)
+	void printMacsbug(uint32_t pc, uint32_t opcode, uint32_t *newPC = nullptr)
 	{
+		// pc is actually pc after the opcode.
 
 		unsigned mboffset;
 		switch(opcode)
@@ -160,6 +183,14 @@ namespace {
 				s.push_back(Debug::ReadByte(pc++));
 			}
 			printf("%s\n", s.c_str());
+
+			// word-align
+			pc = pc + 1 & ~0x01;
+
+			// and possibly a zero-word after it.
+			if (Debug::ReadWord(pc) == 0x0000) pc += 2;
+
+			if (newPC) *newPC = pc;
 		}
 
 	}
@@ -206,7 +237,7 @@ namespace {
 		uint32_t newpc = cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
 		printf("%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
 
-		printMacsbug(pc, opcode);
+		printMacsbug(pc, opcode, &newpc);
 
 		return newpc;
 	}
@@ -219,8 +250,25 @@ namespace {
 		uint16_t op;
 		memBreak = false;
 
-		uint32_t prevPC = cpuGetPC();
+
+
+
+		//uint32_t prevPC = cpuGetPC();
+
+		// backtracing.  store contents before the instruction.
+		if (BackTrace.size() == kBackTraceSize)
+		{
+			BackTrace.pop_front();
+		}
+		BackTrace.emplace_back(true);
+
+		//BackTrace.back().pc = prevPC;
+
 		cpuExecuteInstruction();
+
+
+
+
 
 		uint32_t pc = cpuGetPC();
 
@@ -424,6 +472,10 @@ void Help()
 	printf("list expression\n");
 	printf("dump expression\n");
 	printf("register=expression\n");
+	printf("bt | backtrace     -- print cpu backtrace\n");
+	printf("expression;h       -- print hexdump\n");
+	printf("expression;i       -- print information\n");
+	printf("expression;l       -- print assembly listing\n");
 	printf("\n");
 	printf("registers: a0-7, d0-7, pc, sp, fp, csr\n");
 	printf("\n");
@@ -583,12 +635,9 @@ void List(uint32_t pc, uint32_t endpc)
 
 }
 
-
-void PrintRegisters()
+const char *srBits(uint16_t sr)
 {
-	char srbits[20];
-
-	uint16_t sr = cpuGetSR();
+	static char srbits[20];
 
 	srbits[0] = sr & (1 << 15) ? 'T' : ' ';
 	srbits[1] = sr & (1 << 14) ? 'T' : ' ';
@@ -608,15 +657,43 @@ void PrintRegisters()
 	srbits[15] = sr & (1 << 0) ? 'C' : ' ';
 	srbits[16] = 0;
 
+	return srbits;
+}
 
-	printf("   0        1        2        3        4        5        6        7\n");	
-	printf("D: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+
+void PrintRegisters(const BackTraceInfo &i)
+{
+	const char *srbits = srBits(i.csr);
+
+	printf("    0        1        2        3        4        5        6        7\n");	
+	printf("D:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
+		i.d[0], i.d[1], i.d[2], i.d[3], 
+		i.d[4], i.d[5], i.d[6], i.d[7]
+
+	);
+
+	printf("A:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
+		i.a[0], i.a[1], i.a[2], i.a[3], 
+		i.a[4], i.a[5], i.a[6], i.a[7]
+	);
+
+	printf("PC: %08X CSR: %04x %s\n", i.pc, i.csr, srbits);
+
+}
+
+void PrintRegisters()
+{
+	uint16_t sr = cpuGetSR();
+	const char *srbits = srBits(sr);
+
+	printf("    0        1        2        3        4        5        6        7\n");	
+	printf("D:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
 		cpuGetDReg(0), cpuGetDReg(1), cpuGetDReg(2), cpuGetDReg(3), 
 		cpuGetDReg(4), cpuGetDReg(5), cpuGetDReg(6), cpuGetDReg(7)
 
 	);
 
-	printf("A: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+	printf("A:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
 		cpuGetAReg(0), cpuGetAReg(1), cpuGetAReg(2), cpuGetAReg(3), 
 		cpuGetAReg(4), cpuGetAReg(5), cpuGetAReg(6), cpuGetAReg(7)
 	);
@@ -625,6 +702,81 @@ void PrintRegisters()
 
 }
 
+void btdiff(const BackTraceInfo &prev, const BackTraceInfo &current)
+{
+	bool nl = false;
+
+	for (unsigned i = 0; i < 8; ++i)
+		if (current.d[i] != prev.d[i]) {
+			printf("            D%u: %08x\n", i, current.d[i]);
+			nl = true;
+		}
+
+	for (unsigned i = 0; i < 8; ++i)
+		if (current.a[i] != prev.a[i]) {
+			printf("            A%u: %08x\n", i, current.a[i]);
+			nl = true;
+		}
+
+
+	// pc always changes, but it's included in the listing.
+	//printf("PC: %08x\n", current.pc);
+	if (current.csr != prev.csr) {
+		printf("            CSR: %04x %s\n", current.csr, srBits(current.csr));
+		nl = true;
+	}
+
+	if (nl) printf("\n");
+}
+void PrintBackTrace()
+{
+	// backtrace.
+
+	auto iter = BackTrace.cbegin();
+	auto end = BackTrace.cend();
+
+	if (iter == end) return;
+
+	const BackTraceInfo *prev;
+
+	{
+	 	const BackTraceInfo &info = *iter;
+
+		// print all registers for the first entry.
+		// for subsequent entries, print changed registers.
+
+		//disasm(info.pc);
+		PrintRegisters(info);
+		printf("\n");
+
+		prev = &info;
+	 	++iter;
+	 }
+
+
+
+	for ( ; iter != end; ++iter)
+	{
+		const BackTraceInfo &current = *iter;
+
+		disasm(prev->pc);
+		btdiff(*prev, current);
+
+		// 
+		prev = &current;
+	}
+
+	// print current registers.
+	{
+		BackTraceInfo current(true);
+		disasm(prev->pc);
+		btdiff(*prev, current);
+	}
+
+	// finally, print the current instruction.
+	printf("---------\n");
+	disasm(cpuGetPC());
+}
 
 void ToolBreak(int32_t tool)
 {
@@ -928,7 +1080,7 @@ namespace {
 	 * returns a list of possible matches.
 	 * Item[0] is the longest match.
 	 */
-	char **mpw_completion(const char* text, int _start, int _end)
+	char **mpw_attempted_completion_function(const char* text, int _start, int _end)
 	{
 		std::string s(text);
 
@@ -1009,10 +1161,17 @@ namespace {
 		return buffer;
 	}
 
+	// this is here to prevent filename tab completion, for now.
+	char *mpw_completion_entry_function(const char *text, int state)
+	{
+		return NULL;
+	}
+
 	void readline_init()
 	{
 		rl_readline_name = (char *)"mpw";
-		rl_attempted_completion_function = mpw_completion;
+		rl_attempted_completion_function = mpw_attempted_completion_function;
+		rl_completion_entry_function = (Function *)mpw_completion_entry_function;
 	}
 }
 

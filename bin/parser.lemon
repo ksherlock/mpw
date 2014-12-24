@@ -81,6 +81,11 @@ stmt ::= BREAK expr(a) EOL.
 	Debug::Break(a.intValue);
 }
 
+stmt ::= BACKTRACE EOL.
+{
+	Debug::PrintBackTrace();
+}
+
 stmt ::= CONTINUE EOL.
 {
 	command->action = Debug::cmdContinue;

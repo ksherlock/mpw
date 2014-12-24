@@ -230,6 +230,10 @@ namespace {
 
 		# commands...
 
+		'bt'i | 'backtrace'i {
+			Parse(parser, tkBACKTRACE, 0, command);
+		};
+
 		'c'i | 'continue'i {
 			Parse(parser, tkCONTINUE, 0, command);
 		};

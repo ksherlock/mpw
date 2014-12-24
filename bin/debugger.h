@@ -113,6 +113,8 @@ uint8_t ReadByte(uint32_t);
 void Print(uint32_t value);
 void PrintRegisters();
 
+void PrintBackTrace();
+
 void Info(uint32_t address);
 
 void Dump(uint32_t address, int count = 256);
