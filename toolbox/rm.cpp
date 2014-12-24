@@ -196,14 +196,21 @@ namespace RM
 
 	uint16_t CloseResFile(uint16_t trap)
 	{
+		// PROCEDURE CloseResFile (refNum: Integer);
 		uint16_t refNum;
 
 		StackFrame<2>(refNum);
 
 		Log("%04x CloseResFile(%04x)\n", trap, refNum);
-		::CloseResFile(refNum);
-		return SetResError(::ResError());
+
+		// If the value of the refNum parameter is 0, it represents the System file and is ignored. 
 		
+		if (refNum != 0)
+		{
+			::CloseResFile(refNum);
+			return SetResError(::ResError());
+		}
+		return SetResError(0);
 		//return SetResError(resFNotFound);
 	}
 
@@ -543,7 +550,8 @@ namespace RM
 			buffer[7] = creator >> 0;
 
 			std::memcpy(buffer+4, &creator, 4);
-			OS::Internal::SetFinderInfo(sname, buffer, false);
+			// this is a new file, set the full finder info.
+			OS::Internal::SetFinderInfo(sname, buffer, true);
 		}
 
 		return SetResError(rv.error() == errFSForkExists ? 0 : rv.error());
