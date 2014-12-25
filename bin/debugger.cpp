@@ -37,7 +37,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
-#include <queue>
+#include <deque>
 
 #include <bitset>
 
@@ -54,6 +54,7 @@
 
 #include <macos/traps.h>
 #include <macos/sysequ.h>
+#include <macos/errors.h>
 
 #include <mpw/mpw.h>
 
@@ -82,6 +83,8 @@ namespace {
 	std::map<std::string, uint16_t> ErrorTable;
 	std::map<std::string, uint16_t> GlobalTable;
 	std::map<std::string, uint16_t> TrapTable;
+
+	std::unordered_multimap<uint16_t, std::string> ErrorTableInvert;
 
 
 	struct BackTraceInfo {
@@ -1058,7 +1061,6 @@ void Info(uint32_t address)
 
 	}
 
-#if 0
 	// 4 as an error
 	// almost all are negative 16-bit values, 
 	// but may also be a positive 16-bit value.
@@ -1068,10 +1070,21 @@ void Info(uint32_t address)
 	if (error)
 	{
 		const char *cp = ErrorName(error);
-		if (cp)
-			printf("Error: %s\n", cp);
+
+
+
+		// find returns an iterator to the hash bucket, which may contain
+		// other errors.
+		auto range = ErrorTableInvert.equal_range(error);
+
+		for(auto iter = range.first; iter != range.second; ++iter) {
+
+			printf("Error: %s", iter->second.c_str());
+			if (cp) printf(" %s", cp);
+			printf("\n");
+			cp = nullptr;
+		}
 	}
-#endif
 }
 
 namespace {
@@ -1191,6 +1204,12 @@ void Shell()
 	LoadTrapFile(MPW::RootDirPathForFile("Errors.text"), ErrorTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Globals.text"), GlobalTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Traps.text"), TrapTable);
+
+
+	// load the error code to error mnemonic
+	for (const auto kv : ErrorTable) {
+		ErrorTableInvert.emplace(std::make_pair(kv.second, kv.first));
+	}
 
 	// start it up
 	printf("MPW Debugger shell\n\n");
