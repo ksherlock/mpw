@@ -1207,6 +1207,7 @@ void Shell()
 
 
 	// load the error code to error mnemonic
+	ErrorTableInvert.reserve(ErrorTable.size());
 	for (const auto kv : ErrorTable) {
 		ErrorTableInvert.emplace(std::make_pair(kv.second, kv.first));
 	}
