@@ -537,21 +537,7 @@ namespace RM
 		// therefore, if no error, set the ftype/ctype.
 		if (rv.error() == 0)
 		{
-			char buffer[32];
-			std::memset(buffer, 0, sizeof(buffer));
-			buffer[0] = fileType >> 24;
-			buffer[1] = fileType >> 16;
-			buffer[2] = fileType >> 8;
-			buffer[3] = fileType >> 0;
-
-			buffer[4] = creator >> 24;
-			buffer[5] = creator >> 16;
-			buffer[6] = creator >> 8;
-			buffer[7] = creator >> 0;
-
-			std::memcpy(buffer+4, &creator, 4);
-			// this is a new file, set the full finder info.
-			OS::Internal::SetFinderInfo(sname, buffer, true);
+			OS::Internal::SetFinderInfo(sname, fileType, creator);
 		}
 
 		return SetResError(rv.error() == errFSForkExists ? 0 : rv.error());

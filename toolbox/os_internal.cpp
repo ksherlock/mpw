@@ -220,6 +220,24 @@ namespace OS { namespace Internal {
 		return 0;
 	}
 
+	uint16_t SetFinderInfo(const std::string &pathName, uint32_t fileType, uint32_t creator)
+	{
+		uint8_t buffer[32];
+		std::memset(buffer, 0, sizeof(buffer));
+
+		buffer[0] = fileType >> 24;
+		buffer[1] = fileType >> 16;
+		buffer[2] = fileType >> 8;
+		buffer[3] = fileType >> 0;
+
+		buffer[4] = creator >> 24;
+		buffer[5] = creator >> 16;
+		buffer[6] = creator >> 8;
+		buffer[7] = creator >> 0;
+
+		return SetFinderInfo(pathName, buffer, true);
+	}
+
 	uint16_t SetFinderInfo(const std::string &pathName, void *info, bool extended)
 	{
 		uint8_t buffer[32];

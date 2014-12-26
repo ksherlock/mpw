@@ -278,24 +278,7 @@ namespace OS {
 			::close(fd);
 		}
 
-		{
-			char buffer[32];
-			std::memset(buffer, 0, sizeof(buffer));
-			buffer[0] = fileType >> 24;
-			buffer[1] = fileType >> 16;
-			buffer[2] = fileType >> 8;
-			buffer[3] = fileType >> 0;
-
-			buffer[4] = creator >> 24;
-			buffer[5] = creator >> 16;
-			buffer[6] = creator >> 8;
-			buffer[7] = creator >> 0;
-
-			std::memcpy(buffer+4, &creator, 4);
-			// since this is a new file, set the entire finder info.
-			d0 = OS::Internal::SetFinderInfo(sname, buffer, true);
-		}
-
+		d0 = OS::Internal::SetFinderInfo(sname, fileType, creator);
 
 		return d0;
 	}
