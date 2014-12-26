@@ -337,7 +337,7 @@ namespace OS
 	}
 
 
-	uint16_t Open(uint16_t trap)
+	uint16_t OpenCommon(uint32_t parm, bool fsspec, bool resource)
 	{
 
 		enum {
@@ -368,22 +368,18 @@ namespace OS
 
 		int fd;
 
-		uint32_t parm = cpuGetAReg(0);
-
-
-		Log("%04x Open(%08x)\n", trap, parm);
-
-		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
-		uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
-
 		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn); 
+		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
 
 		std::string sname = ToolBox::ReadPString(namePtr, true);
-		sname = FSSpecManager::ExpandPath(sname, ioDirID);
 
+		if (fsspec)
+		{
+			uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+			sname = FSSpecManager::ExpandPath(sname, ioDirID);
+		}
 
-
-		fd = Internal::FDEntry::open(sname, ioPermission, false);
+		fd = Internal::FDEntry::open(sname, ioPermission, resource);
 		d0 = fd < 0 ? fd : 0;
 		if (fd >= 0)
 		{
@@ -394,59 +390,18 @@ namespace OS
 		return d0;
 	}
 
+	uint16_t Open(uint16_t trap)
+	{
+		uint32_t parm = cpuGetAReg(0);
+		Log("%04x Open(%08x)\n", trap, parm);
+		return OpenCommon(parm, false, false);
+	}
+
 	uint16_t OpenRF(uint16_t trap)
 	{
-
-		enum {
-			/* IOParam */
-			_qLink = 0,
-			_qType = 4,
-			_ioTrap = 6,
-			_ioCmdAddr = 8,
-			_ioCompletion = 12,
-			_ioResult = 16,
-			_ioNamePtr = 18,
-			_ioVRefNum = 22,
-			_ioRefNum = 24,
-			_ioVersNum = 26,
-			_ioPermssn = 27,
-			_ioMisc = 28,
-			_ioBuffer = 32,
-			_ioReqCount = 36,
-			_ioActCount = 40,
-			_ioPosMode = 44,
-			_ioPosOffset = 46,
-
-			_ioDirID = 48,
-
-		};
-
-		uint32_t d0;
-
-		int fd;
-
 		uint32_t parm = cpuGetAReg(0);
-
-
-		Log("%04x OpenRF(%08x)\n", trap, parm);
-
-		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
-		uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
-
-		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn); 
-
-		std::string sname = ToolBox::ReadPString(namePtr, true);
-		sname = FSSpecManager::ExpandPath(sname, ioDirID);
-
-		fd = Internal::FDEntry::open(sname, ioPermission, true);
-		d0 = fd < 0 ? fd : 0;
-		if (fd >= 0)
-		{
-			memoryWriteWord(fd, parm + _ioRefNum);				
-		}
-
-		memoryWriteWord(d0, parm + _ioResult);
-		return d0;
+		Log("%04x Open(%08x)\n", trap, parm);
+		return OpenCommon(parm, false, true);
 	}
 
 

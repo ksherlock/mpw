@@ -35,6 +35,8 @@ namespace OS
 	time_t UnixToMac(time_t);
 	time_t MacToUnix(time_t);
 
+	uint16_t OpenCommon(uint32_t parm, bool fsspec, bool resource);
+
 
 	#pragma mark FS Utilities
 	uint16_t Close(uint16_t trap);

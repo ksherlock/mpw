@@ -381,7 +381,7 @@ namespace OS {
 	{
 		Log("     PBOpenDF\n");
 		// same as Open but slightly different handling of . files.
-		return OS::Open(0xa000);
+		return OS::OpenCommon(paramBlock, false, false);
 	}
 
 
@@ -391,8 +391,7 @@ namespace OS {
 		// that it accepts a directory ID in ioDirID.
 
 		Log("     PBHOpenDF\n");
-		// same as Open but slightly different handling of . files.
-		return OS::Open(0xa000);
+		return OS::OpenCommon(paramBlock, true, false);
 	}
 
 
@@ -402,13 +401,13 @@ namespace OS {
 		// up with the permission byte considering it's big-endian.
 		
 		Log("     PBHOpenDeny\n");
-		return OS::Open(0xa000);
+		return OS::OpenCommon(paramBlock, true, false);
 	}
 
 	uint16_t PBHOpenRFDeny(uint32_t paramBlock)
 	{
 		Log("     PBHOpenRFDeny\n");
-		return OS::OpenRF(0xa000);
+		return OS::OpenCommon(paramBlock, true, true);
 	}
 
 	uint16_t FSDispatch(uint16_t trap)
