@@ -288,7 +288,7 @@ namespace OS {
 		}
 
 		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + 32), false);
-
+		if (d0 == 0) d0 = Internal::SetFileDates(sname, memoryReadLong(parm + _ioFlCrDat), memoryReadLong(parm + _ioFlMdDat), 0);
 		memoryWriteWord(d0, parm + _ioResult);
 		return d0;
 	}

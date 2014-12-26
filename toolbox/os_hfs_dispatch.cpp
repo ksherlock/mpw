@@ -362,6 +362,12 @@ namespace OS {
 			if (S_ISDIR(st.st_mode))
 			{
 				d0 = 0;
+
+				d0 = Internal::SetFileDates(sname, 
+					memoryReadLong(parm + _ioDrCrDat), 
+					memoryReadLong(parm + _ioDrMdDat), 
+					memoryReadLong(parm + _ioDrBkDat));
+
 				memoryWriteWord(d0, parm + _ioResult);
 				return d0; 
 			}
@@ -370,6 +376,12 @@ namespace OS {
 
 		// set the finder info.  could also call utimes or setattrlist, I suppose.
 		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false);
+
+		if (d0 == 0) d0 = Internal::SetFileDates(sname, 
+			memoryReadLong(parm + _ioFlCrDat), 
+			memoryReadLong(parm + _ioFlMdDat), 
+			memoryReadLong(parm + _ioFlBkDat));
+
 
 		memoryWriteWord(d0, parm + _ioResult);
 		return d0;

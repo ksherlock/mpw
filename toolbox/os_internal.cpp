@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/xattr.h>
+#include <sys/attr.h>
 #include <sys/paths.h>
 
 #include <machine/endian.h>
@@ -282,6 +283,70 @@ namespace OS { namespace Internal {
 		}
 
 		rv = ::setxattr(pathName.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
+		if (rv < 0) return macos_error_from_errno();
+
+		return 0;
+	}
+
+
+	uint16_t SetFileDates(const std::string &pathname, uint32_t createDate, uint32_t modificationDate, uint32_t backupDate)
+	{
+		// utimes(2) sets the access and mod times.
+		// setattrlist sets the create and mod times (among other things)
+
+		// this is kind of unfortunate in that a roundtrip will strip any nanoseconds, etc from the date/time.
+
+		int rv;
+		struct attrlist list;
+		unsigned i = 0;
+
+		timespec dates[3];
+
+
+		memset(&list, 0, sizeof(list));
+		memset(dates, 0, sizeof(dates));
+
+		list.bitmapcount = ATTR_BIT_MAP_COUNT;
+		list.commonattr  = 0;
+
+		if (createDate)
+		{
+			dates[i++].tv_sec = MacToUnix(createDate);
+			list.commonattr |= ATTR_CMN_CRTIME;
+		}
+
+		if (modificationDate)
+		{
+			dates[i++].tv_sec = MacToUnix(modificationDate);
+			list.commonattr |= ATTR_CMN_MODTIME;
+		}
+
+		if (backupDate)
+		{
+			dates[i++].tv_sec = MacToUnix(backupDate);
+			list.commonattr |= ATTR_CMN_BKUPTIME;
+		}
+		
+
+
+		if (!i) return 0;
+
+		rv = setattrlist(pathname.c_str(), &list, dates, i * sizeof(timespec), 0);
+
+		if (rv < 0 && errno == ENOTSUP)
+		{
+			// try utimes.
+
+			struct timeval tv[2];
+			memset(tv, 0, sizeof(tv));
+
+			if (modificationDate) {
+				tv[1].tv_sec = MacToUnix(modificationDate);
+				rv = utimes(pathname.c_str(), tv);
+			}
+
+		}
+
 		if (rv < 0) return macos_error_from_errno();
 
 		return 0;
