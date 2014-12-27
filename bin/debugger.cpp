@@ -85,7 +85,7 @@ namespace {
 	std::map<std::string, uint16_t> TrapTable;
 
 	std::unordered_multimap<uint16_t, std::string> ErrorTableInvert;
-
+	std::unordered_map<uint32_t, std::string> SymbolTableInvert;
 
 	struct BackTraceInfo {
 		uint32_t a[8];
@@ -238,6 +238,54 @@ namespace {
 		for (unsigned j = 0; j < 4; ++j) strings[j][0] = 0;
 
 		uint32_t newpc = cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
+
+
+		// replace jsr address w/ jsr macsbug name, if possible.
+
+		// jsr offset(pc)
+		uint32_t address = 0;
+
+		switch (opcode)
+		{
+			case 0x4EBA: // jsr offset(pc)
+			{
+				int16_t offset = Debug::ReadWord(pc + 2); 
+				address = pc + 2 + offset;
+				break;
+			}
+			case 0x4EF9: // jmp address
+			{
+				address = Debug::ReadLong(pc + 2);
+				break;
+			}
+			case 0x4EAD: // jsr offset(a5)
+			{
+				// check if address is a jmp address (see above)
+				// and follow it. a5 should never change.
+				int16_t offset = Debug::ReadWord(pc + 2); 
+				address = cpuGetAReg(5) + offset;
+
+				if (Debug::ReadWord(address) == 0x4EF9) 
+					address = Debug::ReadLong(address + 2);
+				else address = 0;
+
+				break;				
+			}
+
+			// consider checking branches?
+		}
+
+		if (address) {
+
+			auto iter = SymbolTableInvert.find(address);
+			if (iter != SymbolTableInvert.end())
+			{
+				strncpy(strings[3], iter->second.c_str(), 40);
+				strings[3][40] = 0;
+			}
+		}
+
+
 		printf("%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
 
 		printMacsbug(pc, opcode, &newpc);
@@ -1211,6 +1259,14 @@ void Shell()
 	for (const auto kv : ErrorTable) {
 		ErrorTableInvert.emplace(std::make_pair(kv.second, kv.first));
 	}
+
+	// address to function name.
+	SymbolTableInvert.reserve(SymbolTable.size());
+	for (const auto kv : SymbolTable) {
+		SymbolTableInvert.emplace(std::make_pair(kv.second.first, kv.first));
+	}
+
+
 
 	// start it up
 	printf("MPW Debugger shell\n\n");
