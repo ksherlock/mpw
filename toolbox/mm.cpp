@@ -1474,4 +1474,73 @@ namespace MM
 
 		return SetMemError(0);
 	}
+
+	uint16_t TempNewHandle(void)
+	{
+		// FUNCTION TempNewHandle (logicalSize: Size;
+		//                         VAR resultCode: OSErr): Handle;
+		uint16_t rv;
+		uint32_t logicalSize;
+		uint32_t resultCode;
+		uint32_t theHandle;
+
+		uint32_t sp = StackFrame<8>(logicalSize, resultCode);
+
+		Log("     TempNewHandle(%08x, %08x)\n", logicalSize, resultCode);
+
+		rv = Native::NewHandle(logicalSize, true, theHandle);
+
+		if (resultCode) memoryWriteWord(rv, resultCode);
+		ToolReturn<4>(sp, theHandle);
+		return rv;
+	}
+
+	uint16_t TempHLock(void)
+	{
+		// PROCEDURE TempHLock (theHandle: Handle; VAR resultCode: OSErr);	
+		uint32_t theHandle;
+		uint32_t resultCode;
+
+		StackFrame<8>(theHandle, resultCode);
+
+		Log("     TempHLock(%08x, %08x)\n", theHandle, resultCode);
+
+		uint16_t rv = Native::HLock(theHandle);
+
+		if (resultCode) memoryWriteWord(rv, resultCode);
+		return rv;
+	}
+
+	uint16_t TempHUnlock(void)
+	{
+		// PROCEDURE TempHUnlock (theHandle: Handle; VAR resultCode: OSErr);	
+		uint32_t theHandle;
+		uint32_t resultCode;
+
+		StackFrame<8>(theHandle, resultCode);
+
+		Log("     TempHUnlock(%08x, %08x)\n", theHandle, resultCode);
+
+		uint16_t rv = Native::HUnlock(theHandle);
+
+		if (resultCode) memoryWriteWord(rv, resultCode);
+		return rv;
+	}
+
+
+	uint16_t TempDisposeHandle(void)
+	{
+		// PROCEDURE TempDisposeHandle (theHandle: Handle; VAR resultCode: OSErr);	
+		uint32_t theHandle;
+		uint32_t resultCode;
+
+		StackFrame<8>(theHandle, resultCode);
+
+		Log("     TempDisposeHandle(%08x, %08x)\n", theHandle, resultCode);
+
+		uint16_t rv = Native::DisposeHandle(theHandle);
+
+		if (resultCode) memoryWriteWord(rv, resultCode);
+		return rv;
+	}
 }

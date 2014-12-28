@@ -68,6 +68,19 @@ namespace ToolBox {
 			case 0x0018:
 				return MM::TempFreeMem();
 
+			case 0x001d:
+				return MM::TempNewHandle();
+
+			case 0x001e:
+				return MM::TempHLock();
+
+			case 0x001f:
+				return MM::TempHUnlock();
+
+			case 0x0020:
+				return MM::TempDisposeHandle();
+
+
 			default:
 				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
 					selector);

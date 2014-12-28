@@ -91,6 +91,11 @@ namespace MM
 
 	uint16_t TempMaxMem(void);
 	uint16_t TempFreeMem(void);
+	uint16_t TempNewHandle(void);
+
+	uint16_t TempHLock(void);
+	uint16_t TempHUnlock(void);
+	uint16_t TempDisposeHandle(void);
 }
 
 
