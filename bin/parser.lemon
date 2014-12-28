@@ -246,6 +246,24 @@ expr(rhs) ::= expr(a) PIPE expr(b). { rhs = Token::Make(a.intValue | b.intValue)
 expr(rhs) ::= expr(a) AMPAMP expr(b). { rhs = Token::Make(a.intValue && b.intValue); }
 expr(rhs) ::= expr(a) PIPEPIPE expr(b). { rhs = Token::Make(a.intValue || b.intValue); }
 
+// 68k assembly - offset(register)
+// offset is a 16-bit quantity... this will 
+// handle 32-bit values or 16-bit.
+expr(rhs) ::= unary(a) LPAREN register(b) RPAREN.
+{
+	uint32_t offset = a.intValue;
+	uint32_t value = b.intValue;
+
+	// offset is 16-bits.
+	if (offset <= 0xffff)
+	{
+		if (offset & 0x8000)
+			offset |= 0xffff0000;
+	}
+
+	rhs = Token::Make(value + offset);
+}
+
 
 unary(rhs) ::= term(a). { rhs = a; }
 unary(rhs) ::= PLUS unary(a). [BANG] { rhs = a; }
@@ -254,13 +272,21 @@ unary(rhs) ::= TILDE unary(a). { rhs = Token::Make(~a.intValue); }
 unary(rhs) ::= BANG unary(a). { rhs = Token::Make(!a.intValue); }
 unary(rhs) ::= STAR unary(a). [BANG] { rhs = Token::Make(Debug::ReadLong(a)); }
 
-
-
 term(rhs) ::= LPAREN expr(a) RPAREN. { rhs = a; }
 term(rhs) ::= INTEGER(a). { rhs = a; }
-term(rhs) ::= DREGISTER(a). { rhs = Token::Make(cpuGetDReg(a)); }
-term(rhs) ::= AREGISTER(a). { rhs = Token::Make(cpuGetAReg(a)); }
-term(rhs) ::= XREGISTER(a).
+term(rhs) ::= register(a). { rhs = a; }
+
+
+term(rhs) ::= IDENTIFIER(a).
+{
+	// should throw/barf if undefined?
+	rhs = Token::Make(Debug::VariableGet(*a.stringValue));
+}
+
+
+register(rhs) ::= DREGISTER(a). { rhs = Token::Make(cpuGetDReg(a)); }
+register(rhs) ::= AREGISTER(a). { rhs = Token::Make(cpuGetAReg(a)); }
+register(rhs) ::= XREGISTER(a).
 {
 	switch(a)
 	{
@@ -273,10 +299,4 @@ term(rhs) ::= XREGISTER(a).
 	default:
 		rhs = Token::Make(0);
 	}
-}
-
-term(rhs) ::= IDENTIFIER(a).
-{
-	// should throw/barf if undefined?
-	rhs = Token::Make(Debug::VariableGet(*a.stringValue));
 }
