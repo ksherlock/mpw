@@ -185,7 +185,7 @@ namespace {
 			{
 				s.push_back(Debug::ReadByte(pc++));
 			}
-			printf("%s\n", s.c_str());
+			printf("            %s\n\n", s.c_str());
 
 			// word-align
 			pc = pc + 1 & ~0x01;
@@ -253,6 +253,11 @@ namespace {
 				address = pc + 2 + offset;
 				break;
 			}
+			case 0x4EB9: // jsr address
+			{
+				address = Debug::ReadLong(pc + 2);
+				break;
+			}			
 			case 0x4EF9: // jmp address
 			{
 				address = Debug::ReadLong(pc + 2);
