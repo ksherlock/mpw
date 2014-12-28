@@ -1,4 +1,21 @@
 ------------------------
+0.7.9 - December 28, 2014
+------------------------
+
+* MrC, MrCpp, PEFDump, DumpXCOFF, PPCLink now supported
+- various new tools implemented and bug fixes for existing ones.
+
+* Debugger improvements:
+- jsr $deadbeef now shows as jsr _deadbeef (if the macsbug name is available)
+- expression evaluator now support 68k asm style offset(register) syntax 
+  eg, $fffb(a6) is equivalent to a6-5
+- backtrace support.  bt prints the last 20 instructions with register values.
+
+* SetFileInfo tool calls now set the creation, backup, and modification dates.
+
+* etc.
+
+------------------------
 0.7.1 - October 30, 2013
 ------------------------
 
