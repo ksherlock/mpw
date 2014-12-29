@@ -200,7 +200,6 @@ stmt ::= expr(a) COLON expr(b) SEMI SEMIL EOL.
 	Debug::List(a.intValue, b.intValue);
 }
 
-
 stmt ::= expr(a) SEMI SEMIDATE EOL.
 {
 	Debug::PrintDate(a.intValue);
@@ -210,6 +209,11 @@ stmt ::= expr(a) SEMI SEMIDATE EOL.
 stmt ::= expr(a) SEMI SEMIERROR EOL.
 {
 	Debug::PrintError(a.intValue);
+}
+
+stmt ::= expr(a) SEMI SEMIT IDENTIFIER(b) EOL.
+{
+	Debug::ApplyTemplate(a.intValue, *b.stringValue);	
 }
 
 

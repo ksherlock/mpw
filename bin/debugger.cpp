@@ -1136,7 +1136,23 @@ void Info(uint32_t address)
 			cp = nullptr;
 		}
 	}
+
 }
+
+	void ApplyTemplate(int32_t address, const std::string &name)
+	{
+		// find the template..
+
+		auto iter = TemplateTable.find(name);
+		if (iter == TemplateTable.end()) {
+			fprintf(stderr, "Unknown template: %s\n", name.c_str());
+			return;
+		}
+
+		FieldEntry *e = iter->second;
+		ApplyTemplate(address, e);
+	}
+
 
 namespace {
 

@@ -2,6 +2,7 @@
 #define __debug_template_h__
 
 #include <unordered_map>
+#include <string>
 
 namespace Debug {
 
@@ -126,6 +127,9 @@ namespace Debug {
 
 
 	bool LoadTemplateFile(const std::string &filename, std::unordered_map<std::string, Template> &);
+
+
+	void ApplyTemplate(uint32_t address, FieldEntry *e, unsigned indent = 0);
 
 
 

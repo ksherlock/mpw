@@ -105,6 +105,21 @@ namespace {
 	# this exits with cs == lexer_en_error.
 	error := any* ${ fbreak; };
 
+	# identifiers.
+	ident := |*
+
+		[ \t\r\n]+;
+
+		[_A-Za-z][_A-Za-z0-9]* {
+
+			std::unique_ptr<std::string> sp(new std::string(ts, te));
+
+			Parse(parser, tkIDENTIFIER, Token::Make(sp.get(), 0), command);
+			Strings.push_back(std::move(sp));
+		};
+
+	*|;
+
 	# semi-colon commands.
 	semi := |*
 
@@ -130,7 +145,10 @@ namespace {
 			Parse(parser, tkSEMIERROR, 0, command);
 		};
 
-
+		't'i {
+			Parse(parser, tkSEMIT, 0, command);
+			fgoto ident;
+		};
 
 	*|;
 

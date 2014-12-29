@@ -50,7 +50,7 @@ void TemplateParse(void *yyp, int yymajor, void *yyminor, Debug::TemplateParseIn
 
 void TemplateParse(void *yyp, int yymajor, int yyminor, Debug::TemplateParseInfo *info)
 {
-	TemplateParse(yyp, yymajor, (void *)yyminor, info);
+	TemplateParse(yyp, yymajor, (void *)(ptrdiff_t)yyminor, info);
 }
 
 void TemplateParse(void *yyp, int yymajor, const std::string *yyminor, Debug::TemplateParseInfo *info)
@@ -175,104 +175,7 @@ void TemplateParse(void *yyp, int yymajor, const std::string *yyminor, Debug::Te
 namespace Debug {
 
 
-void CreateTypedef(const std::string *name, int type, TemplateParseInfo *info)
-{
-	// check if it's an existing typedef...
 
-	auto &Templates = *info->templates;
-	auto &Types = *info->types;
-
-
-	auto iter = Types.find(*name);
-	if (iter != Types.end())
-	{
-		if (iter->second == type) return; // ok, just a duplicate.
-		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
-			info->LineNumber, name->c_str());
-
-		return;
-	}
-
-	if (Templates.find(*name) != Templates.end())
-	{
-		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
-			info->LineNumber, name->c_str());
-
-		return;	
-	}
-
-	Types.emplace(std::make_pair(*name, type)); 
-}
-
-unsigned CalcSize(FieldEntry *e)
-{
-	unsigned size = 0;
-
-	while (e)
-	{
-		unsigned s = (e->type & 0x0f00) >> 8;
-
-		if (!s) {
-			// struct or pointer...
-			if (e->type & 0x8000) s = 4;
-			else if (e->tmpl) s = e->tmpl->struct_size;
-		}
-
-		if (e->count != 0) s *= e->count;
-
-		size += s;
-		e = e->next;
-	}
-	return size;
-}
-
-FieldEntry *Reverse(FieldEntry *e)
-{
-	if (!e) return e;
-
-	// reverse the order...
-	FieldEntry *prev;
-	FieldEntry *next;
-
-	prev = nullptr;
-	for(;;)
-	{
-		next = e->next;
-		e->next = prev;
-
-		prev = e;
-		e = next;
-		if (!e) return prev;
-	}
-}
-
-
-void CreateTemplate(const std::string *name, FieldEntry *firstField, TemplateParseInfo *info)
-{
-	auto &Templates = *info->templates;
-	auto &Types = *info->types;
-
-	// check if it exists...
-
-	if (Templates.find(*name) != Templates.end())
-	{
-		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
-			info->LineNumber, name->c_str());
-		return;	
-	}
-
-	if (Types.find(*name) != Types.end())
-	{
-		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
-			info->LineNumber, name->c_str());
-		return;	
-	}
-
-	firstField = Reverse(firstField);
-	firstField->struct_size = CalcSize(firstField);
-
-	Templates.emplace(std::make_pair(*name, firstField));
-}
 
 
 bool LoadTemplateFile(const std::string &filename, std::unordered_map<std::string, Template> &Templates)

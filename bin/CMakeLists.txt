@@ -71,7 +71,8 @@ set_source_files_properties(
 add_executable(mpw loader.cpp debugger.cpp debugger_internal.cpp 
 	address_map.cpp lexer.cpp parser.cpp loadtrap.cpp 
 	commands.cpp
-	template_loader.cpp template_parser.cpp)
+	template_loader.cpp template_parser.cpp intern.cpp template.cpp)
+
 
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
