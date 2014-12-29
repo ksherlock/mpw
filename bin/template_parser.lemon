@@ -67,7 +67,7 @@ struct_field(rhs) ::= opt_volatile TEMPLATE(a) opt_star(star) IDENTIFIER(b) arra
 %type array_count { int }
 array_count(rhs) ::= . { rhs = 0; }
 array_count(rhs) ::= LBRACKET INTEGER(a) RBRACKET. { 
-	int i = *(int *)a;
+	int i = (int)(ptrdiff_t)a;
 	if (i == 0) {
 		fprintf(stderr, "Template error: line %u: 0-sized arrays are not allowed.\n", 
 			info->LineNumber);
@@ -110,7 +110,7 @@ typecode(rhs) ::= UNSIGNED LONG opt_int. { rhs = kUInt32; }
 typecode(rhs) ::= opt_signed LONG LONG. { rhs = kSInt64; }
 typecode(rhs) ::= UNSIGNED LONG LONG. { rhs = kUInt64; }
 
-typecode(rhs) ::= TYPECODE(a). { rhs = *(int *)a; }
+typecode(rhs) ::= TYPECODE(a). { rhs = (int)(ptrdiff_t)a; }
 
 /* pointers are not fully supported yet */
 typecode(rhs) ::= VOID STAR. { rhs = kVoidPtr; }

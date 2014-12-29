@@ -50,7 +50,7 @@ void TemplateParse(void *yyp, int yymajor, void *yyminor, Debug::TemplateParseIn
 
 void TemplateParse(void *yyp, int yymajor, int yyminor, Debug::TemplateParseInfo *info)
 {
-	TemplateParse(yyp, yymajor, &yyminor, info);
+	TemplateParse(yyp, yymajor, (void *)yyminor, info);
 }
 
 void TemplateParse(void *yyp, int yymajor, const std::string *yyminor, Debug::TemplateParseInfo *info)
