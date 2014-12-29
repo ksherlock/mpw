@@ -1,0 +1,114 @@
+%token_prefix tk
+%name TemplateParse
+
+%include {
+	
+	#include <string>
+	#include <stdlib.h>
+
+	#include "template.h"
+
+	using namespace Debug;
+}
+
+%type struct_fields  { FieldEntry * }
+%type struct_field  { FieldEntry * }
+%type array_count { int }
+%type opt_star { int }
+%type typecode { int }
+%type type { int }
+
+start ::= templates EOF.
+
+templates ::= templates struct.
+templates ::= templates typedef.
+templates ::= .
+
+typedef ::= TYPEDEF type(a) IDENTIFIER(b). {
+	CreateTypedef((std::string *)b, a);
+}
+
+struct ::= STRUCT IDENTIFIER(a) LBRACE struct_fields(b) RBRACE SEMI.
+{
+	CreateTemplate((std::string *)a, b);
+}
+
+struct_fields(rhs) ::= struct_fields(a) struct_field(b). {
+	// reverse order?
+	b->next = a;
+	rhs = b;
+}
+
+struct_fields(rhs) ::= struct_field(a). {
+	rhs = a;
+}
+
+struct_field(rhs) ::= type(a) IDENTIFIER(b) array_count(c) SEMI.
+{
+	FieldEntry *e = (FieldEntry *)calloc(sizeof(FieldEntry), 1);
+
+	e->name = (std::string *)b;
+	e->type = a;
+	e->count = c;
+	rhs = e;
+}
+
+struct_field(rhs) ::= opt_volatile TEMPLATE(a) opt_star(star) IDENTIFIER(b) array_count(c) SEMI. {
+	FieldEntry *e = (FieldEntry *)calloc(sizeof(FieldEntry), 1);
+
+	e->name = (std::string *)b;
+	e->type = star ? kPtr : 0;
+	e->tmpl = (Template *)a;
+	e->count = c;
+
+	rhs = e;
+}
+
+array_count(rhs) ::= . { rhs = -1; }
+array_count(rhs) ::= LBRACKET INTEGER(a) RBRACKET. { rhs = *(int *)a; }
+
+// this is an expected error... 
+type(rhs) ::= opt_volatile IDENTIFIER(xxx). {
+
+	// ugh, Lemon will blindly replace text within a string.
+	fprintf(stderr, "Template error: line %u: %s is not a known type.\n", 
+		TemplateLine, ((std::string *)xxx)->c_str());
+
+	rhs = 'i';
+}
+
+type(rhs) ::= opt_volatile typecode(a). { rhs = a; }
+
+opt_volatile ::= .
+opt_volatile ::= VOLATILE.
+
+typecode(rhs) ::= SIGNED. { rhs = 'i'; }
+typecode(rhs) ::= UNSIGNED. {rhs = 'I'; }
+
+typecode(rhs) ::= opt_signed CHAR. { rhs = 'c'; }
+typecode(rhs) ::= UNSIGNED CHAR. { rhs = 'C'; }
+
+typecode(rhs) ::= opt_signed SHORT. { rhs = 's'; }
+typecode(rhs) ::= UNSIGNED SHORT. { rhs = 'S'; }
+
+typecode(rhs) ::= opt_signed LONG opt_int. { rhs = 'l'; }
+typecode(rhs) ::= UNSIGNED LONG opt_int. { rhs = 'L'; }
+
+typecode(rhs) ::= opt_signed LONG LONG. { rhs = 'q'; }
+typecode(rhs) ::= UNSIGNED LONG LONG. { rhs = 'Q'; }
+
+typecode(rhs) ::= TYPECODE(a). { rhs = *(int *)a; }
+
+/* pointers are not fully supported yet */
+typecode(rhs) ::= VOID STAR. { rhs = kPtr; }
+
+opt_signed ::= .
+opt_signed ::= SIGNED.
+
+opt_int ::= .
+opt_int ::= INT.
+
+
+opt_star(rhs) ::= . { rhs = 0; }
+opt_star(rhs) ::= STAR. { rhs = 1; }
+
