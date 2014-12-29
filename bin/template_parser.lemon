@@ -57,7 +57,7 @@ struct_field(rhs) ::= opt_volatile TEMPLATE(a) opt_star(star) IDENTIFIER(b) arra
 	FieldEntry *e = (FieldEntry *)calloc(sizeof(FieldEntry), 1);
 
 	e->name = (std::string *)b;
-	e->type = star ? kStruct : kStructPtr;
+	e->type = star ? kStructPtr : kStruct;
 	e->tmpl = (Template)a;
 	e->count = c;
 

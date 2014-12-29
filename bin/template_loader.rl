@@ -139,7 +139,7 @@ void TemplateParse(void *yyp, int yymajor, const std::string *yyminor, Debug::Te
 		};
 
 		# identifier ... but also need to check if it's a type.
-		[A-Za-z_][A-Za-z0-9_]+ {
+		[A-Za-z_][A-Za-z0-9_]* {
 
 			// intern the string.
 
@@ -236,7 +236,7 @@ bool LoadTemplateFile(const std::string &filename, std::unordered_map<std::strin
 
 		if (cs == lexer_error)
 		{
-			fprintf(stderr, "illegal character: `%c'\n", *p);
+			fprintf(stderr, "Template error: line %d - illegal character: `%c'\n", info.LineNumber, *p);
 			TemplateParseFree(parser, free);
 			munmap(buffer, st.st_size);
 			return false;

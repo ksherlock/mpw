@@ -52,56 +52,7 @@ namespace Debug {
 		return rv;
 	}
 
-	enum {
-		kDisplayNative = 0,
-		kDisplayStringPtr, // p-string 
-		kDisplayCStringPtr, // c-string
-		kDisplayOSType, // four-cc
-		kDisplayBoolean, // unsigned char, display true/false
-		kDisplayOSErr,
-	};
 
-
-#if 0
-
-	struct Type {
-		enum {
-			kSimpleType,
-			kStructType,
-			kPointerType,
-		};
-		uint16_t tag;
-		uint16_t size; 
-	};
-
-	// handles [signed/unsigned] type, type[], *type, and *type[]
-	struct SimpleType : public Type {
-		unsigned rank:16; // int == int[1]
-		unsigned display:14; // 
-
-		unsigned sign:1;
-		unsigned pointer:1;
-
-		SimpleType() {
-			tag = kSimpleType;
-			size = 0;
-			rank = 0;
-			display = 0;
-			sign = 0;
-			pointer = 0;
-		}
-	};
-
-	struct PointerType: public Type {
-		Type *type;
-	};
-
-	struct StructType : public Type {
-		unsigned total_size;
-		FieldEntry *firstField;
-	};
-
-#endif
 
 	struct FieldEntry;
 	typedef FieldEntry *Template;

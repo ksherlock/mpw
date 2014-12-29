@@ -135,6 +135,7 @@ namespace Debug {
 				return;
 
 			case kBoolean:
+				fputc(' ', stdout);
 				fputs(value ? "true" : "false", stdout);
 				return;
 
@@ -153,21 +154,19 @@ namespace Debug {
 	{
 		unsigned offset = 0;
 
+		if (!e) return;
+
 		for( ; e ; e = e->next)
 		{
 
+			bool nonl = false;
 			unsigned count = e->count;
 			unsigned type = e->type;
 			unsigned s = (type & 0x0f00) >> 8;
 
-			if (!s) {
-				// struct or pointer...
-				if (e->type & 0x8000) s = 4;
-				else if (e->tmpl) s = e->tmpl->struct_size;
-			}
-
-
-			printf("%-20s", e->name->c_str());
+			for (unsigned i = 0; i < indent; ++i) fputc('>',stdout);
+			fputs(e->name->c_str(),stdout);
+			for(unsigned i = indent + e->name->length(); i < 40; ++i) fputc(' ',stdout);
 
 			// todo -- support arrays
 			// todo -- pretty print values (boolean, oserr, ostype, etc.)
@@ -208,12 +207,14 @@ namespace Debug {
 					}
 					if (type == 0) {
 						// struct ... recurse.
-
+						fputc('\n', stdout);
+						nonl = true;
+						ApplyTemplate(address + offset, e->tmpl, indent + 1);
 						break;
 					}
 			}
 
-			printf("\n");
+			if (!nonl) fputc('\n', stdout);
 			offset += CalcOneSize(e);
 
 		}
