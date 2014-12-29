@@ -49,6 +49,7 @@
 
 #include "debugger.h"
 #include "debugger_internal.h"
+#include "template.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -61,8 +62,6 @@
 
 #include <toolbox/loader.h>
 #include <toolbox/mm.h>
-
-
 
 namespace {
 
@@ -83,6 +82,8 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
+
+	std::unordered_map<std::string, Debug::Template> TemplateTable;
 
 	struct BackTraceInfo {
 		uint32_t a[8];
@@ -1254,6 +1255,9 @@ void Shell()
 	LoadTrapFile(MPW::RootDirPathForFile("Errors.text"), ErrorTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Globals.text"), GlobalTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Traps.text"), TrapTable);
+
+	LoadTemplateFile(MPW::RootDirPathForFile("Templates.text"), TemplateTable);
+
 
 
 	// load the error code to error mnemonic

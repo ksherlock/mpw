@@ -12,6 +12,7 @@
 
 #include "template_parser.h"
 #include "template.h"
+#include "intern.h"
 
 namespace {
 
@@ -39,62 +40,25 @@ namespace {
 	}
 
 
-
-	unsigned int DJBHash(const char* begin, const char *end)
-	{
-		unsigned int hash = 5381;
-		unsigned int i    = 0;
-
-		for(const char *iter = begin; iter != end; ++iter)
-		{   
-			hash = ((hash << 5) + hash) + (*iter);
-		}   
-
-		return hash;
-	}
-
-	std::unordered_multimap<unsigned, std::string *> InternTable;
-
-	const std::string *InternString(const char *begin, const char *end)
-	{
-		bool found = false;
-		unsigned hash = DJBHash(begin, end);
-		size_t length = end - begin;
-
-		auto range = InternTable.equal_range(hash);
-		auto iter = range.first;
-		auto endit = range.second;
-
-		for( ; iter != endit; ++iter)
-		{
-			// hash matches, make sure the string does.
-			const std::string *s = iter->second;
-
-			if (s->length() == length && std::memcmp(s->data(), begin, length) == 0)
-				return s;
-		}
-
-		// insert it.
-		std::string *s = new std::string(begin, end);
-		InternTable.emplace(std::make_pair(hash, s));
-		return s;
-	}
-
 }
 
-void TemplateParse(void *yyp, int yymajor, void *yyminor);
 void *TemplateParseAlloc(void *(*mallocProc)(size_t));
 void TemplateParseFree(void *p, void (*freeProc)(void*));
 
-void TemplateParse(void *yyp, int yymajor, int yyminor)
+void TemplateParse(void *yyp, int yymajor, void *yyminor, Debug::TemplateParseInfo *);
+
+
+void TemplateParse(void *yyp, int yymajor, int yyminor, Debug::TemplateParseInfo *info)
 {
-	TemplateParse(yyp, yymajor, &yyminor);
+	TemplateParse(yyp, yymajor, &yyminor, info);
 }
 
-void TemplateParse(void *yyp, int yymajor, const std::string *yyminor)
+void TemplateParse(void *yyp, int yymajor, const std::string *yyminor, Debug::TemplateParseInfo *info)
 {
-	TemplateParse(yyp, yymajor, (void *)yyminor);
+	TemplateParse(yyp, yymajor, (void *)yyminor, info);
 }
+
+#define TemplateParse(a,b,c) TemplateParse(a,b,c, &info)
 
 %%{
 	machine lexer;
@@ -103,14 +67,14 @@ void TemplateParse(void *yyp, int yymajor, const std::string *yyminor)
 	error := any* ${ fbreak; };
 
 	block_comment := |*
-		[\n\r] { TemplateLine++; };
+		[\n\r] { info.LineNumber++; };
 		'*/' { fgoto main; };
 		any ;
 	*|; 
 
 	main := |*
 
-		[\n\r] { TemplateLine++; };
+		[\n\r] { info.LineNumber++; };
 		[ \t]+;
 
 		'//' [^\r\n]* ;
@@ -139,24 +103,26 @@ void TemplateParse(void *yyp, int yymajor, const std::string *yyminor)
 		'signed' { TemplateParse(parser, tkSIGNED, 0); };
 		'unsigned' { TemplateParse(parser, tkUNSIGNED, 0); };
 
-		'int64_t' { TemplateParse(parser, tkTYPECODE, 'q'); };
-		'uint64_t' { TemplateParse(parser, tkTYPECODE, 'Q'); };
+		'int64_t' { TemplateParse(parser, tkTYPECODE, kSInt64); };
+		'uint64_t' { TemplateParse(parser, tkTYPECODE, kUInt64); };
 
-		'int32_t' { TemplateParse(parser, tkTYPECODE, 'l'); };
-		'uint32_t' { TemplateParse(parser, tkTYPECODE, 'L'); };
+		'int32_t' { TemplateParse(parser, tkTYPECODE, kSInt32); };
+		'uint32_t' { TemplateParse(parser, tkTYPECODE, kUInt32); };
 
-		'int16_t' { TemplateParse(parser, tkTYPECODE, 's'); };
-		'uint16_t' { TemplateParse(parser, tkTYPECODE, 'S'); };
+		'int16_t' { TemplateParse(parser, tkTYPECODE, kSInt16); };
+		'uint16_t' { TemplateParse(parser, tkTYPECODE, kUInt16); };
 
-		'int8_t' { TemplateParse(parser, tkTYPECODE, 'c'); };
-		'uint8_t' { TemplateParse(parser, tkTYPECODE, 'C'); };
+		'int8_t' { TemplateParse(parser, tkTYPECODE, kSInt8); };
+		'uint8_t' { TemplateParse(parser, tkTYPECODE, kUInt8); };
 
 
-		'StringPtr' { TemplateParse(parser, tkTYPECODE, kStringPtr); };
+		'StringPtr' { TemplateParse(parser, tkTYPECODE, kPStringPtr); };
 		'CStringPtr' { TemplateParse(parser, tkTYPECODE, kCStringPtr); };
-		'Ptr' { TemplateParse(parser, tkTYPECODE, kPtr); };
+		'Ptr' { TemplateParse(parser, tkTYPECODE, kVoidPtr); };
 		'OSType' { TemplateParse(parser, tkTYPECODE, kOSType); };
+		'OSErr' { TemplateParse(parser, tkTYPECODE, kOSErr); };
 		'Boolean' { TemplateParse(parser, tkTYPECODE, kBoolean); };
+		'Handle' { TemplateParse(parser, tkTYPECODE, kHandle); };
 
 
 		# numbers.  negative numbers are not allowed.
@@ -177,16 +143,26 @@ void TemplateParse(void *yyp, int yymajor, const std::string *yyminor)
 
 			// intern the string.
 
-			const std::string *name = InternString(ts, te);
+			const std::string *name = Intern::String(ts, te);
+			bool ok = false;
 
-			auto iter = Templates.find(*name);
-			if (iter != Templates.end())
-			{
-				unsigned type = iter->second->type;
-				if (type) TemplateParse(parser, tkTYPECODE, type);
-				else TemplateParse(parser, tkTEMPLATE, iter->second);
+			if (!ok) {
+				auto iter = Types.find(*name);
+				if (iter != Types.end())
+				{
+					TemplateParse(parser, tkTYPECODE, iter->second);
+					ok = true;
+				}
 			}
-			else
+			if (!ok) {
+				auto iter = Templates.find(*name);
+				if (iter != Templates.end())
+				{
+					TemplateParse(parser, tkTEMPLATE, iter->second);
+					ok = true;
+				}
+			}
+			if (!ok)
 			{
 				TemplateParse(parser, tkIDENTIFIER, name);
 			}
@@ -198,18 +174,108 @@ void TemplateParse(void *yyp, int yymajor, const std::string *yyminor)
 
 namespace Debug {
 
-std::unordered_map<std::string, Template *> Templates;
 
-void CreateTypedef(const std::string *name, int type)
+void CreateTypedef(const std::string *name, int type, TemplateParseInfo *info)
 {
+	// check if it's an existing typedef...
+
+	auto &Templates = *info->templates;
+	auto &Types = *info->types;
+
+
+	auto iter = Types.find(*name);
+	if (iter != Types.end())
+	{
+		if (iter->second == type) return; // ok, just a duplicate.
+		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			info->LineNumber, name->c_str());
+
+		return;
+	}
+
+	if (Templates.find(*name) != Templates.end())
+	{
+		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			info->LineNumber, name->c_str());
+
+		return;	
+	}
+
+	Types.emplace(std::make_pair(*name, type)); 
 }
-void CreateTemplate(const std::string *name, FieldEntry *firstField)
+
+unsigned CalcSize(FieldEntry *e)
 {
+	unsigned size = 0;
+
+	while (e)
+	{
+		unsigned s = (e->type & 0x0f00) >> 8;
+
+		if (!s) {
+			// struct or pointer...
+			if (e->type & 0x8000) s = 4;
+			else if (e->tmpl) s = e->tmpl->struct_size;
+		}
+
+		if (e->count != 0) s *= e->count;
+
+		size += s;
+		e = e->next;
+	}
+	return size;
 }
 
-int TemplateLine;
+FieldEntry *Reverse(FieldEntry *e)
+{
+	if (!e) return e;
 
-bool ParseTemplates(const std::string &filename)
+	// reverse the order...
+	FieldEntry *prev;
+	FieldEntry *next;
+
+	prev = nullptr;
+	for(;;)
+	{
+		next = e->next;
+		e->next = prev;
+
+		prev = e;
+		e = next;
+		if (!e) return prev;
+	}
+}
+
+
+void CreateTemplate(const std::string *name, FieldEntry *firstField, TemplateParseInfo *info)
+{
+	auto &Templates = *info->templates;
+	auto &Types = *info->types;
+
+	// check if it exists...
+
+	if (Templates.find(*name) != Templates.end())
+	{
+		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			info->LineNumber, name->c_str());
+		return;	
+	}
+
+	if (Types.find(*name) != Types.end())
+	{
+		fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			info->LineNumber, name->c_str());
+		return;	
+	}
+
+	firstField = Reverse(firstField);
+	firstField->struct_size = CalcSize(firstField);
+
+	Templates.emplace(std::make_pair(*name, firstField));
+}
+
+
+bool LoadTemplateFile(const std::string &filename, std::unordered_map<std::string, Template> &Templates)
 {
 	%% write data;
 
@@ -218,6 +284,17 @@ bool ParseTemplates(const std::string &filename)
 	int fd;
 	struct stat st;
 	char *buffer;
+
+	std::unordered_map<std::string, unsigned> Types;
+	TemplateParseInfo info;
+
+	info.LineNumber = 1;
+	info.templates = &Templates;
+	info.types = &Types;
+
+	// simple types are handled via the lexer so no need to populate them here.
+
+
 
 	if (stat(filename.c_str(), &st) < 0) return false;
 	if (st.st_size == 0) return false;
@@ -240,9 +317,6 @@ bool ParseTemplates(const std::string &filename)
 
 
 	parser = TemplateParseAlloc(malloc);
-
-
-	TemplateLine = 1;
 
 	const char *p = buffer;
 	const char *pe = buffer + st.st_size;
@@ -272,7 +346,8 @@ bool ParseTemplates(const std::string &filename)
 		}
 		if (p == pe)
 		{
-			TemplateParse(parser, tkEOF, 0);
+			// ?
+			//TemplateParse(parser, tkEOF, 0);
 			break;
 		}
 	}
