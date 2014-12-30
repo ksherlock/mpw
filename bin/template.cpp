@@ -1,7 +1,13 @@
 #include "template.h"
 #include "debugger.h"
+#include "debugger_internal.h"
+
+#include <toolbox/toolbox.h>
+
 
 namespace Debug {
+
+	using namespace Debug::Internal;
 
 	namespace {
 
@@ -121,9 +127,17 @@ namespace Debug {
 		{
 			case kOSType:
 				// print 4-cc code
+				fputc(' ', stdout);
+				fputs(ToolBox::TypeToString(value).c_str(), stdout);
 				return;
+
 			case kOSErr:
 				// print value + short name
+				{
+					printf(" %6d", (int16_t)value);
+					auto iter = ErrorTableInvert.find(value);
+					if (iter != ErrorTableInvert.end()) printf(" %s", iter->second.c_str());
+				}
 				return;
 
 			case kPStringPtr:
