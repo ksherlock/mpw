@@ -480,6 +480,34 @@ namespace {
 
 namespace Debug {
 
+std::string ReadPString(uint32_t address)
+{
+	std::string tmp;
+	unsigned size = ReadByte(address++);
+
+	tmp.reserve(size);
+	for (unsigned i = 0; i < size; ++i)
+		tmp.push_back(ReadByte(address++));
+
+
+	return tmp;
+}
+
+std::string ReadCString(uint32_t address)
+{
+	std::string tmp;
+
+	for (;;)
+	{
+		char c = ReadByte(address++);
+		if (!c) break;
+		tmp.push_back(c);
+	}
+
+	return tmp;
+}
+
+
 uint32_t ReadLong(uint32_t address)
 {
 	uint32_t tmp = 0;

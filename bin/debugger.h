@@ -110,6 +110,9 @@ uint32_t ReadLong(uint32_t);
 uint16_t ReadWord(uint32_t);
 uint8_t ReadByte(uint32_t);
 
+std::string ReadPString(uint32_t);
+std::string ReadCString(uint32_t);
+
 void Print(uint32_t value);
 void PrintRegisters();
 

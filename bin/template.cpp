@@ -119,7 +119,18 @@ namespace Debug {
 		Templates.emplace(std::make_pair(*name, firstField));
 	}
 
+	void CleanupString(std::string &s)
+	{
+		// replace non-printables.
+		std::transform(s.begin(), s.end(), s.begin(), [](char c){
+			return isprint(c) ? c : '.';
+		});
 
+		if (s.size() > 40) { 
+			s.resize(37); 
+			s.append("...");
+		}	
+	}
 	void PrettyPrint(uint32_t value, unsigned type)
 	{
 
@@ -134,7 +145,7 @@ namespace Debug {
 			case kOSErr:
 				// print value + short name
 				{
-					printf(" %6d", (int16_t)value);
+					printf(" %-6d", (int16_t)value);
 					auto iter = ErrorTableInvert.find(value);
 					if (iter != ErrorTableInvert.end()) printf(" %s", iter->second.c_str());
 				}
@@ -142,10 +153,25 @@ namespace Debug {
 
 			case kPStringPtr:
 				// read the string...
+				if (!value) return;
+				// need function to check if it's a valid pointer?
+				{
+					std::string tmp = ReadPString(value);
+					CleanupString(tmp);
+					printf(" '%s'", tmp.c_str());
+				}
 				return;
 
 			case kCStringPtr:
 				// read the string...
+				if (!value) return;
+				// need function to check if it's a valid pointer?
+				{
+					std::string tmp = ReadCString(value);
+					CleanupString(tmp);
+					printf(" '%s'", tmp.c_str());
+				}
+				return;
 				return;
 
 			case kBoolean:
