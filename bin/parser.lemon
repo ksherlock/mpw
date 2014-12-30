@@ -201,6 +201,18 @@ stmt ::= expr(a) COLON expr(b) SEMI SEMIL EOL.
 }
 
 
+stmt ::= expr(a) SEMI SEMIDATE EOL.
+{
+	Debug::PrintDate(a.intValue);
+}
+
+
+stmt ::= expr(a) SEMI SEMIERROR EOL.
+{
+	Debug::PrintError(a.intValue);
+}
+
+
 stmt ::= DREGISTER(a) EQ expr(b) EOL.
 {
 	Debug::SetDRegister(a.intValue, b.intValue);

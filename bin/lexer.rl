@@ -122,6 +122,14 @@ namespace {
 			Parse(parser, tkSEMIL, 0, command);
 		};
 
+		'date'i {
+			Parse(parser, tkSEMIDATE, 0, command);
+		};
+
+		'error'i {
+			Parse(parser, tkSEMIERROR, 0, command);
+		};
+
 
 
 	*|;

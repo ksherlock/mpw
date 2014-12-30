@@ -48,6 +48,7 @@
 #include "address_map.h"
 
 #include "debugger.h"
+#include "debugger_internal.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -58,10 +59,14 @@
 
 #include <mpw/mpw.h>
 
- #include <toolbox/loader.h>
- #include <toolbox/mm.h>
+#include <toolbox/loader.h>
+#include <toolbox/mm.h>
+
+
 
 namespace {
+
+	using namespace Debug::Internal;
 
 	const uint32_t kGlobalSize = 0x10000;
 	const uint32_t kBackTraceSize = 20;
@@ -78,14 +83,6 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
-	Loader::DebugNameTable SymbolTable;
-
-	std::map<std::string, uint16_t> ErrorTable;
-	std::map<std::string, uint16_t> GlobalTable;
-	std::map<std::string, uint16_t> TrapTable;
-
-	std::unordered_multimap<uint16_t, std::string> ErrorTableInvert;
-	std::unordered_map<uint32_t, std::string> SymbolTableInvert;
 
 	struct BackTraceInfo {
 		uint32_t a[8];

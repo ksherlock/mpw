@@ -140,6 +140,10 @@ void WriteBreak(int32_t address);
 void ReadWriteBreak();
 void ReadWriteBreak(int32_t address);
 
+
+void PrintError(uint32_t value);
+void PrintDate(uint32_t value);
+
 }
 
 #endif

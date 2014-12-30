@@ -47,7 +47,9 @@ set_source_files_properties(
 )
 
 
-add_executable(mpw loader.cpp debugger.cpp address_map.cpp lexer.cpp parser.cpp loadtrap.cpp)
+add_executable(mpw loader.cpp debugger.cpp debugger_internal.cpp 
+	address_map.cpp lexer.cpp parser.cpp loadtrap.cpp commands.cpp)
+
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
 target_link_libraries(mpw MPW_LIB)
