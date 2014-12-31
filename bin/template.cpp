@@ -1,6 +1,7 @@
 #include "template.h"
 #include "debugger.h"
 #include "debugger_internal.h"
+#include "loader.h" // Flags.
 
 #include <toolbox/toolbox.h>
 
@@ -57,6 +58,12 @@ namespace Debug {
 				e = next;
 				if (!e) return prev;
 			}
+		}
+
+
+		inline bool ValidPointer(uint32_t value)
+		{
+			return value && value < Flags.memorySize;
 		}
 
 
@@ -153,8 +160,7 @@ namespace Debug {
 
 			case kPStringPtr:
 				// read the string...
-				if (!value) return;
-				// need function to check if it's a valid pointer?
+				if (ValidPointer(value))
 				{
 					std::string tmp = ReadPString(value);
 					CleanupString(tmp);
@@ -164,8 +170,7 @@ namespace Debug {
 
 			case kCStringPtr:
 				// read the string...
-				if (!value) return;
-				// need function to check if it's a valid pointer?
+				if (ValidPointer(value))
 				{
 					std::string tmp = ReadCString(value);
 					CleanupString(tmp);
