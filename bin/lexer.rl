@@ -215,6 +215,7 @@ namespace {
 			Parse(parser, tkINTEGER, value, command);
 		};
 
+		# todo -- (\['\]|[^'\]){1,4} ? 
 		['] [^']{1,4} ['] {
 			// 4 cc code
 
@@ -375,28 +376,41 @@ bool ParseLine(const char *iter, Command *command)
 	const char *te;
 	int cs, act;
 
-	for(;;)
+	%% write init;
+
+
+	%% write exec;
+
+	if (cs < lexer_first_final /* == lexer_error */)
 	{
+		putchar(' '); putchar(' '); // 2 leading spaces.
+		for (size_t i = 0, l = p - iter; i < l; ++i) putchar(' '); puts("^");
+		if (*p == 0) fprintf(stderr, "Unexpected end of line\n");
+		else fprintf(stderr, "unexpected character: `%c'\n", *p);
+		
+		ParseFree(parser, free);
+		return false;
+	}
 
-		%% write init;
-		%% write exec;
+	/*
+	if (cs == lexer_en_error)
+	{
+		ParseFree(parser, free);
+		return false;
+	}
 
-		if (cs == lexer_error)
-		{
-			fprintf(stderr, "illegal character: `%c'\n", *p);
-			ParseFree(parser, free);
-			return false;
-		}
-		if (cs == lexer_en_error)
-		{
-			ParseFree(parser, free);
-			return false;
-		}
-		if (p == pe)
-		{
-			Parse(parser, tkEOL, 0, command);
-			break;
-		}
+	if (cs < lexer_first_final)
+	{
+		fprintf(stderr, "Incomplete command\n");
+		ParseFree(parser, free);
+		return false;
+	}
+	*/
+
+	if (p == pe)
+	{
+		// always true?
+		Parse(parser, tkEOL, 0, command);
 	}
 
 	Parse(parser, 0, 0, command);

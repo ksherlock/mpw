@@ -222,6 +222,12 @@ stmt ::= expr(a) SEMI SEMIT IDENTIFIER(b) EOL.
 }
 
 
+stmt ::= expr SEMI SEMIT error EOL.
+{
+	fprintf(stderr, "usage: expression ; t TemplateName\n");
+}
+
+
 stmt ::= DREGISTER(a) EQ expr(b) EOL.
 {
 	Debug::SetDRegister(a.intValue, b.intValue);
