@@ -162,6 +162,10 @@ stmt ::= LIST expr(a) EOL.
 	Debug::List(a.intValue);
 }
 
+stmt ::= STACKCRAWL EOL.
+{
+	Debug::StackCrawl();
+}
 
 stmt ::= expr(a) SEMI SEMIH EOL.
 {
@@ -205,11 +209,12 @@ stmt ::= expr(a) SEMI SEMIDATE EOL.
 	Debug::PrintDate(a.intValue);
 }
 
-
 stmt ::= expr(a) SEMI SEMIERROR EOL.
 {
 	Debug::PrintError(a.intValue);
 }
+
+
 
 stmt ::= expr(a) SEMI SEMIT IDENTIFIER(b) EOL.
 {

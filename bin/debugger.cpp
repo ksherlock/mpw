@@ -759,7 +759,7 @@ void PrintRegisters(const BackTraceInfo &i)
 		i.a[4], i.a[5], i.a[6], i.a[7]
 	);
 
-	printf("PC: %08X CSR: %04x %s\n", i.pc, i.csr, srbits);
+	printf("PC: %08x CSR: %04x %s\n", i.pc, i.csr, srbits);
 
 }
 

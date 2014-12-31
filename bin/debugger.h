@@ -147,6 +147,8 @@ void ReadWriteBreak(int32_t address);
 void PrintError(uint32_t value);
 void PrintDate(uint32_t value);
 
+void StackCrawl(void);
+
 void ApplyTemplate(int32_t address, const std::string &name);
 
 }

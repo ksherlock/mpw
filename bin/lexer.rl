@@ -150,6 +150,7 @@ namespace {
 			fgoto ident;
 		};
 
+
 	*|;
 
 	main := |*
@@ -267,6 +268,12 @@ namespace {
 		'hd'i | 'dump'i {
 			Parse(parser, tkDUMP, 0, command);
 		};
+
+
+		'sc'i | 'stackcrawl'i {
+			Parse(parser, tkSTACKCRAWL, 0, command);
+		};
+
 
 		'h'i | 'help'i {
 			Parse(parser, tkHELP, 0, command);
