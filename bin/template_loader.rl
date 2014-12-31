@@ -228,32 +228,20 @@ bool LoadTemplateFile(const std::string &filename, std::unordered_map<std::strin
 	const char *te;
 	int cs, act;
 
-	for(;;)
+	%% write init;
+	%% write exec;
+
+	if (cs == lexer_error || cs < lexer_first_final)
 	{
-
-		%% write init;
-		%% write exec;
-
-		if (cs == lexer_error)
-		{
+		if (p == eof)
+			fprintf(stderr, "Template error: line %d - unexpected EOF\n", info.LineNumber);
+		else 
 			fprintf(stderr, "Template error: line %d - illegal character: `%c'\n", info.LineNumber, *p);
-			TemplateParseFree(parser, free);
-			munmap(buffer, st.st_size);
-			return false;
-		}
-		if (cs == lexer_en_error)
-		{
-			TemplateParseFree(parser, free);
-			munmap(buffer, st.st_size);
-			return false;
-		}
-		if (p == pe)
-		{
-			// ?
-			//TemplateParse(parser, tkEOF, 0);
-			break;
-		}
+		TemplateParseFree(parser, free);
+		munmap(buffer, st.st_size);
+		return false;
 	}
+
 
 	TemplateParse(parser, 0, 0);
 	TemplateParseFree(parser, free);
