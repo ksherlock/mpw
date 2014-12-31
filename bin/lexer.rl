@@ -381,13 +381,21 @@ bool ParseLine(const char *iter, Command *command)
 
 	%% write exec;
 
-	if (cs < lexer_first_final /* == lexer_error */)
+	if (cs == lexer_error || cs < lexer_first_final)
 	{
-		putchar(' '); putchar(' '); // 2 leading spaces.
-		for (size_t i = 0, l = p - iter; i < l; ++i) putchar(' '); puts("^");
-		if (*p == 0) fprintf(stderr, "Unexpected end of line\n");
-		else fprintf(stderr, "unexpected character: `%c'\n", *p);
-		
+		if (p == eof)
+		{
+			fprintf(stderr, "Unexpected end of line\n");
+		}
+		else
+		{
+			for (size_t i = 0, l = 2 + (p - iter); i < l; ++i) 
+				fputc(' ', stderr); 
+
+			fprintf(stderr, "^\nunexpected character: `%c'\n", *p);
+
+		}
+
 		ParseFree(parser, free);
 		return false;
 	}
