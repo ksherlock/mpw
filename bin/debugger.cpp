@@ -68,7 +68,7 @@ namespace {
 	using namespace Debug::Internal;
 
 	const uint32_t kGlobalSize = 0x10000;
-	const uint32_t kBackTraceSize = 20;
+	const uint32_t kBackTraceSize = 50;
 
 	bool sigInt = false;
 	bool memBreak = false;
