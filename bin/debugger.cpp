@@ -104,48 +104,7 @@ namespace {
 
 	std::deque<BackTraceInfo> BackTrace;
 	
-	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
-	{
-	const char *HexMap = "0123456789abcdef";
 
-	    char buffer1[16 * 3 + 1 + 1];
-	    char buffer2[16 + 1];
-	    ssize_t offset = 0;
-	    unsigned i, j;
-	    
-	    
-	    while(size > 0)
-	    {        
-	        std::memset(buffer1, ' ', sizeof(buffer1));
-	        std::memset(buffer2, ' ', sizeof(buffer2));
-	        
-	        unsigned linelen = (unsigned)std::min(size, (ssize_t)16);
-	        
-	        
-	        for (i = 0, j = 0; i < linelen; i++)
-	        {
-	            unsigned x = data[i];
-	            buffer1[j++] = HexMap[x >> 4];
-	            buffer1[j++] = HexMap[x & 0x0f];
-	            j++;
-	            if (i == 7) j++;
-	            
-	            // isascii not part of std:: and may be a macro.
-	            buffer2[i] = isascii(x) && std::isprint(x) ? x : '.';
-	            
-	        }
-	        
-	        buffer1[sizeof(buffer1)-1] = 0;
-	        buffer2[sizeof(buffer2)-1] = 0;
-	        
-	    
-	        std::printf("%06x:  %s  %s\n", address + (unsigned)offset, buffer1, buffer2);
-	        offset += 16;
-	        data += 16;
-	        size -= 16;
-	    }
-	    std::printf("\n");
-	}
 
 
 	void printMacsbug(uint32_t pc, uint32_t opcode, uint32_t *newPC = nullptr)
@@ -662,23 +621,6 @@ void Print(uint32_t data)
 }
 
 
-void Dump(uint32_t start, int size)
-{
-	// TODO -- if no address, use previous address.
-	// TODO -- support range?
-
-
-	if (size <= 0) return;
-
-	uint32_t end = start + size;
-
-	if (start >= Flags.memorySize) return;
-
-	end = std::min(end, Flags.memorySize);
-	size = end - start;
-
-	hexdump(Flags.memory + start, size, start);
-}
 
 
 
