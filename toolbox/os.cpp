@@ -264,6 +264,12 @@ namespace OS
 					return true;
 				break;
 
+			case 'n':
+				// MrC / MrCpp temp file.
+				if (ext == "n")
+					return true;
+				break;
+
 			case 'o':
 				if (ext == "o")
 					return true;
