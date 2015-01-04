@@ -1,3 +1,13 @@
+
+-------------------------
+0.7.9.a - January 4, 2014
+-------------------------
+
+* Improved MrC/pp compatibility.  MrC creates a binary temp file that was treated as text which caused problems.
+* added TempNewHandle, TempHLock, TempHUnlock, and TempDisposeHandle toolcalls
+* added ;date debugger command: expr;date will display expr as a MacOS date/time
+* added ;error debugger command: expr;error will display exrp as a MacOS error.
+
 ------------------------
 0.7.9 - December 28, 2014
 ------------------------
