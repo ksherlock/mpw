@@ -604,7 +604,7 @@ namespace RM
 		uint16_t vRefNum;
 		uint32_t dirID;
 		uint32_t fileName;
-		uint16_t permission;
+		uint8_t permission;
 
 		sp = StackFrame<12>(vRefNum, dirID, fileName, permission);
 
@@ -638,7 +638,7 @@ namespace RM
 
 		uint32_t sp;
 		uint32_t spec;
-		uint16_t permission;
+		uint8_t permission;
 
 		sp = StackFrame<6>(spec, permission);
 
