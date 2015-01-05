@@ -277,6 +277,11 @@ namespace ToolBox {
 				d0 = MM::HGetState(trap);
 				break;
 
+			case 0xa06a:
+				d0 = MM::HSetState(trap);
+				break;
+
+
 			// MoveHHi (h: Handle);
 			case 0xa064:
 				d0 = MM::MoveHHi(trap);

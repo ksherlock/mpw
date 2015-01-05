@@ -1180,7 +1180,36 @@ namespace MM
 		return flags;
 	}
 
+	uint16_t HSetState(uint16_t trap)
+	{
+		/*
+		 * on entry:
+		 * A0 Handle
+		 * D0 flags
+		 *
+		 * on exit:
+		 * D0 flag byte
+		 *
+		 */
 
+		uint32_t hh = cpuGetAReg(0);
+		uint16_t flags = cpuGetDReg(0);
+
+		Log("%04x HSetState(%08x, %04x)\n", trap, hh, flags);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+		auto &info = iter->second;
+
+		info.resource = (flags & (1 << 5));
+		info.purgeable = (flags & (1 << 6));
+		info.locked = (flags & (1 << 7));
+
+
+		return SetMemError(0);
+	}
 
 	uint16_t HPurge(uint16_t trap)
 	{

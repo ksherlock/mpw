@@ -62,6 +62,7 @@ namespace MM
 	uint32_t RecoverHandle(uint16_t);
 
 	uint16_t HGetState(uint16_t trap);
+	uint16_t HSetState(uint16_t trap);
 
 	uint16_t HLock(uint16_t trap);
 	uint16_t HUnlock(uint16_t trap);
