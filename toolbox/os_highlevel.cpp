@@ -182,6 +182,34 @@ namespace OS {
 		return 0;
 	}
 
+	uint16_t FSpOpenDF()
+	{
+		// FUNCTION FSpOpenDF (spec: FSSpec; permission: SignedByte; VAR refNum: Integer): OSErr;
+
+		uint32_t spec;
+		uint8_t permission;
+		uint32_t refNum;
+
+		StackFrame<10>(spec, permission, refNum);
+
+		int parentID = memoryReadLong(spec + 2);
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+
+		Log("     FSpOpenDF(%s, %02x, %04x)\n",  sname.c_str(), permission, refNum);
+
+		sname = OS::FSSpecManager::ExpandPath(sname, parentID);
+		if (sname.empty())
+		{
+			return MacOS::dirNFErr;
+		}
+
+		int fd = Internal::FDEntry::open(sname, permission, 0);
+		if (fd < 0) return fd;
+
+		memoryWriteWord(fd, refNum);				
+
+		return 0;
+	}
 
 	uint16_t FSpGetFInfo()
 	{
@@ -362,6 +390,9 @@ namespace OS {
 		{
 			case 0x0001:
 				d0 = FSMakeFSSpec();
+				break;
+			case 0x0002:
+				d0 = FSpOpenDF();
 				break;
 
 			case 0x0004:
