@@ -42,9 +42,9 @@ namespace {
 	 * file                -> file
 	 * :directory:file     -> directory/file
 	 * volume:directory    -> /volume/directory
+	 * :                   -> ./
 	 * ::                  -> ../
 	 * :::                 -> ../../
-	 *
 	 *
 	 * To Unix:
 	 * file                -> file
@@ -77,6 +77,12 @@ namespace {
 		};
 
 		':' {
+			/*
+			if (ts == begin) 
+				rv.append("./");
+			else
+				rv.push_back('/');
+			*/
 			if (ts != begin)
 				rv.push_back('/');
 		};
@@ -151,6 +157,8 @@ namespace ToolBox
 		// no colon - no problem.
 		if (!colon) return path;
 
+		// special case ":" -> "."
+		if (colon && path.length() == 1) return ".";
 
 		const char *p = path.c_str();
 		const char *pe = p + path.length();
