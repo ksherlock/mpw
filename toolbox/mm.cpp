@@ -1265,7 +1265,7 @@ namespace MM
 		 * A0 destination Handle
 		 * D0 Result code
 		 *
-		 */	
+		 */
 
 		uint32_t srcHandle = cpuGetAReg(0);
 
@@ -1303,7 +1303,7 @@ namespace MM
 		 * A0 destination pointer
 		 * D0 Result code
 		 *
-		 */	
+		 */
 
 		uint32_t mcptr = cpuGetAReg(0);
 		uint32_t size = cpuGetDReg(0);
@@ -1322,6 +1322,53 @@ namespace MM
 		return d0; // SetMemError called by Native::NewHandle.
 	}
 
+	uint16_t PtrAndHand(uint16_t trap)
+	{
+		// FUNCTION PtrAndHand (pntr: Ptr; hndl: Handle; size: LongInt): OSErr;
+
+		/* 
+		 * on entry:
+		 * A0 source Pointer
+		 * A1 dest Handle
+		 * D0 number of bytes to concatenate
+		 *
+		 * on exit:
+		 * A0 destination Handle
+		 * D0 Result code
+		 *
+		 */
+
+		uint32_t ptr = cpuGetAReg(0);
+		uint32_t handle = cpuGetAReg(1);
+		uint32_t size = cpuGetDReg(0);
+
+		Log("%04x PtrAndHand(%08x, %08x, %08x)\n", trap, ptr, handle, size);
+
+		cpuSetAReg(0, handle);
+
+		uint32_t oldSize = 0;
+		uint32_t d0;
+
+		d0 = Native::GetHandleSize(handle, oldSize);
+		if (d0) return d0;
+
+		if ((uint64_t)oldSize + (uint64_t)size > UINT32_MAX)
+			return SetMemError(MacOS::memFullErr);
+
+
+		d0 = Native::SetHandleSize(handle, oldSize + size);
+		if (d0) return d0;
+
+		auto iter = HandleMap.find(handle);
+		if (iter == HandleMap.end())
+			return SetMemError(MacOS::memWZErr);
+
+		auto const info = iter->second; 
+
+		std::memmove(memoryPointer(info.address + oldSize), memoryPointer(ptr), size);
+
+		return SetMemError(0);
+	}
 
 
 
