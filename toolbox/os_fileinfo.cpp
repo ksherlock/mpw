@@ -52,6 +52,7 @@
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
+#include "fs_spec.h"
 
 
 using ToolBox::Log;
@@ -115,6 +116,8 @@ namespace OS {
 			_ioFlRPyLen = 68,
 			_ioFlCrDat = 72,
 			_ioFlMdDat = 76,
+
+			_ioDirID = 48,
 		};
 
 
@@ -145,10 +148,14 @@ namespace OS {
 			}
 
 			sname = ToolBox::ReadPString(ioNamePtr, true);
+			// a20c HGetFileInfo uses a the dir id
+			if (trap == 0xa20c)
+			{
+				uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+				sname = FSSpecManager::ExpandPath(sname, ioDirID);
+			}
 
 			Log("     GetFileInfo(%s)\n", sname.c_str());
-
-			// todo -- how are absolute, relative, etc paths handled...
 
 
 			struct stat st;
@@ -237,6 +244,8 @@ namespace OS {
 			_ioFlRPyLen = 68,
 			_ioFlCrDat = 72,
 			_ioFlMdDat = 76,
+
+			_ioDirID = 48,
 		};
 
 
@@ -254,13 +263,6 @@ namespace OS {
 		//uint8_t ioFVersNum = memoryReadByte(parm + _ioFVersNum);
 		//int16_t ioFDirIndex = memoryReadWord(parm + _ioFDirIndex);
 
-		// + 32 = finder data - 16 bytes.
-
-		//uint32_t ioFlCrDat = memoryReadLong(parm + 72);
-		//uint32_t ioFlMdDat = memoryReadLong(parm + 76);
-
-		// currently, only sets finder info.
-
 		if (!ioNamePtr)
 		{
 			d0 = MacOS::bdNamErr;
@@ -269,7 +271,18 @@ namespace OS {
 		}
 
 		sname = ToolBox::ReadPString(ioNamePtr, true);
+
+		// a20d HSetFileInfo uses a the dir id
+		if (trap == 0xa20d)
+		{
+			uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+			sname = FSSpecManager::ExpandPath(sname, ioDirID);
+		}
+
 		Log("     SetFileInfo(%s)\n", sname.c_str());
+
+
+
 
 		// check if the file actually exists
 		{

@@ -108,6 +108,8 @@ namespace
 			case 0x4b4f4445: // 'KODE' (Link 32-bit Startup)
 			case 0x45525253: // 'ERRS' (PPCLink)
 			case 0x63667267: // 'cfrg' (PPCLink)
+			case 0x44415441: // 'DATA' (MetroWorks tools)
+			case 0x54455854: // 'TEXT' (MetroWorks tools)
 				return true;
 			default:
 				return false;
@@ -602,7 +604,7 @@ namespace RM
 		uint16_t vRefNum;
 		uint32_t dirID;
 		uint32_t fileName;
-		uint16_t permission;
+		uint8_t permission;
 
 		sp = StackFrame<12>(vRefNum, dirID, fileName, permission);
 
@@ -636,7 +638,7 @@ namespace RM
 
 		uint32_t sp;
 		uint32_t spec;
-		uint16_t permission;
+		uint8_t permission;
 
 		sp = StackFrame<6>(spec, permission);
 

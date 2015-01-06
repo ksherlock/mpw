@@ -26,6 +26,9 @@ template<int Bytes, int Offset, typename... Args>
 uint32_t StackFrame__(uint32_t sp, uint32_t &x, Args&&... args);
 template<int Bytes, int Offset, typename... Args>
 uint32_t StackFrame__(uint32_t sp, uint16_t &x, Args&&... args);
+template<int Bytes, int Offset, typename... Args>
+uint32_t StackFrame__(uint32_t sp, uint8_t &x, Args&&... args);
+
 template<int Bytes, int Offset>
 uint32_t StackFrame__(uint32_t sp);
 
@@ -51,6 +54,16 @@ template<int Bytes, int Offset, typename... Args>
 uint32_t StackFrame__(uint32_t sp, uint16_t &x, Args&&... args)
 {
 	x = memoryReadWord(sp + Offset - 2);
+
+	return StackFrame__<Bytes, Offset - 2>(sp, std::forward<Args>(args)...);
+}
+
+
+template<int Bytes, int Offset, typename... Args>
+uint32_t StackFrame__(uint32_t sp, uint8_t &x, Args&&... args)
+{
+	// byte pushes as 2 bytes with 1 garbage byte
+	x = memoryReadByte(sp + Offset - 2);
 
 	return StackFrame__<Bytes, Offset - 2>(sp, std::forward<Args>(args)...);
 }

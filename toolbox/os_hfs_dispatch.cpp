@@ -52,7 +52,8 @@
 #include "os_internal.h"
 #include "toolbox.h"
 #include "stackframe.h"
-
+#include "fs_spec.h"
+ 
 using ToolBox::Log;
 
 using MacOS::macos_error_from_errno;
@@ -187,8 +188,15 @@ namespace OS {
 			}
 
 			sname = ToolBox::ReadPString(ioNamePtr, true);
+			{
+				uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+				sname = FSSpecManager::ExpandPath(sname, ioDirID);
+			}
 
 			Log("     PBGetCatInfo(%s)\n", sname.c_str());
+
+
+
 
 			struct stat st;
 
@@ -341,6 +349,10 @@ namespace OS {
 		}
 
 		std::string sname = ToolBox::ReadPString(ioNamePtr, true);
+		{
+			uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+			sname = FSSpecManager::ExpandPath(sname, ioDirID);
+		}
 
 		Log("     PBSetCatInfo(%s)\n", sname.c_str());
 

@@ -119,6 +119,10 @@ namespace ToolBox {
 				d0 = OS::Write(trap);
 				break;
 
+			case 0xa207:
+				d0 = OS::HGetVInfo(trap);
+				break;
+
 			case 0xa008: // Create
 			case 0xa208: // HCreate
 				d0 = OS::Create(trap);
@@ -277,6 +281,11 @@ namespace ToolBox {
 				d0 = MM::HGetState(trap);
 				break;
 
+			case 0xa06a:
+				d0 = MM::HSetState(trap);
+				break;
+
+
 			// MoveHHi (h: Handle);
 			case 0xa064:
 				d0 = MM::MoveHHi(trap);
@@ -289,7 +298,10 @@ namespace ToolBox {
 			case 0xa9e3:
 				d0 = MM::PtrToHand(trap);
 				break;
-				
+			case 0xa9ef:
+				d0 = MM::PtrAndHand(trap);
+				break;
+
 			case 0xa11a:
 				d0 = MM::GetZone(trap);
 				break;
