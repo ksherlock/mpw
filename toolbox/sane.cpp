@@ -48,8 +48,55 @@ using std::to_string;
 
 
 	namespace {
+		// default environment is:
+		// rounding direction: to nearest
+		// rounding precision: extended
+		// exception flags: clear
+		// halts: clear
 
-		uint16_t Environment = 0;
+		/*
+		 * Environment: x d d e e e e e x p p h h h h h
+		 * x   - reserved
+		 * d d - rounding direction
+		 * e   - exception flags
+		 * p   - rounding precision
+		 * h   - halt flags
+		 */
+
+		enum {
+
+			kExceptionInexact = 1 << 12,
+			kExceptionDivideByZero = 1 << 11,
+			kExceptionOverflow = 1 << 10,
+			kExceptionUnderflow = 1 << 9,
+			kExceptionInvalid = 1 << 8,
+
+			kHaltInexact = 1 << 4,
+			kHaltDivideByZero = 1 << 3,
+			kHaltOverflow = 1 << 2,
+			kHaltUnderflow = 1 << 1,
+			kHaltInvalid = 1 << 0,
+
+			kRoundingDirectionMask = 0x6000,
+			kRoundingDirectionToNearest = 0x0000,
+			kRoundingDirectionUpward = 0x2000,
+			kRoundingDirectionDownward = 0x4000,
+			kRoundingDirectionTowardZero = 0x6000,
+
+			kRoundingPrecisionMask = 0x0060,
+			kRoundingPrecisionExtended = 0x0000,
+			kRoundingPrecisionDouble = 0x0020,
+			kRoundingPrecisionSingle = 0x0040,
+			kRoundingPrecisionUndefined = 0x0060,
+		};
+
+
+		const uint16_t DefaultEnvironment = 0;
+
+		uint16_t Environment = DefaultEnvironment;
+
+
+
 	}
 
 	// long double is an 80-bit extended with an extra 48-bits of 0 padding.
@@ -672,7 +719,112 @@ using std::to_string;
 		return 0;
 	}
 
+
+	inline int classify(float x) { return fpclassify(x); }
+	inline int classify(double x) { return fpclassify(x); }
+	inline int classify(extended x) { return fpclassify(x); }
+	inline int classify(complex c) { 
+		if (c.isnan()) return FP_NAN;
+		if ((uint64_t)c == (uint64_t)0) return FP_ZERO;
+		return FP_NORMAL;
+	}
+
+	inline int sign(float x) { return signbit(x); }
+	inline int sign(double x) { return signbit(x); }
+	inline int sign(extended x) { return signbit(x); }
+	inline int sign(complex c) {
+		if (c.isnan()) return 0;
+		return ((int64_t)c < (int64_t)0) ? 1 : 0; 
+	}
+
+	template <class SrcType>
+	uint16_t fclassify(const char *name)
+	{
+		/*
+		 * The classify operations set the sign of the destination to 
+		 * the sign of the source and the value of the destination 
+		 * according to the class of the source, as shown in Table E-18.
+		 * The destination is an integer variable. (pg 273)
+		 *
+		 *
+		 * Table E-18
+		 * Class Information
+		 * ----------------------
+		 * Class of SRC     Value
+		 * ----------------------
+		 * Signaling NaN    1
+		 * Quiet NaN        2
+		 * Infinity         3
+		 * Zero             4
+		 * Normalized       5
+		 * Denormalized     6
+		 *
+		 * Table E-19
+		 * ---------------------------
+		 * Sign of SRC     Sign of DST
+		 * ---------------------------
+		 * Positive        Positive
+		 * Negative        Negative
+		 */
+
+		// N.B. - Sane.h uses 0-5, but how can you have integer -0?
+		uint16_t op;
+		uint32_t dest;
+		uint32_t src;
+
+		StackFrame<10>(src, dest, op);
+		Log("     %s(%08x, %08x, %04x)\n", name, src, dest, op);
+
+		SrcType s = readnum<SrcType>(src);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = to_string(s);
+			Log("     %s\n", tmp1.c_str());
+		}
+
+
+		int16_t klass = 0;
+
+		switch(classify(s))
+		{
+			case FP_INFINITE:
+				klass = 3;
+				break;
+			case FP_NAN:
+				// todo -- signaling NaN is indicated
+				// by the MSB of the fraction field f
+				// 1 is quiet, 0 is signaling.
+				klass = 1;
+				break;
+			case FP_NORMAL:
+				klass = 5;
+				break;
+			case FP_SUBNORMAL:
+				klass = 6;
+				break;
+			case FP_ZERO:
+				klass = 4;
+				break;
+
+		}
+		if (sign(s)) klass = -klass;
+
+		if (dest) {
+			memoryWriteWord(klass, dest);
+		}
+		return 0;
+	}
+
 	#pragma mark - environment
+
+	/*
+	 * environment is a uint16_t *.
+	 * void setenvironment(environment e); 
+	 * void getenvironment(environment *e);
+	 * void procentry(environment *e); 
+	 * void procexit(environment e);
+	 */
 
 	uint16_t fgetenv(void)
 	{
@@ -686,7 +838,37 @@ using std::to_string;
 		return 0;
 	}
 
+
 	uint16_t fsetenv(void)
+	{
+		uint32_t address;
+		uint16_t value;
+		uint16_t op;
+
+		StackFrame<6>(address, op);
+		value = address ? memoryReadWord(address) : DefaultEnvironment;
+		Log("     FSETENV(%08x (%04x))\n", address, value);
+
+		Environment = value;
+		return 0;
+	}
+
+	uint16_t fprocentry(void)
+	{
+		uint32_t address;
+		uint16_t op;
+
+		StackFrame<6>(address, op);
+
+		Log("     FPROCENTRY(%08x)\n", address);
+
+		if (address) memoryWriteWord(Environment, address);
+		Environment = DefaultEnvironment;
+
+		return 0;
+	}
+
+	uint16_t fprocexit(void)
 	{
 		uint32_t address;
 		uint16_t value;
@@ -694,14 +876,13 @@ using std::to_string;
 
 
 		StackFrame<6>(address, op);
-		value = memoryReadWord(address);
-		Log("     FSETENV(%08x (%04x))\n", address, value);
+		value = address ? memoryReadWord(address) : DefaultEnvironment;
+		Log("     FPROCEXIT(%08x (%04x))\n", address, value);
 
+		// todo -- also should signal exceptions/halts at this point.
 		Environment = value;
 		return 0;
 	}
-
-
 
 	extern "C" void cpuSetFlagsAbs(UWO f);
 	uint16_t fp68k(uint16_t trap)
@@ -785,12 +966,19 @@ using std::to_string;
 			case 0x280e: return fconvert<int32_t, extended>("FL2X");
 
 
+			case 0x001c: return fclassify<extended>("FCLASSX");
+			case 0x081c: return fclassify<double>("FCLASSD");
+			case 0x101c: return fclassify<float>("FCLASSS");
+			case 0x301c: return fclassify<complex>("FCLASSC");
+
 			case 0x0009:
 				// fdec2x
 				return fdecimal<extended>("FDEC2X");
 				break;
 
 
+			case 0x0017: return fprocentry();
+			case 0x0019: return fprocexit();
 			case 0x0003: return fgetenv();
 			case 0x0001: return fsetenv();
 		}
