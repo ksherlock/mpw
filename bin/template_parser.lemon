@@ -1,0 +1,127 @@
+%token_prefix tk
+%name TemplateParse
+%extra_argument { Debug::TemplateParseInfo *info }
+
+
+%include {
+	
+	#include <string>
+	#include <stdlib.h>
+
+	#include "template.h"
+
+	using namespace Debug;
+}
+
+%type struct_fields  { FieldEntry * }
+%type struct_field  { FieldEntry * }
+
+start ::= templates.
+
+templates ::= templates struct.
+templates ::= templates typedef.
+templates ::= .
+
+// typedeffing arrays or pointers is not allowed.
+
+typedef ::= TYPEDEF type(a) IDENTIFIER(b). {
+	CreateTypedef((std::string *)b, a, info);
+}
+
+struct ::= STRUCT IDENTIFIER(a) LBRACE struct_fields(b) RBRACE SEMI.
+{
+	CreateTemplate((std::string *)a, b, info);
+}
+
+struct_fields(rhs) ::= struct_fields(a) struct_field(b). {
+	// reverse order?
+	b->next = a;
+	rhs = b;
+}
+
+struct_fields(rhs) ::= struct_field(a). {
+	rhs = a;
+}
+
+struct_field(rhs) ::= type(a) IDENTIFIER(b) array_count(c) SEMI.
+{
+	FieldEntry *e = (FieldEntry *)calloc(sizeof(FieldEntry), 1);
+
+	e->name = (std::string *)b;
+	e->type = a;
+	e->count = c;
+	rhs = e;
+}
+
+struct_field(rhs) ::= opt_volatile TEMPLATE(a) opt_star(star) IDENTIFIER(b) array_count(c) SEMI. {
+	FieldEntry *e = (FieldEntry *)calloc(sizeof(FieldEntry), 1);
+
+	e->name = (std::string *)b;
+	e->type = star ? kStructPtr : kStruct;
+	e->tmpl = (Template)a;
+	e->count = c;
+
+	rhs = e;
+}
+
+%type array_count { int }
+array_count(rhs) ::= . { rhs = 0; }
+array_count(rhs) ::= LBRACKET INTEGER(a) RBRACKET. { 
+	int i = (int)(ptrdiff_t)a;
+	if (i == 0) {
+		fprintf(stderr, "Template error: line %u: 0-sized arrays are not allowed.\n", 
+			info->LineNumber);
+		i = 1;
+	}
+	rhs = i; 
+}
+
+%type type { int }
+type(rhs) ::= opt_volatile typecode(a). { rhs = a; }
+
+// this is an expected error... 
+type(rhs) ::= opt_volatile IDENTIFIER(xxx). {
+
+	// ugh, Lemon will blindly replace text within a string.
+	fprintf(stderr, "Template error: line %u: %s is not a known type.\n", 
+		info->LineNumber, ((std::string *)xxx)->c_str());
+
+	rhs = 'i';
+}
+
+
+opt_volatile ::= .
+opt_volatile ::= VOLATILE.
+
+
+%type typecode { int }
+typecode(rhs) ::= SIGNED. { rhs = kSInt32; }
+typecode(rhs) ::= UNSIGNED. {rhs = kUInt32; }
+
+typecode(rhs) ::= opt_signed CHAR. { rhs = kSInt8; }
+typecode(rhs) ::= UNSIGNED CHAR. { rhs = kUInt8; }
+
+typecode(rhs) ::= opt_signed SHORT. { rhs = kSInt16; }
+typecode(rhs) ::= UNSIGNED SHORT. { rhs = kUInt16; }
+
+typecode(rhs) ::= opt_signed LONG opt_int. { rhs = kSInt32; }
+typecode(rhs) ::= UNSIGNED LONG opt_int. { rhs = kUInt32; }
+
+typecode(rhs) ::= opt_signed LONG LONG. { rhs = kSInt64; }
+typecode(rhs) ::= UNSIGNED LONG LONG. { rhs = kUInt64; }
+
+typecode(rhs) ::= TYPECODE(a). { rhs = (int)(ptrdiff_t)a; }
+
+/* pointers are not fully supported yet */
+typecode(rhs) ::= VOID STAR. { rhs = kVoidPtr; }
+
+opt_signed ::= .
+opt_signed ::= SIGNED.
+
+opt_int ::= .
+opt_int ::= INT.
+
+%type opt_star { int }
+opt_star(rhs) ::= . { rhs = 0; }
+opt_star(rhs) ::= STAR. { rhs = 1; }
+

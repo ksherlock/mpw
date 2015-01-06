@@ -49,6 +49,7 @@
 
 #include "debugger.h"
 #include "debugger_internal.h"
+#include "template.h"
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -62,14 +63,12 @@
 #include <toolbox/loader.h>
 #include <toolbox/mm.h>
 
-
-
 namespace {
 
 	using namespace Debug::Internal;
 
 	const uint32_t kGlobalSize = 0x10000;
-	const uint32_t kBackTraceSize = 20;
+	const uint32_t kBackTraceSize = 50;
 
 	bool sigInt = false;
 	bool memBreak = false;
@@ -83,6 +82,8 @@ namespace {
 	AddressMap wbrkMap; // write breaks.
 	ToolMap tbrkMap; // tool breaks.
 
+
+	std::unordered_map<std::string, Debug::Template> TemplateTable;
 
 	struct BackTraceInfo {
 		uint32_t a[8];
@@ -103,48 +104,7 @@ namespace {
 
 	std::deque<BackTraceInfo> BackTrace;
 	
-	void hexdump(const uint8_t *data, ssize_t size, uint32_t address = 0)
-	{
-	const char *HexMap = "0123456789abcdef";
 
-	    char buffer1[16 * 3 + 1 + 1];
-	    char buffer2[16 + 1];
-	    ssize_t offset = 0;
-	    unsigned i, j;
-	    
-	    
-	    while(size > 0)
-	    {        
-	        std::memset(buffer1, ' ', sizeof(buffer1));
-	        std::memset(buffer2, ' ', sizeof(buffer2));
-	        
-	        unsigned linelen = (unsigned)std::min(size, (ssize_t)16);
-	        
-	        
-	        for (i = 0, j = 0; i < linelen; i++)
-	        {
-	            unsigned x = data[i];
-	            buffer1[j++] = HexMap[x >> 4];
-	            buffer1[j++] = HexMap[x & 0x0f];
-	            j++;
-	            if (i == 7) j++;
-	            
-	            // isascii not part of std:: and may be a macro.
-	            buffer2[i] = isascii(x) && std::isprint(x) ? x : '.';
-	            
-	        }
-	        
-	        buffer1[sizeof(buffer1)-1] = 0;
-	        buffer2[sizeof(buffer2)-1] = 0;
-	        
-	    
-	        std::printf("%06x:  %s  %s\n", address + (unsigned)offset, buffer1, buffer2);
-	        offset += 16;
-	        data += 16;
-	        size -= 16;
-	    }
-	    std::printf("\n");
-	}
 
 
 	void printMacsbug(uint32_t pc, uint32_t opcode, uint32_t *newPC = nullptr)
@@ -479,6 +439,34 @@ namespace {
 
 namespace Debug {
 
+std::string ReadPString(uint32_t address)
+{
+	std::string tmp;
+	unsigned size = ReadByte(address++);
+
+	tmp.reserve(size);
+	for (unsigned i = 0; i < size; ++i)
+		tmp.push_back(ReadByte(address++));
+
+
+	return tmp;
+}
+
+std::string ReadCString(uint32_t address)
+{
+	std::string tmp;
+
+	for (;;)
+	{
+		char c = ReadByte(address++);
+		if (!c) break;
+		tmp.push_back(c);
+	}
+
+	return tmp;
+}
+
+
 uint32_t ReadLong(uint32_t address)
 {
 	uint32_t tmp = 0;
@@ -633,23 +621,6 @@ void Print(uint32_t data)
 }
 
 
-void Dump(uint32_t start, int size)
-{
-	// TODO -- if no address, use previous address.
-	// TODO -- support range?
-
-
-	if (size <= 0) return;
-
-	uint32_t end = start + size;
-
-	if (start >= Flags.memorySize) return;
-
-	end = std::min(end, Flags.memorySize);
-	size = end - start;
-
-	hexdump(Flags.memory + start, size, start);
-}
 
 
 
@@ -730,7 +701,7 @@ void PrintRegisters(const BackTraceInfo &i)
 		i.a[4], i.a[5], i.a[6], i.a[7]
 	);
 
-	printf("PC: %08X CSR: %04x %s\n", i.pc, i.csr, srbits);
+	printf("PC: %08x CSR: %04x %s\n", i.pc, i.csr, srbits);
 
 }
 
@@ -1135,7 +1106,23 @@ void Info(uint32_t address)
 			cp = nullptr;
 		}
 	}
+
 }
+
+	void ApplyTemplate(int32_t address, const std::string &name)
+	{
+		// find the template..
+
+		auto iter = TemplateTable.find(name);
+		if (iter == TemplateTable.end()) {
+			fprintf(stderr, "Unknown template: %s\n", name.c_str());
+			return;
+		}
+
+		FieldEntry *e = iter->second;
+		ApplyTemplate(address, e);
+	}
+
 
 namespace {
 
@@ -1254,6 +1241,9 @@ void Shell()
 	LoadTrapFile(MPW::RootDirPathForFile("Errors.text"), ErrorTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Globals.text"), GlobalTable);
 	LoadTrapFile(MPW::RootDirPathForFile("Traps.text"), TrapTable);
+
+	LoadTemplateFile(MPW::RootDirPathForFile("Templates.text"), TemplateTable);
+
 
 
 	// load the error code to error mnemonic

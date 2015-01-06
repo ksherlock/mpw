@@ -105,6 +105,21 @@ namespace {
 	# this exits with cs == lexer_en_error.
 	error := any* ${ fbreak; };
 
+	# identifiers.
+	ident := |*
+
+		[ \t\r\n]+;
+
+		[_A-Za-z][_A-Za-z0-9]* {
+
+			std::unique_ptr<std::string> sp(new std::string(ts, te));
+
+			Parse(parser, tkIDENTIFIER, Token::Make(sp.get(), 0), command);
+			Strings.push_back(std::move(sp));
+		};
+
+	*|;
+
 	# semi-colon commands.
 	semi := |*
 
@@ -130,6 +145,10 @@ namespace {
 			Parse(parser, tkSEMIERROR, 0, command);
 		};
 
+		't'i {
+			Parse(parser, tkSEMIT, 0, command);
+			fgoto ident;
+		};
 
 
 	*|;
@@ -196,6 +215,7 @@ namespace {
 			Parse(parser, tkINTEGER, value, command);
 		};
 
+		# todo -- (\['\]|[^'\]){1,4} ? 
 		['] [^']{1,4} ['] {
 			// 4 cc code
 
@@ -249,6 +269,12 @@ namespace {
 		'hd'i | 'dump'i {
 			Parse(parser, tkDUMP, 0, command);
 		};
+
+
+		'sc'i | 'stackcrawl'i {
+			Parse(parser, tkSTACKCRAWL, 0, command);
+		};
+
 
 		'h'i | 'help'i {
 			Parse(parser, tkHELP, 0, command);
@@ -350,28 +376,49 @@ bool ParseLine(const char *iter, Command *command)
 	const char *te;
 	int cs, act;
 
-	for(;;)
+	%% write init;
+
+
+	%% write exec;
+
+	if (cs == lexer_error || cs < lexer_first_final)
 	{
+		if (p == eof)
+		{
+			fprintf(stderr, "Unexpected end of line\n");
+		}
+		else
+		{
+			for (size_t i = 0, l = 2 + (p - iter); i < l; ++i) 
+				fputc(' ', stderr); 
 
-		%% write init;
-		%% write exec;
+			fprintf(stderr, "^\nunexpected character: `%c'\n", *p);
 
-		if (cs == lexer_error)
-		{
-			fprintf(stderr, "illegal character: `%c'\n", *p);
-			ParseFree(parser, free);
-			return false;
 		}
-		if (cs == lexer_en_error)
-		{
-			ParseFree(parser, free);
-			return false;
-		}
-		if (p == pe)
-		{
-			Parse(parser, tkEOL, 0, command);
-			break;
-		}
+
+		ParseFree(parser, free);
+		return false;
+	}
+
+	/*
+	if (cs == lexer_en_error)
+	{
+		ParseFree(parser, free);
+		return false;
+	}
+
+	if (cs < lexer_first_final)
+	{
+		fprintf(stderr, "Incomplete command\n");
+		ParseFree(parser, free);
+		return false;
+	}
+	*/
+
+	if (p == pe)
+	{
+		// always true?
+		Parse(parser, tkEOL, 0, command);
 	}
 
 	Parse(parser, 0, 0, command);

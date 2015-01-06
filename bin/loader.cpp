@@ -69,28 +69,6 @@ const uint32_t kGlobalSize = 0x10000;
 uint8_t *Memory = nullptr;
 uint32_t MemorySize = 0;
 
-#if 0
-uint32_t EmulatedNewPtr(uint32_t size)
-{
-	if (size & 0x01) size++;
-
-	if (HighWater + size > MemorySize)
-	{
-		fprintf(stderr, "Insufficient Memory!\n");
-		exit(EX_CONFIG);
-	}
-
-
-	uint32_t address = HighWater;
-
-
-	HighWater += size;
-
-	std::memset(Memory + HighWater, 0, size);
-
-	return address;
-}
-#endif
 
 uint8_t ReadByte(const void *data, uint32_t offset)
 {

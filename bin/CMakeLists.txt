@@ -20,7 +20,7 @@ add_custom_command(
 	MAIN_DEPENDENCY lexer.rl 
 )
 
-add_custom_command(	
+add_custom_command(
 	OUTPUT parser.cpp parser.h
 	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
 	COMMAND lemon parser.lemon
@@ -31,6 +31,20 @@ add_custom_command(
 	DEPENDS debugger.h
 )
 
+
+add_custom_command(
+	OUTPUT template_parser.cpp template_parser.h
+	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/template_parser.lemon" "template_parser.lemon"
+	COMMAND lemon template_parser.lemon
+	COMMAND cp -f template_parser.h "${CMAKE_CURRENT_SOURCE_DIR}/"
+	COMMAND cp -f template_parser.out "${CMAKE_CURRENT_SOURCE_DIR}/"
+	COMMAND mv -f template_parser.c template_parser.cpp
+	MAIN_DEPENDENCY template_parser.lemon
+	DEPENDS debugger.h
+)
+
+
+
 add_custom_command(
 	OUTPUT loadtrap.cpp
 	COMMAND ragel -p -G2 -o loadtrap.cpp "${CMAKE_CURRENT_SOURCE_DIR}/loadtrap.rl"
@@ -39,16 +53,26 @@ add_custom_command(
 )
 
 
-set_source_files_properties(
-	loadtrap.cpp lexer.cpp 
-	PROPERTIES
-	COMPILE_FLAGS 
-	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
+add_custom_command(
+	OUTPUT template_loader.cpp
+	COMMAND ragel -p -G2 -o template_loader.cpp "${CMAKE_CURRENT_SOURCE_DIR}/template_loader.rl"
+	MAIN_DEPENDENCY template_loader.rl 
+	DEPENDS debugger.h template_parser.h
 )
 
 
+set_source_files_properties(
+	loadtrap.cpp lexer.cpp template_loader.cpp
+	PROPERTIES
+	COMPILE_FLAGS
+	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
+)
+
 add_executable(mpw loader.cpp debugger.cpp debugger_internal.cpp 
-	address_map.cpp lexer.cpp parser.cpp loadtrap.cpp commands.cpp)
+	address_map.cpp lexer.cpp parser.cpp loadtrap.cpp 
+	commands.cpp
+	template_loader.cpp template_parser.cpp intern.cpp template.cpp)
+
 
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
