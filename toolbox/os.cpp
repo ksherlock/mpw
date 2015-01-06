@@ -747,6 +747,57 @@ namespace OS
 	}
 
 
+
+	uint16_t HGetVInfo(uint16_t trap)
+	{
+		enum {
+			/* HVolumeParam */
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_filler2 = 24,
+			_ioVolIndex = 28,
+			_ioVCrDate = 30,
+			_ioVLsMod = 34,
+			_ioVAtrb = 38,
+			_ioVNmFls = 40,
+			_ioVBitMap = 42,
+			_ioAllocPtr = 44,
+			_ioVNmAlBlks = 46,
+			_ioVAlBlkSiz = 48,
+			_ioVClpSiz = 52,
+			_ioAlBlSt = 56,
+			_ioVNxtCNID = 58,
+			_ioVFrBlk = 62,
+			_ioVSigWord = 64,
+			_ioVDrvInfo = 66,
+			_ioVDRefNum = 68,
+			_ioVFSID = 70,
+			_ioVBkUp = 72,
+			_ioVSeqNum = 76,
+			_ioVWrCnt = 78,
+			_ioVFilCnt = 82,
+			_ioVDirCnt = 86,
+			_ioVFndrInfo = 90,
+		};
+
+
+
+		uint16_t d0;
+
+		uint32_t parm = cpuGetAReg(0);
+
+		Log("%04x HGetVInfo(%08x)\n", trap, parm);
+
+		return MacOS::nsvErr;
+	}
+
+
 	#pragma mark - String Utilities
 
 	uint16_t CmpString(uint16_t trap)

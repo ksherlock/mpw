@@ -119,6 +119,10 @@ namespace ToolBox {
 				d0 = OS::Write(trap);
 				break;
 
+			case 0xa207:
+				d0 = OS::HGetVInfo(trap);
+				break;
+
 			case 0xa008: // Create
 			case 0xa208: // HCreate
 				d0 = OS::Create(trap);
