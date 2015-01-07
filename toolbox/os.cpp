@@ -305,26 +305,64 @@ namespace OS
 
 	uint16_t Create(uint16_t trap)
 	{
+
+		enum {
+			/* FileParam */
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioFRefNum = 24,
+			_ioFVersNum = 26,
+			_filler1 = 27,
+			_ioFDirIndex = 28,
+			_ioFlAttrib = 30,
+			_ioFlVersNum = 31,
+			_ioFlFndrInfo = 32,
+			_ioFlNum = 48,
+			_ioFlStBlk = 52,
+			_ioFlLgLen = 54,
+			_ioFlPyLen = 58,
+			_ioFlRStBlk = 62,
+			_ioFlRLgLen = 64,
+			_ioFlRPyLen = 68,
+			_ioFlCrDat = 72,
+			_ioFlMdDat = 76,
+
+			// HFileParam
+			_ioDirID = 48,
+		};
+
+		bool htrap = trap & 0x0200;
+		const char *func = htrap ? "HCreate" : "Create";
+
 		uint32_t d0;
 
 		uint32_t parm = cpuGetAReg(0);
 
-		Log("%04x Create(%08x)\n", trap, parm);
+		Log("%04x %s(%08x)\n", trap, func, parm);
 
-		//uint32_t ioCompletion = memoryReadLong(parm + 12);
-		uint32_t namePtr = memoryReadLong(parm + 18);
-
-		//uint16_t ioVRefNum = memoryReadWord(parm + 22);
-		//uint8_t ioFVersNum = memoryReadByte(parm + 26);
+		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
 
 		std::string sname = ToolBox::ReadPString(namePtr, true);
 
 		if (!sname.length())
 		{
-			memoryWriteWord(MacOS::bdNamErr, parm + 16);
+			memoryWriteWord(MacOS::bdNamErr, parm + _ioResult);
 			return MacOS::bdNamErr;
 		}
-		Log("     Create(%s)\n", sname.c_str());
+
+		if (htrap)
+		{
+			uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+			sname = FSSpecManager::ExpandPath(sname, ioDirID);
+		}
+
+		Log("     %s(%s)\n", func, sname.c_str());
 
 		int fd;
 		fd = ::open(sname.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
@@ -339,7 +377,7 @@ namespace OS
 			d0 = 0;		
 		}
 
-		memoryWriteWord(d0, parm + 16);
+		memoryWriteWord(d0, parm + _ioResult);
 		return d0;
 	}
 
