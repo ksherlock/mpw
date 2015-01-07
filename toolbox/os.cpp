@@ -437,16 +437,24 @@ namespace OS
 
 	uint16_t Open(uint16_t trap)
 	{
+
+		bool htrap = trap & 0x0200;
+		const char *func = htrap ? "HOpen" : "Open";
+
 		uint32_t parm = cpuGetAReg(0);
-		Log("%04x Open(%08x)\n", trap, parm);
-		return OpenCommon(parm, false, false);
+		Log("%04x %s(%08x)\n", trap, func, parm);
+		return OpenCommon(parm, htrap, false);
 	}
 
 	uint16_t OpenRF(uint16_t trap)
 	{
+
+		bool htrap = trap & 0x0200;
+		const char *func = htrap ? "HOpenRF" : "OpenRF";
+
 		uint32_t parm = cpuGetAReg(0);
-		Log("%04x Open(%08x)\n", trap, parm);
-		return OpenCommon(parm, false, true);
+		Log("%04x %s(%08x)\n", trap, func, parm);
+		return OpenCommon(parm, htrap, true);
 	}
 
 
