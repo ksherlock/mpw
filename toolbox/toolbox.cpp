@@ -128,7 +128,8 @@ namespace ToolBox {
 				d0 = OS::Create(trap);
 				break;
 
-			case 0xa009:
+			case 0xa009: // Delete
+			case 0xa209: // HDelete
 				d0 = OS::Delete(trap);
 				break;
 
