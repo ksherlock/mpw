@@ -28,6 +28,13 @@ namespace OS {
 
 	int32_t FSSpecManager::IDForPath(const std::string &path, bool insert)
 	{
+		if (path.empty()) return -1;
+		if (path.back() != '/')
+		{
+			std::string tmp(path);
+			return IDForPath(std::move(tmp), insert);
+		}
+
 		/*
 		char buffer[PATH_MAX + 1];
 
@@ -66,6 +73,10 @@ namespace OS {
 		std::string s(cp);
 		*/
 
+		// trailing / is required.
+		if (path.empty()) return -1;
+		if (path.back() != '/') path.push_back('/');
+
 		std::hash<std::string> hasher;
 		size_t hash = hasher(path);
 
@@ -99,7 +110,7 @@ namespace OS {
 
 	std::string FSSpecManager::ExpandPath(const std::string &path, int32_t id)
 	{
-		if (path.length() && path[0] == '/') return path;
+		if (path.length() && path.front() == '/') return path;
 		if (id == 0) return path;
 
 		const std::string &dir = PathForID(id);

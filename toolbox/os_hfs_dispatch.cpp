@@ -215,7 +215,12 @@ namespace OS {
 				memoryWriteByte(0, parm + _ioACUser);
 
 				std::memset(memoryPointer(parm + _ioDrUsrWds), 0, 16); // DInfo
-				memoryWriteLong(0, parm + _ioDrDirID);
+
+				// cw68k expects the directory ID to be set.
+
+				uint32_t dirID = FSSpecManager::IDForPath(sname);
+
+				memoryWriteLong(dirID, parm + _ioDrDirID);
 
 				// the links count should be ~= number of dirents ( +2 for . and ..)
 				int links = st.st_nlink - 2;
