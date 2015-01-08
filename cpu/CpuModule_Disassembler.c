@@ -758,6 +758,7 @@ static ULO cpuDisBcc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soper
     disp2 = memoryReadLong(prc);
     cpuDisLongAppend(disp2, sdata);
     adr = prc + disp2;
+    prc += 2;
   }
   else
   {
