@@ -836,6 +836,50 @@ namespace OS
 
 	uint16_t HGetVInfo(uint16_t trap)
 	{
+
+
+		/*
+		 * The PBHGetVInfo function returns information about the specified
+		 * volume. If the value of ioVolIndex is positive, the File Manager
+		 * attempts to use it to find the volume; for instance, if the
+		 * value of ioVolIndex is 2, the File Manager attempts to access
+		 * the second mounted volume in the VCB queue. If the value of
+		 * ioVolIndex is negative, the File Manager uses ioNamePtr and
+		 * ioVRefNum in the standard way to determine the volume. If the
+		 * value of ioVolIndex is 0, the File Manager attempts to access
+		 * the volume by using ioVRefNum only. The volume reference number
+		 * is returned in ioVRefNum, and the volume name is returned in
+		 * the buffer whose address you passed in ioNamePtr. You should
+		 * pass a pointer to a Str31 value if you want that name returned.
+		 * If you pass NIL in the ioNamePtr field, no volume name is
+		 * returned.
+		 * 
+		 * If you pass a working directory reference number in ioVRefNum
+		 * (or if the default directory is a subdirectory), the number
+		 * of files and directories in the specified directory (the
+		 * directory’s valence) is returned in ioVNmFls.
+		 * 
+		 * You can read the ioVDrvInfo and ioVDRefNum fields to determine
+		 * whether the specified volume is online, offline, or ejected.
+		 * For online volumes, ioVDrvInfo contains the drive number of
+		 * the drive containing the specified volume and hence is always
+		 * greater than 0. If the value returned in ioVDrvInfo is 0, the
+		 * volume is either offline or ejected. You can determine whether
+		 * the volume is offline or ejected by inspecting the value of
+		 * the ioVDRefNum field. For online volumes, ioVDRefNum contains
+		 * a driver reference number; these numbers are always less than
+		 * 0. If the volume is not online, the value of ioVDRefNum is
+		 * either the negative of the drive number (if the volume is
+		 * offline) or the drive number itself (if the volume is ejected).
+		 * 
+		 * 
+		 * You can get information about all the online volumes by making
+		 * repeated calls to PBHGetVInfo, starting with the value of
+		 * ioVolIndex set to 1 and incrementing that value until PBHGetVInfo
+		 * returns nsvErr.
+		 */
+
+
 		enum {
 			/* HVolumeParam */
 			_qLink = 0,
@@ -880,7 +924,10 @@ namespace OS
 
 		Log("%04x HGetVInfo(%08x)\n", trap, parm);
 
-		return MacOS::nsvErr;
+		d0 = MacOS::nsvErr;
+		memoryWriteWord(d0, parm + _ioResult);
+
+		return d0;
 	}
 
 

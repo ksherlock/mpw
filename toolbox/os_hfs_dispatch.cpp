@@ -107,7 +107,7 @@ namespace OS {
 		// and move to common internal code.
 
 
-		ToolBox::WritePString(ioNamePtr, std::string("MacOS"));
+		if (ioNamePtr) ToolBox::WritePString(ioNamePtr, std::string("MacOS"));
 		memoryWriteWord(-1, parm + _ioVRefNum);
 		memoryWriteLong(0, parm + _ioWDProcID);
 		memoryWriteWord(-1, parm + _ioWDVRefNum);
