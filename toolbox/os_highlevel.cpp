@@ -403,12 +403,15 @@ namespace OS {
 				d0 = FSpSetFInfo();
 				break;
 
+				// RM calls handle their return value.
 			case 0x000d:
 				d0 = RM::FSpOpenResFile();
+				return d0;
 				break;
 
 			case 0x000e:
 				d0 = RM::FSpCreateResFile();
+				return d0;
 				break;
 
 			default:
