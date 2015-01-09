@@ -108,8 +108,9 @@ namespace
 			case 0x4b4f4445: // 'KODE' (Link 32-bit Startup)
 			case 0x45525253: // 'ERRS' (PPCLink)
 			case 0x63667267: // 'cfrg' (PPCLink)
-			case 0x44415441: // 'DATA' (MetroWorks tools)
-			case 0x54455854: // 'TEXT' (MetroWorks tools)
+			case 0x44415441: // 'DATA' (MetroWerks tools)
+			case 0x54455854: // 'TEXT' (MetroWerks tools)
+			case 0x6f626a64: // 'objd' (MetroWerks tools)
 				return true;
 			default:
 				return false;
