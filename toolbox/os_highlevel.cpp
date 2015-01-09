@@ -87,7 +87,8 @@ namespace OS {
 
 		// expand the path.  Also handles relative paths.
 		char *cp = ::fs_spec_realpath(path.c_str(), buffer);
-
+		if (!cp) return "";
+		
 		return std::string(cp);
 	}
 
