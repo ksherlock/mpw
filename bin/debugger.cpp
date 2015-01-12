@@ -1158,9 +1158,10 @@ namespace {
 
 		if (count == 1)
 		{
-			char **buffer = (char **)malloc(2 * sizeof(char *));
-			buffer[0] = strdup(begin->first.c_str());
-			buffer[1] = NULL;
+			char **buffer = (char **)malloc(3 * sizeof(char *));
+			buffer[0] = strdup(begin->first.c_str()); // longest substring match
+			buffer[1] = strdup(begin->first.c_str()); // the match
+			buffer[2] = NULL;
 			return buffer;
 		}
 
@@ -1212,6 +1213,8 @@ namespace {
 	}
 
 	// this is here to prevent filename tab completion, for now.
+	// state is 0 for first call, non-zero for subsequent calls.  It
+	// should return 1 match per invocation, NULL if no more matches.
 	char *mpw_completion_entry_function(const char *text, int state)
 	{
 		return NULL;
