@@ -1,0 +1,304 @@
+/* structs and typedefs are allowed */
+/* certain types are provided */
+
+typedef void *QElemPtr;
+typedef void *IOCompletionUPP;
+typedef int8_t SInt8;
+typedef uint8_t UInt8;
+typedef int16_t SInt16;
+typedef uint16_t UInt16;
+typedef int32_t SInt32;
+typedef uint32_t UInt32;
+
+// MacTypes.h
+
+struct Point {
+  short               v;
+  short               h;
+};
+
+struct Rect {
+  short               top;
+  short               left;
+  short               bottom;
+  short               right;
+};
+
+// Finder.h
+
+struct FInfo {
+  OSType              fdType;                 /* The type of the file */
+  OSType              fdCreator;              /* The file's creator */
+  UInt16              fdFlags;                /* Flags ex. kHasBundle, kIsInvisible, etc. */
+  Point               fdLocation;             /* File's location in folder. */
+                                              /* If set to {0, 0}, the Finder will place the item automatically */
+  SInt16              fdFldr;                 /* Reserved (set to 0) */
+};
+
+struct FXInfo {
+  SInt16              fdIconID;               /* Reserved (set to 0) */
+  SInt16              fdReserved[3];          /* Reserved (set to 0) */
+  SInt8               fdScript;               /* Extended flags. Script code if high-bit is set */
+  SInt8               fdXFlags;               /* Extended flags */
+  SInt16              fdComment;              /* Reserved (set to 0). Comment ID if high-bit is clear */
+  SInt32              fdPutAway;              /* Put away folder ID */
+};
+
+struct DInfo {
+  Rect                frRect;                 /* Folder's window bounds */
+  UInt16              frFlags;                /* Flags ex. kIsInvisible, kNameLocked, etc.*/
+  Point               frLocation;             /* Folder's location in parent folder */
+                                              /* If set to {0, 0}, the Finder will place the item automatically */
+  SInt16              frView;                 /* Reserved (set to 0) */
+};
+
+struct DXInfo {
+  Point               frScroll;               /* Scroll position */
+  SInt32              frOpenChain;            /* Reserved (set to 0) */
+  SInt8               frScript;               /* Extended flags. Script code if high-bit is set */
+  SInt8               frXFlags;               /* Extended flags */
+  SInt16              frComment;              /* Reserved (set to 0). Comment ID if high-bit is clear */
+  SInt32              frPutAway;              /* Put away folder ID */
+};
+
+
+
+// Files.h
+
+struct AccessParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               filler3;
+  short               ioDenyModes;            /*access rights data*/
+  short               filler4;
+  SInt8               filler5;
+  SInt8               ioACUser;               /*access rights for directory only*/
+  long                filler6;
+  long                ioACOwnerID;            /*owner ID*/
+  long                ioACGroupID;            /*group ID*/
+  long                ioACAccess;             /*access rights*/
+  long                ioDirID;
+};
+
+struct DirInfo {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               ioFRefNum;
+  SInt8               ioFVersNum;
+  SInt8               filler1;
+  short               ioFDirIndex;
+  SInt8               ioFlAttrib;
+  SInt8               ioACUser;
+  DInfo               ioDrUsrWds;
+  long                ioDrDirID;
+  unsigned short      ioDrNmFls;
+  short               filler3[9];
+  unsigned long       ioDrCrDat;
+  unsigned long       ioDrMdDat;
+  unsigned long       ioDrBkDat;
+  DXInfo              ioDrFndrInfo;
+  long                ioDrParID;
+};
+
+
+
+struct IOParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               ioRefNum;               /*refNum for I/O operation*/
+  SInt8               ioVersNum;              /*version number*/
+  SInt8               ioPermssn;              /*Open: permissions (byte)*/
+  Ptr                 ioMisc;                 /*Rename: new name (GetEOF,SetEOF: logical end of file) (Open: optional ptr to buffer) (SetFileType: new type)*/
+  Ptr                 ioBuffer;               /*data buffer Ptr*/
+  long                ioReqCount;             /*requested byte count; also = ioNewDirID*/
+  long                ioActCount;             /*actual byte count completed*/
+  short               ioPosMode;              /*initial file positioning*/
+  long                ioPosOffset;            /*file position offset*/
+};
+
+struct HIOParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               ioRefNum;
+  SInt8               ioVersNum;
+  SInt8               ioPermssn;
+  Ptr                 ioMisc;
+  Ptr                 ioBuffer;
+  long                ioReqCount;
+  long                ioActCount;
+  short               ioPosMode;
+  long                ioPosOffset;
+};
+
+struct HFileInfo {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               ioFRefNum;
+  SInt8               ioFVersNum;
+  SInt8               filler1;
+  short               ioFDirIndex;
+  SInt8               ioFlAttrib;
+  SInt8               ioACUser;
+  FInfo               ioFlFndrInfo;
+  long                ioDirID;
+  unsigned short      ioFlStBlk;
+  long                ioFlLgLen;
+  long                ioFlPyLen;
+  unsigned short      ioFlRStBlk;
+  long                ioFlRLgLen;
+  long                ioFlRPyLen;
+  unsigned long       ioFlCrDat;
+  unsigned long       ioFlMdDat;
+  unsigned long       ioFlBkDat;
+  FXInfo              ioFlXFndrInfo;
+  long                ioFlParID;
+  long                ioFlClpSiz;
+};
+
+struct FileParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               ioFRefNum;              /*reference number*/
+  SInt8               ioFVersNum;             /*version number*/
+  SInt8               filler1;
+  short               ioFDirIndex;            /*GetFInfo directory index*/
+  SInt8               ioFlAttrib;             /*GetFInfo: in-use bit=7, lock bit=0*/
+  SInt8               ioFlVersNum;            /*file version number*/
+  FInfo               ioFlFndrInfo;           /*user info*/
+  unsigned long       ioFlNum;                /*GetFInfo: file number; TF- ioDirID*/
+  unsigned short      ioFlStBlk;              /*start file block (0 if none)*/
+  long                ioFlLgLen;              /*logical length (EOF)*/
+  long                ioFlPyLen;              /*physical length*/
+  unsigned short      ioFlRStBlk;             /*start block rsrc fork*/
+  long                ioFlRLgLen;             /*file logical length rsrc fork*/
+  long                ioFlRPyLen;             /*file physical length rsrc fork*/
+  unsigned long       ioFlCrDat;              /*file creation date& time (32 bits in secs)*/
+  unsigned long       ioFlMdDat;              /*last modified date and time*/
+};
+
+struct HFileParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  short               ioFRefNum;
+  SInt8               ioFVersNum;
+  SInt8               filler1;
+  short               ioFDirIndex;
+  SInt8               ioFlAttrib;
+  SInt8               ioFlVersNum;
+  FInfo               ioFlFndrInfo;
+  long                ioDirID;
+  unsigned short      ioFlStBlk;
+  long                ioFlLgLen;
+  long                ioFlPyLen;
+  unsigned short      ioFlRStBlk;
+  long                ioFlRLgLen;
+  long                ioFlRPyLen;
+  unsigned long       ioFlCrDat;
+  unsigned long       ioFlMdDat;
+};
+
+
+struct VolumeParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  long                filler2;
+  short               ioVolIndex;             /*volume index number*/
+  unsigned long       ioVCrDate;              /*creation date and time*/
+  unsigned long       ioVLsBkUp;              /*last backup date and time*/
+  unsigned short      ioVAtrb;                /*volume attrib*/
+  unsigned short      ioVNmFls;               /*number of files in directory*/
+  unsigned short      ioVDirSt;               /*start block of file directory*/
+  short               ioVBlLn;                /*GetVolInfo: length of dir in blocks*/
+  unsigned short      ioVNmAlBlks;            /*for compatibilty ioVNmAlBlks * ioVAlBlkSiz <= 2 GB*/
+  unsigned long       ioVAlBlkSiz;            /*for compatibilty ioVAlBlkSiz is <= $0000FE00 (65,024)*/
+  unsigned long       ioVClpSiz;              /*GetVolInfo: bytes to allocate at a time*/
+  unsigned short      ioAlBlSt;               /*starting disk(512-byte) block in block map*/
+  unsigned long       ioVNxtFNum;             /*GetVolInfo: next free file number*/
+  unsigned short      ioVFrBlk;               /*GetVolInfo: # free alloc blks for this vol*/
+};
+
+struct HVolumeParam {
+  QElemPtr            qLink;                  /*queue link in header*/
+  short               qType;                  /*type byte for safety check*/
+  short               ioTrap;                 /*FS: the Trap*/
+  Ptr                 ioCmdAddr;              /*FS: address to dispatch to*/
+  IOCompletionUPP     ioCompletion;           /*completion routine addr (0 for synch calls)*/
+  volatile OSErr      ioResult;               /*result code*/
+  StringPtr           ioNamePtr;              /*ptr to Vol:FileName string*/
+  short               ioVRefNum;              /*volume refnum (DrvNum for Eject and MountVol)*/
+  long                filler2;
+  short               ioVolIndex;
+  unsigned long       ioVCrDate;
+  unsigned long       ioVLsMod;
+  short               ioVAtrb;
+  unsigned short      ioVNmFls;
+  unsigned short      ioVBitMap;
+  unsigned short      ioAllocPtr;
+  unsigned short      ioVNmAlBlks;
+  unsigned long       ioVAlBlkSiz;
+  unsigned long       ioVClpSiz;
+  unsigned short      ioAlBlSt;
+  unsigned long       ioVNxtCNID;
+  unsigned short      ioVFrBlk;
+  unsigned short      ioVSigWord;
+  short               ioVDrvInfo;
+  short               ioVDRefNum;
+  short               ioVFSID;
+  unsigned long       ioVBkUp;
+  short               ioVSeqNum;
+  unsigned long       ioVWrCnt;
+  unsigned long       ioVFilCnt;
+  unsigned long       ioVDirCnt;
+  long                ioVFndrInfo[8];
+};
+
+
+

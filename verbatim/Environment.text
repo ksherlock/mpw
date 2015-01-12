@@ -41,6 +41,16 @@ Libraries=${MPW}Libraries:Libraries:
 PLibraries=${MPW}Libraries:PLibraries:
 CLibraries=${MPW}Libraries:CLibraries:
 
+# power pc, etc
+PPCLibraries=${MPW}Libraries:PPCLibraries:
+SharedLibraries=${MPW}Libraries:SharedLibraries:
+CFM68KLibraries=${MPW}Libraries:CFM68KLibraries:
+
+#MetroWerks
+MW68KLibraries=${MPW}Libraries:MW68KLibraries:
+MWPPCLibraries=${MPW}Libraries:MWPPCLibraries:
+MWCIncludes=${CIncludes}
+
 # to support 3.2 and 3.5:
 # use mpw -DMPVersion=3.5 ...
 # and have versioned folders.
