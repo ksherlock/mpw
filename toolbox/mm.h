@@ -68,7 +68,12 @@ namespace MM
 	uint16_t HUnlock(uint16_t trap);
 
 	uint16_t HPurge(uint16_t trap);
+	uint16_t HNoPurge(uint16_t trap);
 	
+	uint16_t HSetRBit(uint16_t trap);
+	uint16_t HClrRBit(uint16_t trap);
+
+
 	uint16_t MoveHHi(uint16_t trap);
 
 	uint32_t StripAddress(uint16_t trap);

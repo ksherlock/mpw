@@ -1235,6 +1235,31 @@ namespace MM
 		return SetMemError(0);
 	}
 
+
+	uint16_t HNoPurge(uint16_t trap)
+	{
+		/* 
+		 * on entry:
+		 * A0 Handle
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+
+		uint32_t hh = cpuGetAReg(0);
+
+		Log("%04x HNoPurge(%08x)\n", trap, hh);
+
+		auto iter = HandleMap.find(hh);
+
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+		iter->second.purgeable = false;
+
+		return SetMemError(0);
+	}
+
 	uint16_t HLock(uint16_t trap)
 	{
 		/* 

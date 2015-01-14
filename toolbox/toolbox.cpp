@@ -253,6 +253,11 @@ namespace ToolBox {
 				d0 = MM::HPurge(trap);
 				break;
 
+			case 0xa04a:
+				d0 = MM::HNoPurge(trap);
+				break;
+
+
 			case 0xA11D:
 				d0 = MM::MaxMem(trap);
 				break;
