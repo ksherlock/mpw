@@ -159,14 +159,19 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
-			case 0xa015: // SetVol
-			case 0xa215: // HSetVol
-				d0 = OS::SetVol(trap);
-				break;
-				
 			case 0xa214:
 				d0 = OS::HGetVol(trap);
 				break;
+
+
+			case 0xa015: // SetVol
+				d0 = OS::SetVol(trap);
+				break;
+
+			case 0xa215: // HSetVol
+				d0 = OS::HSetVol(trap);
+				break;
+				
 
 			case 0xa018:
 				d0 = OS::GetFPos(trap);

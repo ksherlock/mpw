@@ -425,46 +425,5 @@ namespace OS {
 
 	}
 
-	uint16_t HGetVol(uint16_t trap)
-	{
-		uint32_t parm = cpuGetAReg(0);
-
-		Log("%04x HGetVol(%08x)\n", trap, parm);
-
-		//uint32_t ioCompletion = memoryReadLong(parm + 12);
-		uint32_t namePtr = memoryReadLong(parm + 18);
-
-		// ioResult
-		memoryWriteWord(0, parm + 16);
-		// ioVRefNum
-		memoryWriteWord(0, parm + 22);
-
-		// ioWDProcID
-		memoryWriteLong(0, parm + 28);
-
-		// ioWDVRefNum
-		memoryWriteWord(0, parm + 32);
-
-
-		// todo -- this should create an FSSpec entry for
-		// the current wd and return the id.
-		// (FSMakeSpec handles 0 as a dir, so ok for now)
-		// ioWDDirID
-		memoryWriteLong(0, parm + 48);
-
-		std::string tmp = "MacOS";
-		ToolBox::WritePString(namePtr, tmp);
-
-		return 0;
-	}
-
-
-	uint16_t HOpen(uint16_t trap)
-	{
-		uint32_t parm = cpuGetAReg(0);
-		Log("%04x HOpen(%08x)\n", trap, parm);
-		return OpenCommon(parm, true, false);
-	}
-
 
 }
