@@ -100,7 +100,7 @@ namespace OS {
 		//uint32_t ioWDProcID = memoryReadLong(parm + _ioWDProcID);
 		uint16_t ioWDVRefNum = memoryReadWord(parm + _ioWDVRefNum);
 
-		Log("    PBGetWDInfo($%04x, $%04x, $%04x)\n", ioVRefNum, ioWDIndex, ioWDVRefNum);
+		Log("     PBGetWDInfo($%04x, $%04x, $%04x)\n", ioVRefNum, ioWDIndex, ioWDVRefNum);
 
 		// todo -- need to  expand the fsspec code to give a id #
 		// to all filse and directories.
