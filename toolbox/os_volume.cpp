@@ -419,7 +419,7 @@ namespace OS {
 
 		Log("%04x HSetVol(%08x)\n", trap, parm);
 
-		d0 = MacOS::nsvErr;
+		d0 = 0; // MacOS::nsvErr;
 		memoryWriteWord(d0, parm + _ioResult);
 
 		return d0;
