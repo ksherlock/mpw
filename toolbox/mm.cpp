@@ -50,6 +50,7 @@ namespace
 
 	uint8_t *Memory;
 	uint32_t MemorySize;
+	uint32_t HeapSize;
 
 	// queue of free Handles
 	std::deque<uint32_t> HandleQueue;
@@ -104,16 +105,17 @@ namespace
 namespace MM
 {
 
-	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t reserved)
+	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t globals, uint32_t stack)
 	{
 		int ok;
 
 		Memory = memory;
 		MemorySize = memorySize;
+		HeapSize = memorySize - stack;
 
 		ok = mplite_init(&pool, 
-			memory + reserved, 
-			memorySize - reserved, 
+			memory + globals, 
+			memorySize - globals - stack, 
 			32, 
 			NULL);
 
@@ -122,6 +124,9 @@ namespace MM
 		// allocate a handle master block...
 
 		if (!alloc_handle_block()) return false;
+
+
+		// create system handles for the stack and global space?
 
 		return true;
 	}
@@ -761,7 +766,7 @@ namespace MM
 
 		// MemorySize is the top of the heap. stack is after it.
 
-		return sp - MemorySize;
+		return sp - HeapSize;
 	}
 
 
@@ -1446,7 +1451,9 @@ namespace MM
 
 		Log("%04x StripAddress(%08x)\n", trap, address);
 
-		address &= 0x00ffffff;
+		if (MemorySize <= 0x00ffffff)
+			address &= 0x00ffffff;
+
 		return address;
 	}
 

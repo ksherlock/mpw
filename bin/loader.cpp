@@ -390,10 +390,6 @@ void GlobalInit()
 	// 0x0a06 - MinusOne
 	memoryWriteLong(0xffffffff, MacOS::MinusOne);
 
-
-	// todo -- expects high stack, low heap.
-	// the allocator currently works from the top down,
-	// so put stack at top of memory?
 	
 	// 0x0130 -- ApplLimit
 	memoryWriteLong(Flags.memorySize - Flags.stackSize - 1, MacOS::ApplLimit);
@@ -405,7 +401,7 @@ void CreateStack()
 	// allocate stack, set A7...
 
 	uint32_t address;
-	uint16_t error;
+	//uint16_t error;
 
 #if 0
 	Flags.stackSize = (Flags.stackSize + 3) & ~0x03;
@@ -892,10 +888,8 @@ int main(int argc, char **argv)
 	// for pre-fetch.
 	memorySetMemory(Memory, MemorySize);
 
-	// should we subtract memory from the top
-	// for the stack vs allocating it?
 
-	MM::Init(Memory, MemorySize - Flags.stackSize, kGlobalSize);
+	MM::Init(Memory, MemorySize, kGlobalSize, Flags.stackSize);
 	OS::Init();
 	MPW::Init(argc, argv, defines);
 
