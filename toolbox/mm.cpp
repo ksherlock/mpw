@@ -100,6 +100,14 @@ namespace
 		return true;
 	}
 
+
+	template<class Fx>
+	int16_t with_handle(uint32_t handle, Fx fx)
+	{
+		auto iter = HandleMap.find(handle);
+		if (iter == HandleMap.end()) return MacOS::memWZErr;
+		return fx(iter->second);
+	}
 }
 
 namespace MM
