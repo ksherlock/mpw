@@ -1,3 +1,10 @@
+
+# ignore built-in rules, don't delete intermediate .o files.
+
+MAKEFLAGS += --no-builtin-rules
+.SUFFIXES:
+.SECONDARY:
+
 LIBS = \
 	{Libraries}Stubs.o \
 	{CLibraries}StdCLib.o \
@@ -15,25 +22,28 @@ LDFLAGS = -w -c 'MPS ' -t MPST \
 
 SCFLAGS = -p
 
-TARGETS = test_new_handle test_new_handle_2 test_new_pointer
+TARGETS = test_new_handle test_new_handle_2 test_new_pointer test_volumes
 
 all : $(TARGETS)
 
 clean : 
 	rm -f $(TARGETS) o/*
 
-test_new_handle : o/test_new_handle.o
-	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
-
-test_new_handle_2 : o/test_new_handle_2.o
-	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
-
-test_new_pointer : o/test_new_pointer.o
-	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
-
-
-# % : o/%.o
+# test_new_handle : o/test_new_handle.o
 # 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+# test_new_handle_2 : o/test_new_handle_2.o
+# 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+# test_new_pointer : o/test_new_pointer.o
+# 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+# test_volumes : o/test_volumes.o
+# 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+
+
+% : o/%.o
+	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 o/%.o : %.c
 	mpw SC $(SCFLAGS) $< -o $@
