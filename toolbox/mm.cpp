@@ -241,10 +241,10 @@ namespace MM
 			// native pointers.
 
 			mcptr = 0;
-			if (size == 0) return 0;
+			//if (size == 0) return 0;
 
 			uint8_t *ptr = nullptr;
-			ptr = (uint8_t *)mplite_malloc(&pool, size);
+			ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
 			if (!ptr)
 			{
 				return SetMemError(MacOS::memFullErr);
