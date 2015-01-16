@@ -63,7 +63,7 @@ namespace OS {
 		if (!insert) return -1;
 
 		_pathQueue.emplace_back(FSSpecManager::Entry(path, hash));
-		return _pathQueue.size();
+		return _pathQueue.size() + RootPathID - 1;
 	}
 
 	int32_t FSSpecManager::IDForPath(std::string &&path, bool insert)
@@ -96,7 +96,7 @@ namespace OS {
 		if (!insert) return -1;
 
 		_pathQueue.emplace_back(FSSpecManager::Entry(std::move(path), hash));
-		return _pathQueue.size();
+		return _pathQueue.size() + RootPathID - 1;
 	}
 
 
