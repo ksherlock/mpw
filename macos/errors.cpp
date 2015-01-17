@@ -933,6 +933,8 @@ namespace MacOS {
 			case EDQUOT: return dskFulErr;
 			case ENOSPC: return dskFulErr;
 
+			case ENOTEMPTY: return fBsyErr;
+
 
 			default:
 				return ioErr;
