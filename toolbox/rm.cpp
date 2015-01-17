@@ -94,6 +94,8 @@ namespace
 		// change it to a blacklist rather than 
 		// a whitelist at some point.
 
+		return true;
+
 		switch (type)
 		{
 			case 0x76657273: // 'vers';
