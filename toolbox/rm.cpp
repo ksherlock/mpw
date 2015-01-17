@@ -462,13 +462,7 @@ namespace RM
 		 * result code.
 		 */
 
-		// FSCreateResourceFile uses the parent FSRef + a file name.
-
-
 		uint32_t fileName;
-		FSRef ref;
-		OSErr error;
-		int fd;
 
 		StackFrame<4>(fileName);
 
@@ -477,29 +471,10 @@ namespace RM
 
 		if (!sname.length()) return SetResError(MacOS::paramErr);
 
-		// 1. if the file exists, call FSCreateResourceFork on the file.
-		// 2. if the file does not exist, create the file then call 
-		//    FSCreateResourceFork
 
-		error = ::FSPathMakeRef((const UInt8 *)sname.c_str(), &ref, NULL);
-		if (error != noErr)
-		{
-			return SetResError(error);
-		}
+		auto rv = CreateResFile(sname);
 
-		fd = ::open(sname.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
-		if (fd < 0)
-		{
-			if (errno != EEXIST) return SetResError(macos_error_from_errno());
-		}
-		if (fd >= 0) close(fd);
-
-		HFSUniStr255 fork = {0,{0}};
-		::FSGetResourceForkName(&fork);
-
-		error = ::FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
-
-		return SetResError(error);
+		return SetResError(rv.error() == errFSForkExists ? 0 : rv.error());
 	}
 
 
