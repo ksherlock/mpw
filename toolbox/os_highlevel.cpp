@@ -92,6 +92,14 @@ namespace OS {
 		return std::string(cp);
 	}
 
+	std::string ReadFSSpec(uint32_t spec) {
+		if (!spec) return "";
+
+		int parentID = memoryReadLong(spec + 2);
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+		return OS::FSSpecManager::ExpandPath(sname, parentID);
+	}
+
 	uint16_t FSMakeFSSpec(void)
 	{
 		// FSMakeFSSpec(vRefNum: Integer; dirID: LongInt; fileName: Str255; VAR spec: FSSpec): OSErr;
@@ -309,6 +317,50 @@ namespace OS {
 
 
 
+
+	uint16_t FSpDelete(void)
+	{
+		// FUNCTION FSpDelete (spec: FSSpec): OSErr;
+
+		/*
+		 * The FSpDelete function  removes a file or  directory. If the
+		 * specified  target is  a file,  both  forks of  the file  are
+		 * deleted. The file ID reference, if any, is removed.
+		 *
+		 * A file must be closed before you can delete it. Similarly, a
+		 * directory must  be empty  before you can  delete it.  If you
+		 * attempt  to delete  an open  file or  a nonempty  directory,
+		 * FSpDelete returns  the result  code fBsyErr.  FSpDelete also
+		 * returns the result code fBsyErr if the directory has an open
+		 * working directory associated with it.
+		 */
+
+		uint32_t spec;
+		struct stat st;
+
+		StackFrame<4>(spec);
+
+		std::string sname = ReadFSSpec(spec);
+
+		Log("     FSpDelete(%s)\n", sname.c_str());
+
+
+		if (::stat(sname.c_str(), &st) < 0)
+			return macos_error_from_errno();
+
+		int ok = 0;
+		if (S_ISDIR(st.st_mode))
+			ok = ::rmdir(sname.c_str());
+		else 
+			ok = ::unlink(sname.c_str());
+
+		if (ok < 0)
+			return macos_error_from_errno();
+
+		return 0;
+	}
+
+
 	uint16_t ResolveAliasFile()
 	{
 		// FUNCTION ResolveAliasFile (VAR theSpec: FSSpec;
@@ -387,12 +439,17 @@ namespace OS {
 			case 0x0001:
 				d0 = FSMakeFSSpec();
 				break;
+
 			case 0x0002:
 				d0 = FSpOpenDF();
 				break;
 
 			case 0x0004:
 				d0 = FSpCreate();
+				break;
+
+			case 0x0006:
+				d0 = FSpDelete();
 				break;
 
 			case 0x0007:
