@@ -418,7 +418,7 @@ namespace RM
 	}
 
 
-	tool_return<void> CreateResFile(const std::string &path)
+	tool_return<void> CreateResFile(const std::string &path, uint32_t creator = 0, uint32_t fileType = 0)
 	{
 
 		if (path.empty()) return MacOS::paramErr;
@@ -427,10 +427,7 @@ namespace RM
 		OSErr error;
 		int fd;
 
-		error = ::FSPathMakeRef((const UInt8 *)path.c_str(), &ref, NULL);
-		if (error != noErr)
-			return macos_error(error);
-
+		// FSPathMakeRef only works with existing files.
 		// FSCreateResourceFork only works with existing files.
 
 		fd = ::open(path.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
@@ -438,7 +435,18 @@ namespace RM
 		{
 			if (errno != EEXIST) return macos_error_from_errno();
 		}
-		if (fd >= 0) close(fd);
+		else
+		{
+			if (creator || fileType)
+				OS::Internal::SetFinderInfo(path, fileType, creator);
+			
+			close(fd);
+		}
+
+
+		error = ::FSPathMakeRef((const UInt8 *)path.c_str(), &ref, NULL);
+		if (error != noErr)
+			return macos_error(error);
 
 
 		HFSUniStr255 fork = {0,{0}};
@@ -447,6 +455,11 @@ namespace RM
 
 		error = ::FSCreateResourceFork(&ref, fork.length, fork.unicode, 0);
 
+		// CreateResFile returns an error if the fork exists, HCreateResFile
+		// and FSpCreateResFile do not.
+
+
+		if (error == errFSForkExists) error = MacOS::dupFNErr;
 		return macos_error(error);
 	}
 
@@ -476,7 +489,35 @@ namespace RM
 
 		auto rv = CreateResFile(sname);
 
-		return SetResError(rv.error() == errFSForkExists ? 0 : rv.error());
+		return SetResError(rv.error());
+	}
+
+	uint16_t HCreateResFile(uint16_t trap)
+	{
+		// PROCEDURE HCreateResFile (vRefNum: Integer; dirID: LongInt;
+		//                           fileName: Str255);
+
+		uint16_t vRefNum;
+		uint32_t dirID;
+		uint32_t fileName;
+
+		StackFrame<10>(vRefNum, dirID, fileName);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+
+		Log("%04x HCreateResFile(%04x, %08x, %s)\n", 
+			trap, vRefNum, dirID, sname.c_str());
+
+
+		sname = OS::FSSpecManager::ExpandPath(sname, dirID);
+		if (sname.empty())
+		{
+			return SetResError(MacOS::dirNFErr);
+		}
+
+		auto rv = CreateResFile(sname);
+
+		return SetResError(rv.error() == MacOS::dupFNErr ? 0 : rv.error());
 	}
 
 
@@ -512,15 +553,9 @@ namespace RM
 			return SetResError(MacOS::dirNFErr);
 		}
 
-		auto rv = CreateResFile(sname);
-		// returns errFSForkExists if fork already exists.
-		// therefore, if no error, set the ftype/ctype.
-		if (rv.error() == 0)
-		{
-			OS::Internal::SetFinderInfo(sname, fileType, creator);
-		}
+		auto rv = CreateResFile(sname, creator, fileType);
 
-		return SetResError(rv.error() == errFSForkExists ? 0 : rv.error());
+		return SetResError(rv.error() == MacOS::dupFNErr ? 0 : rv.error());
 	}
 
 

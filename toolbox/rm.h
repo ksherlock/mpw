@@ -33,6 +33,7 @@ namespace RM
 	uint16_t UseResFile(uint16_t trap);
 
 	uint16_t CreateResFile(uint16_t trap);
+	uint16_t HCreateResFile(uint16_t trap);
 
 	uint16_t Count1Resources(uint16_t trap);
 	uint16_t UpdateResFile(uint16_t trap);

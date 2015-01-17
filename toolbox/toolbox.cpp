@@ -434,6 +434,10 @@ namespace ToolBox {
 				d0 = RM::HOpenResFile(trap);
 				break;
 
+			case 0xa81b:
+				d0 = RM::HCreateResFile(trap);
+				break;
+
 			case 0xa81c:
 				d0 = RM::Count1Types(trap);
 				break;
