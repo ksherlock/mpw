@@ -104,6 +104,8 @@ namespace OS {
 	{
 		// FSMakeFSSpec(vRefNum: Integer; dirID: LongInt; fileName: Str255; VAR spec: FSSpec): OSErr;
 
+		// todo -- if the file does not exist (but the path is otherwise valid), create the spec but return fnfErr.
+		
 		/*
 		 * See Chapter 2, File Manager / Using the File Manager, 2-35
 		 *

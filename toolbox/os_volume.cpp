@@ -292,7 +292,7 @@ namespace OS {
 		// the current wd and return the id.
 		// (FSMakeSpec handles 0 as a dir, so ok for now)
 		// ioWDDirID
-		memoryWriteLong(0, parm + _ioWDDirID);
+		memoryWriteLong(FSSpecManager::IDForCWD(), parm + _ioWDDirID);
 
 		std::string tmp = "MacOS";
 		ToolBox::WritePString(namePtr, tmp);

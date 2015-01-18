@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <unistd.h>
+#include <sys/param.h>
 
 namespace OS {
 
@@ -15,8 +17,8 @@ namespace OS {
 
 		if (!initialized)
 		{
-			// "/" is item #1
-			//IDForPath("/", true);
+			// "/" is item #2.  0 and 1 are reserved.
+			//can't just call IDForPath because that calls... Init();
 			static std::string RootPath("/");
 
 			std::hash<std::string> hasher;
@@ -25,8 +27,21 @@ namespace OS {
 			assert(_pathQueue.size() == 1);
 			initialized = true;
 		}
-
 	}
+
+	int32_t FSSpecManager::IDForCWD()
+	{
+		char buffer[MAXPATHLEN];
+		char *cp;
+
+		cp = getcwd(buffer, sizeof(buffer));
+		if (cp < 0) return 0;
+
+		std::string path(cp);
+
+		return FSSpecManager::IDForPath(std::move(path), true);
+	}
+
 
 	int32_t FSSpecManager::IDForPath(const std::string &path, bool insert)
 	{

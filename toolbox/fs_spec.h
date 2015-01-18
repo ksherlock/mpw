@@ -16,7 +16,10 @@ namespace OS {
 		static int32_t IDForPath(const std::string &path, bool insert = true);
 		static int32_t IDForPath(std::string &&path, bool insert = true);
 
+		static int32_t IDForCWD();
+
 		static void Init();
+
 
 	private:
 
