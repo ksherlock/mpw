@@ -262,15 +262,14 @@ namespace ToolBox {
 	void dispatch(uint16_t trap)
 	{
 
-		return native_dispatch(trap);
-
-		// hold off on actually _calling_ for now...
-		#if 0
-
 		uint32_t returnPC = 0;
 
 		bool saveA0 = false;
 		uint32_t a0 = cpuGetAReg(0);
+
+
+		// hold off on actually _calling_ for now...
+		#if 0
 
 		if (trap == 0xafff)
 		{
@@ -330,7 +329,7 @@ namespace ToolBox {
 			return;
 		}
 
-
+		#endif
 
 		/*
 		 * The auto-pop bit is bit 10 in an A-line instruction for a
@@ -370,6 +369,7 @@ namespace ToolBox {
 		}
 
 
+		#if 0
 		if (is_tool_trap(trap))
 		{
 			uint16_t tt = trap & 0x03ff;
@@ -414,13 +414,12 @@ namespace ToolBox {
 				assert("OS trap overrides are not yet supported.");
 			}
 		}
-
+		#endif
 
 		native_dispatch(trap);
 
 		if (saveA0) cpuSetAReg(0, a0);
 		if (returnPC) cpuInitializeFromNewPC(returnPC);
-		#endif
 	}
 
 	void native_dispatch(uint16_t trap)
