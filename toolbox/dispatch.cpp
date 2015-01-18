@@ -60,6 +60,9 @@ namespace {
 	uint32_t trap_address[1024];
 	uint32_t os_address[256];
 
+	uint32_t ToolGlue;
+	uint32_t OSGlue;
+
 
 	inline constexpr bool is_tool_trap(uint16_t trap)
 	{
@@ -125,9 +128,8 @@ namespace OS {
 			return 0;
 		}
 
-		// todo -- return stub address.
-		cpuSetAReg(0, 0);
-		return MacOS::dsCoreErr;
+		cpuSetAReg(0, ToolGlue + trapNumber * 4);
+		return 0; //MacOS::dsCoreErr;
 	}
 
 	uint16_t SetToolTrapAddress(uint16_t trap)
@@ -185,8 +187,8 @@ namespace OS {
 			return 0;
 		}
 
-		cpuSetAReg(0, 0);
-		return MacOS::dsCoreErr;
+		cpuSetAReg(0, OSGlue + trapNumber * 4);
+		return 0; // MacOS::dsCoreErr;
 	}
 
 	uint16_t OSDispatch(uint16_t trap)
@@ -235,10 +237,12 @@ namespace ToolBox {
 		std::fill(std::begin(trap_address), std::end(trap_address), 0);
 		std::fill(std::begin(os_address), std::end(os_address), 0);
 
-#if 0
+
 		// alternate entry code
-		ToolGlue = MM::Native::NewPtr(1024 * 4 + 256 * 4 + ..., false, ToolGlue);
-		uint16_t *code = (uint16_t *)Memory + ToolGlue;
+		MM::Native::NewPtr(1024 * 4 + 256 * 4, false, ToolGlue);
+		OSGlue = ToolGlue + 1024 * 4;
+
+		uint16_t *code = (uint16_t *)memoryPointer(ToolGlue);
 
 		for (unsigned i = 0; i < 1024; ++i) {
 			*code++ = 0xafff;
@@ -249,14 +253,20 @@ namespace ToolBox {
 			*code++ = 0xafff;
 			*code++ = 0xa000 | i;
 		}
-		// os return code...
-#endif
+
+		// os return code... pull registers, TST.W d0, etc.
 		return true;
 	}
 
 	void native_dispatch(uint16_t trap);
 	void dispatch(uint16_t trap)
 	{
+
+		return native_dispatch(trap);
+
+		// hold off on actually _calling_ for now...
+		#if 0
+
 		uint32_t returnPC = 0;
 
 		bool saveA0 = false;
@@ -410,6 +420,7 @@ namespace ToolBox {
 
 		if (saveA0) cpuSetAReg(0, a0);
 		if (returnPC) cpuInitializeFromNewPC(returnPC);
+		#endif
 	}
 
 	void native_dispatch(uint16_t trap)

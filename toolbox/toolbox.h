@@ -22,6 +22,7 @@ namespace ToolBox
 	}
 
 
+	bool Init();
 	void dispatch(uint16_t trap);
 
 

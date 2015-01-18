@@ -891,6 +891,7 @@ int main(int argc, char **argv)
 
 	MM::Init(Memory, MemorySize, kGlobalSize, Flags.stackSize);
 	OS::Init();
+	ToolBox::Init();
 	MPW::Init(argc, argv, defines);
 
 
