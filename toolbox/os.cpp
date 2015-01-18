@@ -639,7 +639,7 @@ namespace OS
 
 		int ok;
 
-		ok = ::stat(sname.c_str(), &st);
+		ok = ::lstat(sname.c_str(), &st);
 		if (ok == 0)
 		{
 			if (S_ISDIR(st.st_mode))

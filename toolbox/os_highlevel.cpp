@@ -345,7 +345,7 @@ namespace OS {
 		Log("     FSpDelete(%s)\n", sname.c_str());
 
 
-		if (::stat(sname.c_str(), &st) < 0)
+		if (::lstat(sname.c_str(), &st) < 0)
 			return macos_error_from_errno();
 
 		int ok = 0;
