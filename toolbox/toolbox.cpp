@@ -57,6 +57,7 @@ namespace ToolBox {
 
 	bool Trace = false;
 
+#ifdef OLD_TRAP_DISPATCH
 
 	uint16_t OSDispatch(uint16_t trap)
 	{
@@ -95,7 +96,6 @@ namespace ToolBox {
 
 	}
 
-#ifdef OLD_TRAP_DISPATCH
 	void dispatch(uint16_t trap)
 	{
 

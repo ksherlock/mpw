@@ -188,6 +188,44 @@ namespace OS {
 		cpuSetAReg(0, 0);
 		return MacOS::dsCoreErr;
 	}
+
+	uint16_t OSDispatch(uint16_t trap)
+	{
+		uint16_t selector;
+
+
+		StackFrame<2>(selector);
+		Log("%04x OSDispatch(%04x)\n", trap, selector);
+
+		switch(selector)
+		{
+			case 0x0015:
+				return MM::TempMaxMem();
+
+			case 0x0018:
+				return MM::TempFreeMem();
+
+			case 0x001d:
+				return MM::TempNewHandle();
+
+			case 0x001e:
+				return MM::TempHLock();
+
+			case 0x001f:
+				return MM::TempHUnlock();
+
+			case 0x0020:
+				return MM::TempDisposeHandle();
+
+
+			default:
+				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
+					selector);
+				exit(1);			
+		}
+
+	}
+
 }
 
 namespace ToolBox {
@@ -403,12 +441,17 @@ namespace ToolBox {
 				d0 = OS::Write(trap);
 				break;
 
+			case 0xa207:
+				d0 = OS::HGetVInfo(trap);
+				break;
+
 			case 0xa008: // Create
 			case 0xa208: // HCreate
 				d0 = OS::Create(trap);
 				break;
 
-			case 0xa009:
+			case 0xa009: // Delete
+			case 0xa209: // HDelete
 				d0 = OS::Delete(trap);
 				break;
 
@@ -438,14 +481,19 @@ namespace ToolBox {
 				d0 = OS::GetVol(trap);
 				break;
 
-			case 0xa015: // SetVol
-			case 0xa215: // HSetVol
-				d0 = OS::SetVol(trap);
-				break;
-				
 			case 0xa214:
 				d0 = OS::HGetVol(trap);
 				break;
+
+
+			case 0xa015: // SetVol
+				d0 = OS::SetVol(trap);
+				break;
+
+			case 0xa215: // HSetVol
+				d0 = OS::HSetVol(trap);
+				break;
+				
 
 			case 0xa018:
 				d0 = OS::GetFPos(trap);
@@ -453,6 +501,10 @@ namespace ToolBox {
 
 			case 0xa044:
 				d0 = OS::SetFPos(trap);
+				break;
+
+			case 0xa051:
+				d0 = OS::ReadXPRam(trap);
 				break;
 
 			case 0xa060:
@@ -519,13 +571,19 @@ namespace ToolBox {
 				break;
 
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
-			case 0xa02e:
+			case 0xa02e: // BlockMove
+			case 0xa22e: // BlockMoveData
 				d0 = MM::BlockMove(trap);
 				break;
 
 			case 0xa049:
 				d0 = MM::HPurge(trap);
 				break;
+
+			case 0xa04a:
+				d0 = MM::HNoPurge(trap);
+				break;
+
 
 			case 0xA11D:
 				d0 = MM::MaxMem(trap);
@@ -556,6 +614,11 @@ namespace ToolBox {
 				d0 = MM::HGetState(trap);
 				break;
 
+			case 0xa06a:
+				d0 = MM::HSetState(trap);
+				break;
+
+
 			// MoveHHi (h: Handle);
 			case 0xa064:
 				d0 = MM::MoveHHi(trap);
@@ -568,7 +631,10 @@ namespace ToolBox {
 			case 0xa9e3:
 				d0 = MM::PtrToHand(trap);
 				break;
-				
+			case 0xa9ef:
+				d0 = MM::PtrAndHand(trap);
+				break;
+
 			case 0xa11a:
 				d0 = MM::GetZone(trap);
 				break;
@@ -581,9 +647,17 @@ namespace ToolBox {
 				d0 = MM::HandleZone(trap);
 				break;
 
+			case 0xa128:
+				d0 = MM::RecoverHandle(trap);
+				break;
+
 			// MaxApplZone
 			case 0xa063:
 				d0 = MM::MaxApplZone(trap);
+				break;
+
+			case 0xa162:
+				d0 = MM::PurgeSpace(trap);
 				break;
 
 			// ReadDateTime (VAR sees: LONGINT) : OSErr;
@@ -650,6 +724,19 @@ namespace ToolBox {
 				d0 = MM::EmptyHandle(trap);
 				break;
 
+
+			case 0xa058:
+				d0 = OS::InsTime(trap);
+				break;
+
+			case 0xa059:
+				d0 = OS::RmvTime(trap);
+				break;
+
+			case 0xa05a:
+				d0 = OS::PrimeTime(trap);
+				break;
+
 			// resource manager stuff.
 
 			// Count1Resources (theType: ResType): Integer;
@@ -663,6 +750,14 @@ namespace ToolBox {
 
 			case 0xa80f:
 				d0 = RM::Get1IndType(trap);
+				break;
+
+			case 0xa81a:
+				d0 = RM::HOpenResFile(trap);
+				break;
+
+			case 0xa81b:
+				d0 = RM::HCreateResFile(trap);
 				break;
 
 			case 0xa81c:
@@ -839,6 +934,10 @@ namespace ToolBox {
 
 			case 0xa85d:
 				d0 = Utility::BitTst(trap);
+				break;
+
+			case 0xa88f:
+				d0 = OS::OSDispatch(trap);
 				break;
 
 			default:
