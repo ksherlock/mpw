@@ -881,7 +881,7 @@ namespace MM
 
 		uint8_t *ptr = mcptr + Memory;
 
-		if (mplite_resize(&pool, ptr, newSize) < 0)
+		if (mplite_resize(&pool, ptr, mplite_roundup(&pool, newSize)) < 0)
 		{
 			return SetMemError(MacOS::memFullErr);
 		}
