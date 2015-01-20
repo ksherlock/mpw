@@ -46,6 +46,8 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <macos/errors.h>
+
 #include "os.h"
 #include "os_internal.h"
 #include "toolbox.h"
@@ -92,6 +94,61 @@ namespace OS {
 		if (iter == GestaltMap.end()) return gestaltUndefSelectorErr;
 		response = iter->second;
 		cpuSetAReg(0, response);
+
+		return 0;
+	}
+
+
+	uint16_t SysEnvirons(uint16_t trap)
+	{
+		//  FUNCTION SysEnvirons (versionRequested: Integer;
+		//                        VAR theWorld: SysEnvRec): OSErr;
+
+		/*
+		 * on entry:
+		 * D0 Version requested
+		 * A0 SysEnvRec pointer
+		 *
+		 * on exit:
+		 * D0 Result code
+		 *
+		 */
+
+		enum {
+			/* SysEnvRec */
+			_environsVersion = 0,
+			_machineType = 2,
+			_systemVersion = 4,
+			_processor = 6,
+			_hasFPU = 8,
+			_hasColorQD = 9,
+			_keyBoardType = 10,
+			_atDrvrVersNum = 12,
+			_sysVRefNum = 14,
+		};
+
+		uint16_t versionRequested = cpuGetDReg(0);
+		uint32_t theWorld = cpuGetAReg(0);
+
+		Log("%04x SysEnvirons(%04x, %08x)\n", trap, versionRequested, theWorld);
+
+		memoryWriteWord(2, theWorld + _environsVersion);
+
+		// negative version.
+		if (versionRequested >= 0x8000)
+			return MacOS::envBadVers;
+
+		if (versionRequested > 2)
+			return MacOS::envVersTooBig;
+
+		memoryWriteWord(0, theWorld + _machineType); // 0 = unknown model newer than the IIci (v1) or IIfx (v2)
+		memoryWriteWord(1 + cpuGetModelMajor(), theWorld + _processor);
+		memoryWriteWord(0x0700, theWorld + _systemVersion); // system 7
+		memoryWriteWord(0, theWorld + _hasFPU);
+		memoryWriteWord(0, theWorld + _hasColorQD);
+		memoryWriteWord(5, theWorld + _keyBoardType); // standard adb I guess
+		memoryWriteWord(0, theWorld + _atDrvrVersNum); // no appletalk
+		memoryWriteWord(-1, theWorld + _sysVRefNum); // System folder #
 
 		return 0;
 	}
