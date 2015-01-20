@@ -5,6 +5,8 @@ MAKEFLAGS += --no-builtin-rules
 .SUFFIXES:
 .SECONDARY:
 
+MPW ?= mpw
+
 LIBS = \
 	{Libraries}Stubs.o \
 	{CLibraries}StdCLib.o \
@@ -43,8 +45,8 @@ clean :
 
 
 % : o/%.o
-	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+	$(MPW) Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 o/%.o : %.c
-	mpw SC $(SCFLAGS) $< -o $@
+	$(MPW) SC $(SCFLAGS) $< -o $@
 
