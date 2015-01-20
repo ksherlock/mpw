@@ -99,6 +99,7 @@ namespace OS
 
 	#pragma mark - Gestalt Manager
 	uint16_t Gestalt(uint16_t trap);
+	uint16_t SysEnvirons(uint16_t trap);
 
 	#pragma mark - XP Ram
 	uint16_t ReadXPRam(uint16_t trap);

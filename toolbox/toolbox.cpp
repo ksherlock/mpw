@@ -218,6 +218,10 @@ namespace ToolBox {
 				d0 = OS::Gestalt(trap);
 				break;
 
+			case 0xa090:
+				d0 = OS::SysEnvirons(trap);
+				break;
+
 			// SetPtrSize (p: Ptr; newSize: Size);
 			case 0xa020:
 				d0 = MM::SetPtrSize(trap);
