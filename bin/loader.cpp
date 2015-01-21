@@ -393,6 +393,8 @@ void GlobalInit()
 	
 	// 0x0130 -- ApplLimit
 	memoryWriteLong(Flags.memorySize - Flags.stackSize - 1, MacOS::ApplLimit);
+	memoryWriteLong(kGlobalSize, MacOS::ApplZone);
+	memoryWriteLong(Flags.memorySize - 1, MacOS::BufPtr);
 }
 
 
