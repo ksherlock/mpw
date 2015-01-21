@@ -260,7 +260,32 @@ namespace RM
 		return SetResError(d0);
 	}
 
+	uint16_t GetNamedResource(uint16_t trap)
+	{
+		// FUNCTION GetNamedResource (theType: ResType; name: Str255): Handle;
 
+		uint32_t sp;
+		uint32_t theType;
+		uint32_t name;
+
+		sp = StackFrame<8>(theType, name);
+
+		std::string sname = ToolBox::ReadPString(name);
+
+		Log("%04x GetNamedResource(%08x ('%s'), %s)\n", 
+			trap, theType, TypeToString(theType).c_str(), sname.c_str());
+
+		uint32_t resourceHandle;
+		uint32_t d0;
+		d0 = Native::LoadResource(theType, resourceHandle, 
+			[theType, name](){
+				return ::GetNamedResource(theType, memoryPointer(name));
+			}
+		);
+
+		ToolReturn<4>(sp, resourceHandle);
+		return SetResError(d0);
+	}
 
 	uint16_t GetResource(uint16_t trap)
 	{
