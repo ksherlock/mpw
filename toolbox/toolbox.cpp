@@ -490,6 +490,10 @@ namespace ToolBox {
 				d0 = RM::GetResource(trap);
 				break;
 
+			case 0xa9a1:
+				d0 = RM::GetNamedResource(trap);
+				break;
+
 			case 0xa9a2:
 				d0 = RM::LoadResource(trap);
 				break;
