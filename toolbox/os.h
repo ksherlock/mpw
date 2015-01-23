@@ -110,6 +110,10 @@ namespace OS
 	uint16_t PrimeTime(uint16_t trap);
 	uint16_t RmvTime(uint16_t trap);
 
+	#pragma mark HWPriv
+	uint16_t HWPriv(uint16_t trap);
+	uint16_t FlushCodeCache(uint16_t trap);
+
 }
 
 #endif
