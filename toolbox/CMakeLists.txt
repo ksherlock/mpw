@@ -10,12 +10,13 @@ set(TOOLBOX_SRC
 	loader.cpp
 	rm.cpp
 	os.cpp
-	os_internal.cpp
-	os_hfs_dispatch.cpp
-	os_highlevel.cpp
 	os_alias.cpp
 	os_fileinfo.cpp
 	os_gestalt.cpp
+	os_hfs_dispatch.cpp
+	os_highlevel.cpp
+	os_hwpriv.cpp
+	os_internal.cpp
 	os_volume.cpp
 	qd.cpp
 	sane.cpp

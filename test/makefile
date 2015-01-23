@@ -24,7 +24,8 @@ LDFLAGS = -w -c 'MPS ' -t MPST \
 
 SCFLAGS = -p
 
-TARGETS = test_new_handle test_new_handle_2 test_new_pointer test_volumes test_createresfile
+TARGETS = test_new_handle test_new_handle_2 test_new_pointer test_volumes \
+	test_createresfile test_hwpriv
 
 all : $(TARGETS)
 

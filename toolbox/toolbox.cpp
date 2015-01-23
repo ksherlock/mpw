@@ -425,6 +425,16 @@ namespace ToolBox {
 				d0 = OS::PrimeTime(trap);
 				break;
 
+
+			case 0xA0BD:
+				d0 = OS::FlushCodeCache(trap);
+				break;
+
+			case 0xA098:
+			case 0xA198: // don't save a0
+				d0 = OS::HWPriv(trap);
+				break;
+
 			// resource manager stuff.
 
 			// Count1Resources (theType: ResType): Integer;
