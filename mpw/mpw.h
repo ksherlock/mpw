@@ -101,7 +101,8 @@ namespace MPW {
 
 
 	// should add argc/argv/envp...
-	uint16_t Init(int argc, char **argv, const std::vector<std::string> &defines);
+	uint16_t InitEnvironment(const std::vector<std::string> &defines);
+	uint16_t Init(int argc, char **argv);
 
 	uint32_t ExitStatus();
 
