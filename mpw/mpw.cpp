@@ -176,7 +176,33 @@ namespace MPW
 		return path; // unknown.
 	}
 
-	uint16_t Init(int argc, char **argv, const std::vector<std::string> &defines)
+	uint16_t InitEnvironment(const std::vector<std::string> &defines)
+	{
+		void EnvLoadFile(const std::string &envfile);
+		void EnvLoadArray(const std::vector<std::string> &data);
+
+		std::string m(RootDir());
+		if (!m.empty())
+		{
+			std::string mm = ToolBox::UnixToMac(m);
+			if (mm.back() != ':') mm.push_back(':');
+
+			Environment.emplace(std::string("MPW"), mm);
+		}
+
+		if (defines.size())
+			EnvLoadArray(defines);
+
+		if (!m.empty())
+		{
+			std::string path(RootDirPathForFile("Environment.text"));
+			EnvLoadFile(path);
+		}
+
+		return 0;
+	}
+
+	uint16_t Init(int argc, char **argv)
 	{
 		/*
 		FDTable.resize(16);
@@ -274,32 +300,9 @@ namespace MPW
 
 		}
 
-		// environment,
-		// just use $MPW and synthesize the other ones.
+		// environment
 		{
-			void EnvLoadFile(const std::string &envfile);
-			void EnvLoadArray(const std::vector<std::string> &data);
-
-			std::string m(RootDir());
-			if (!m.empty())
-			{
-				std::string mm = ToolBox::UnixToMac(m);
-				if (mm.back() != ':') mm.push_back(':');
-
-				Environment.emplace(std::string("MPW"), mm);
-			}
 			Environment.emplace(std::string("Command"), command);
-
-
-			if (defines.size())
-				EnvLoadArray(defines);
-
-			if (!m.empty())
-			{
-
-				std::string path(RootDirPathForFile("Environment.text"));
-				EnvLoadFile(path);
-			}
 
 			std::deque<std::string> e;
 

@@ -646,10 +646,8 @@ bool file_exists(const std::string & name)
 	return ::stat(name.c_str(), &st) == 0 && S_ISREG(st.st_mode);
 }
 
-std::string find_exe(const std::string &name)
+std::string old_find_exe(const std::string &name)
 {
-	// TODO -- use the environment variable for directories.
-
 	if (file_exists(name)) return name;
 
 	// if name is a path, then it doesn't exist.
@@ -667,6 +665,65 @@ std::string find_exe(const std::string &name)
 
 	return std::string();
 
+}
+
+
+// this needs to run *after* the MPW environment variables are loaded.
+std::string find_exe(const std::string &name)
+{
+
+	// if this is an absolute or relative name, return as-is.
+
+	if (name.find(':') != name.npos) {
+		std::string path = ToolBox::MacToUnix(name);
+		if (file_exists(path)) return path;
+		return "";
+	}
+
+	if (name.find('/') != name.npos) {
+		if (file_exists(name)) return name;
+		return "";
+	}
+
+
+	// otherwise, check the Commands variable for locations.
+	std::string command = MPW::GetEnv("Commands");
+	if (command.empty()) return old_find_exe(name);
+
+
+	// string is , separated, possibly in MacOS format.
+	std::string::size_type begin = 0;
+	std::string::size_type end = 0;
+	for(;;)
+	{
+		std::string path;
+		end = command.find(',', begin);
+
+		if (end == std::string::npos) {
+
+			if (begin >= command.length()) return "";
+
+			path = command.substr(begin);
+		}
+		else
+		{
+			size_t count = end - begin - 1;
+			path = command.substr(begin, count);
+		}
+
+		if (!path.empty())
+		{
+			// convert to unix.
+			path = ToolBox::MacToUnix(path);
+			// should always have a length...
+			if (path.length() && path.back() != '/') path.push_back('/');
+			path.append(name);
+			if (file_exists(path)) return path;
+		}
+
+		if (end == std::string::npos) return "";
+		begin = end + 1;
+	}
 }
 
 
@@ -868,14 +925,17 @@ int main(int argc, char **argv)
 	}
 
 
-	std::string command(argv[0]); // InitMPW updates argv...
 
+	MPW::InitEnvironment(defines);
+
+	std::string command(argv[0]); // InitMPW updates argv...
 	command = find_exe(command);
 	if (command.empty())
 	{
 		std::string mpw = MPW::RootDir();
 		fprintf(stderr, "Unable to find command %s\n", argv[0]);
 		fprintf(stderr, "$MPW = %s\n", mpw.c_str());
+		fprintf(stderr, "$Commands = %s\n", MPW::GetEnv("Commands").c_str());
 		exit(EX_USAGE);
 	}
 	argv[0] = ::strdup(command.c_str()); // hmm.. could setenv(mpw_command) instead.
@@ -894,7 +954,7 @@ int main(int argc, char **argv)
 	MM::Init(Memory, MemorySize, kGlobalSize, Flags.stackSize);
 	OS::Init();
 	ToolBox::Init();
-	MPW::Init(argc, argv, defines);
+	MPW::Init(argc, argv);
 
 
 	cpuStartup();

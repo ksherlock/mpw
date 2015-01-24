@@ -16,6 +16,10 @@ ShellDirectory=$MPW
 SysTempFolder=/tmp/
 TempFolder=/tmp/
 
+# comma-separated list of directories, like $PATH
+# add . to include the current directory.
+Commands=${MPW}Tools:
+
 # MPW IIgs 1.1
 AIIGSIncludes=${MPW}Interfaces:AIIGSIncludes:
 RIIGSIncludes=${MPW}Interfaces:RIIGSIncludes:
