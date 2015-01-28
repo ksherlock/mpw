@@ -269,7 +269,7 @@ namespace OS
 				// MrC / MrCpp temp file.
 				if (ext == "n")
 					return true;
-				// Newton C++ Tootls output
+				// Newton C++ Tools output
 				if (ext == "ntkc")
 					return true;				
 				break;
