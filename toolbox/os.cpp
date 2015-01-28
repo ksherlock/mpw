@@ -269,6 +269,9 @@ namespace OS
 				// MrC / MrCpp temp file.
 				if (ext == "n")
 					return true;
+				// Newton C++ Tootls output
+				if (ext == "ntkc")
+					return true;				
 				break;
 
 			case 'o':
@@ -276,7 +279,12 @@ namespace OS
 					return true;
 				if (ext == "obj")
 					return true;
+				break;
 
+			case 's':
+				// Newton C++ Intermediate file
+				if (ext == "sym")
+					return true;				
 				break;
 		}
 
