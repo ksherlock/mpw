@@ -21,6 +21,7 @@ set(TOOLBOX_SRC
 	qd.cpp
 	sane.cpp
 	saneparser.cpp
+	packages.cpp
 	pathnames.cpp
 	process.cpp
 	utility.cpp

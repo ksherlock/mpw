@@ -51,7 +51,6 @@
 
 
 
-
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
@@ -376,7 +375,7 @@ namespace ToolBox {
 
 
 			case 0xa9ed:
-				d0 = OS::Pack6(trap);
+				d0 = Packages::Pack6(trap);
 				break;
 
 			//_CmpString [MARKS,CASE]
