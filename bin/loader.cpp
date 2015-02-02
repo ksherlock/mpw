@@ -59,6 +59,8 @@
 #include "loader.h"
 #include "debugger.h"
 
+#include <cxx/string_splitter.h>
+
 
 #define LOADER_LOAD
 
@@ -687,43 +689,26 @@ std::string find_exe(const std::string &name)
 
 
 	// otherwise, check the Commands variable for locations.
-	std::string command = MPW::GetEnv("Commands");
-	if (command.empty()) return old_find_exe(name);
+	std::string commands = MPW::GetEnv("Commands");
+	if (commands.empty()) return old_find_exe(name);
 
 
 	// string is , separated, possibly in MacOS format.
-	std::string::size_type begin = 0;
-	std::string::size_type end = 0;
-	for(;;)
+
+	for (auto iter = string_splitter(commands, ','); iter; ++iter)
 	{
-		std::string path;
-		end = command.find(',', begin);
+		if (iter->empty()) continue;
+		std::string path = *iter;
 
-		if (end == std::string::npos) {
-
-			if (begin >= command.length()) return "";
-
-			path = command.substr(begin);
-		}
-		else
-		{
-			size_t count = end - begin - 1;
-			path = command.substr(begin, count);
-		}
-
-		if (!path.empty())
-		{
-			// convert to unix.
-			path = ToolBox::MacToUnix(path);
-			// should always have a length...
-			if (path.length() && path.back() != '/') path.push_back('/');
-			path.append(name);
-			if (file_exists(path)) return path;
-		}
-
-		if (end == std::string::npos) return "";
-		begin = end + 1;
+		// convert to unix.
+		path = ToolBox::MacToUnix(path);
+		// should always have a length...
+		if (path.length() && path.back() != '/') path.push_back('/');
+		path.append(name);
+		if (file_exists(path)) return path;
 	}
+
+	return "";
 }
 
 
