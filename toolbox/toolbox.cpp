@@ -33,16 +33,24 @@
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
 
+#include <macos/traps.h>
+#include <macos/errors.h>
+ 
 #include "toolbox.h"
-#include "rm.h"
+
+#include "loader.h"
 #include "mm.h"
 #include "os.h"
+#include "packages.h"
+#include "process.h"
 #include "qd.h"
+#include "rm.h"
 #include "sane.h"
-#include "utility.h"
-#include "loader.h"
-#include "macos/traps.h"
 #include "stackframe.h"
+#include "utility.h"
+
+
+
 
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
@@ -80,6 +88,11 @@ namespace ToolBox {
 			case 0x0020:
 				return MM::TempDisposeHandle();
 
+			case 0x0037:
+				return Process::GetCurrentProcess();
+
+			case 0x003a:
+				return Process::GetProcessInformation();
 
 			default:
 				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 

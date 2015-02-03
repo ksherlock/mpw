@@ -22,6 +22,7 @@ set(TOOLBOX_SRC
 	sane.cpp
 	saneparser.cpp
 	pathnames.cpp
+	process.cpp
 	utility.cpp
 	fs_spec.cpp
 	realpath.c
