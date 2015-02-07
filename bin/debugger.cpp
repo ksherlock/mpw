@@ -643,7 +643,7 @@ void List(uint32_t pc, int count)
 
 void List(uint32_t pc, uint32_t endpc)
 {
-	if (endpc < pc) return;
+	if ((int32_t)endpc < (int32_t)pc) return;
 
 	if (pc & 0x01)
 	{
@@ -864,7 +864,7 @@ void Break(int32_t address)
 		remove = true;
 	}
 
-	// what was I thinking? only allow 24-bit addresses?
+	// 24-bit address only.
 	if ((address & 0xff000000) == 0)
 	{
 		if (remove) brkMap.remove(address);
