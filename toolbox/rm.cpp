@@ -890,24 +890,19 @@ namespace RM
 
 
 		Handle nativeHandle = NULL;
-		if (theData)
-		{
-			uint32_t handleSize;
-			MM::Native::GetHandleSize(theData, handleSize);
 
-			if (handleSize)
-			{
+		auto info = MM::GetHandleInfo(theData);
+		if (info.error()) return SetResError(MacOS::addResFailed);
 
-				nativeHandle = ::NewHandle(handleSize);
-				if (!nativeHandle) return SetResError(MacOS::addResFailed);
 
-				uint32_t src = memoryReadLong(theData);
+		nativeHandle = ::NewHandle(info->size);
+		if (!nativeHandle) return SetResError(MacOS::addResFailed);
 
-				std::memcpy(*(uint8_t **)nativeHandle, memoryPointer(src), handleSize);  
 
-				rhandle_map.insert({theData, nativeHandle});
-			}
-		}
+		std::memcpy(*(uint8_t **)nativeHandle, memoryPointer(info->address), info->size);  
+
+		rhandle_map.insert({theData, nativeHandle});
+
 		// AddResource assumes ownership of the handle.
 		::AddResource(nativeHandle, theType, theID, memoryPointer(namePtr));
 		return SetResError(::ResError());
@@ -1147,10 +1142,9 @@ namespace RM
 
 
 		// if it has a size, it's loaded...
-		uint32_t handleSize;
-		err = MM::Native::GetHandleSize(theResource, handleSize);
-		if (err) return SetResError(err);
-		if (handleSize) return SetResError(0);
+		auto info = MM::GetHandleInfo(theResource);
+		if (info.error()) return SetResError(resNotFound);
+		if (info->size) return SetResError(0);
 
 		// otherwise, load it
 
@@ -1162,7 +1156,7 @@ namespace RM
 
 		::LoadResource(nativeHandle);
 		err = ::ResError();
-		if (err) return SetResError(err); // ?!?!
+		if (err) return SetResError(err);
 
 
 		size = ::GetHandleSize(nativeHandle);
@@ -1174,8 +1168,9 @@ namespace RM
 
 		if (size)
 		{
-			uint32_t ptr = memoryReadLong(theResource);
-			std::memcpy(memoryPointer(ptr), *(void **)nativeHandle, size);
+			info = MM::GetHandleInfo(theResource);
+
+			std::memcpy(memoryPointer(info->address), *(void **)nativeHandle, size);
 		}
 
 		return SetResError(0);
