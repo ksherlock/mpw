@@ -2,6 +2,16 @@
 #include <stdio.h>
 #include <string.h>
 
+	/*
+	 *
+	 * MacOS/Basilisk:
+	 *
+	 * GetVol(): vRefNum = -32637
+	 * GetVol(MacOS): vRefNum = -32637
+	 * HGetVol(): vRefNum = -32637 dirID = 3382
+	 * HGetVol(MacOS): vRefNum = -32637 dirID = 3382
+	 *
+	 */
 
 void gv(StringPtr name)
 {
