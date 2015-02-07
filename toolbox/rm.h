@@ -45,7 +45,7 @@ namespace RM
 	uint16_t SetResAttrs(uint16_t trap);
 	uint16_t WriteResource(uint16_t trap);
 	uint16_t DetachResource(uint16_t trap);
-
+	uint16_t ChangedResource(uint16_t trap);
 	uint16_t RemoveResource(uint16_t trap);
 
 	uint16_t GetResourceSizeOnDisk(uint16_t trap);

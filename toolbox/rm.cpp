@@ -780,6 +780,60 @@ namespace RM
 		return SetResError(::ResError());
 	}
 
+
+	uint16_t ChangedResource(uint16_t trap)
+	{
+		// PROCEDURE ChangedResource (theResource: Handle);
+
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x ChangedResource(%04x)\n", trap, theResource);
+
+
+		// set the resChanged attribute so when UpdateResFile() is called
+		// (or the app exits) 
+		// also needs to update the carbon handle/data with the mpw handle
+		// since the data has changed....
+
+
+		auto iter = rhandle_map.find(theResource);
+		if (iter == rhandle_map.end())
+		{
+			return SetResError(MacOS::resNotFound);
+		}
+
+		Handle nativeHandle = iter->second;
+
+		// check if handle size changed, resync data
+
+		auto info = MM::GetHandleInfo(theResource);
+		if (!info.error()) return SetResError(info.error());
+
+
+		uint32_t nativeSize = ::GetHandleSize(nativeHandle);
+
+		if (nativeSize != info->size) {
+			// resize...
+			// chould get state / unlock / set state ... but that does nothing in OS X.
+
+			::SetHandleSize(nativeHandle, info->size);
+			OSErr err = MemError();
+			if (err) return SetResError(err);
+		}
+
+		std::memcpy(*nativeHandle, memoryPointer(info->address), info->size);
+
+		::ChangedResource(nativeHandle);
+
+		return SetResError(::ResError());
+	}
+
+
+
+
+
 	uint16_t GetResFileAttrs(uint16_t trap)
 	{
 		// FUNCTION GetResFileAttrs (refNum: Integer): Integer;

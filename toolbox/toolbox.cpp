@@ -549,6 +549,10 @@ namespace ToolBox {
 				d0 = RM::AddResource(trap);
 				break;
 
+			case 0xa9aa:
+				d0 = RM::ChangedResource(trap);
+				break;
+
 			case 0xa9ad:
 				d0 = RM::RemoveResource(trap);
 				break;
