@@ -789,7 +789,7 @@ namespace RM
 
 		StackFrame<4>(theResource);
 
-		Log("%04x ChangedResource(%04x)\n", trap, theResource);
+		Log("%04x ChangedResource(%08x)\n", trap, theResource);
 
 
 		// set the resChanged attribute so when UpdateResFile() is called
