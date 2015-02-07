@@ -25,7 +25,6 @@
  */
 
 #include <string>
-//#include <unordered_map>
 #include <list>
 #include <map>
 #include <unordered_set>
@@ -918,6 +917,7 @@ namespace RM
 			trap, theData, theType, TypeToString(theType).c_str(), theID, sname.c_str()
 		);
 
+		BypassResourceFlipper(theType);
 
 		Handle nativeHandle = NULL;
 
