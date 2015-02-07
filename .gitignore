@@ -2,3 +2,9 @@
 *.dSYM
 build/
 fellow/
+dist/
+rtl/
+docs/
+MrC/
+testing/
+
