@@ -28,9 +28,9 @@
 //#include <unordered_map>
 #include <list>
 #include <map>
+#include <unordered_set>
 
 #include <CoreServices/CoreServices.h>
-
 
 #include "rm.h"
 #include "toolbox.h"
@@ -60,6 +60,32 @@ namespace
 {
 
 	bool ResLoad = true;
+
+
+	// https://developer.apple.com/library/mac/documentation/Carbon/Reference/CoreEndianReference/
+	
+	OSStatus FlipperNoFlipping(OSType dataDomain, OSType dataType, SInt16 id, void *dataPtr, ByteCount dataSize, Boolean currentlyNative, void *refCon)
+	{
+		return 0;
+	}
+
+	void BypassResourceFlipper(OSType dataType)
+	{
+		static std::unordered_set<OSType> Types;
+
+		if (Types.find(dataType) != Types.end()) return;
+
+		CoreEndianFlipProc proc;
+		void *refCon;
+
+		if (::CoreEndianGetFlipper(kCoreEndianResourceManagerDomain, dataType, &proc, &refCon) == 0)
+		{
+			::CoreEndianInstallFlipper(kCoreEndianResourceManagerDomain, dataType,  FlipperNoFlipping, nullptr);
+			//fprintf(stderr, "Endian Flipper was installed for resource '%s'\n", TypeToString(dataType).c_str());
+		}
+
+		Types.insert(dataType);
+	}
 
 #if 0
 	struct ResEntry
@@ -143,8 +169,12 @@ namespace RM
 			uint32_t size;
 
 			theHandle = 0;
+
+
 			if (!LoadResType(type))
 				return SetResError(resNotFound);
+
+			BypassResourceFlipper(type);
 
 			nativeHandle = fx();
 
