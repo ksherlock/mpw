@@ -44,6 +44,7 @@
 
 using ToolBox::Log;
 
+
 namespace 
 {
 	mplite_t pool;
@@ -58,27 +59,22 @@ namespace
 	// map of ptr -> size
 	std::map<uint32_t, uint32_t> PtrMap;
 
-	struct HandleInfo
-	{
-		uint32_t address;
-		uint32_t size;
-		bool locked;
-		bool purgeable;
-		bool resource;
 
-		HandleInfo(uint32_t a = 0, uint32_t s = 0) : 
-			address(a), size(s), locked(false), purgeable(false), resource(false)
-		{}
-	};
 
 	// map of handle -> size [? just use Ptr map?]
-	std::map<uint32_t, HandleInfo> HandleMap;
+	std::map<uint32_t, MM::HandleInfo> HandleMap;
 
-	inline int16_t SetMemError(int16_t error)
+	inline MacOS::macos_error SetMemError(MacOS::macos_error error)
 	{
 		memoryWriteWord(error, MacOS::MemErr);
 		return error;
 	}
+
+	inline MacOS::macos_error SetMemError(int16_t error)
+	{
+		return SetMemError((MacOS::macos_error)error);
+	}
+
 
 	bool alloc_handle_block()
 	{
@@ -583,6 +579,31 @@ namespace MM
 
 	}
 
+
+	#pragma mark --
+
+	tool_return<uint32_t> GetHandleSize(uint32_t handle)
+	{
+
+		const auto iter = HandleMap.find(handle);
+
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+
+		SetMemError(0);
+		return iter->second.size;
+	}
+
+	tool_return<HandleInfo> GetHandleInfo(uint32_t handle)
+	{
+		const auto iter = HandleMap.find(handle);
+
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
+		SetMemError(0);
+		return iter->second;		
+	}
+
+
+	#pragma mark --
 
 
 	uint16_t BlockMove(uint16_t trap)

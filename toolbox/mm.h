@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <macos/tool_return.h>
+
 namespace MM
 {
 	// native functions.
@@ -33,6 +35,26 @@ namespace MM
 	}
 
 	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t globals, uint32_t stack);
+
+
+	struct HandleInfo
+	{
+		uint32_t address = 0;
+		uint32_t size = 0;
+		bool locked = false;
+		bool purgeable = false;
+		bool resource = false;
+
+		HandleInfo(uint32_t a = 0, uint32_t s = 0) : 
+			address(a), size(s)
+		{}
+	};
+
+	using MacOS::tool_return;
+
+	tool_return<HandleInfo> GetHandleInfo(uint32_t handle);
+
+	tool_return<uint32_t> GetHandleSize(uint32_t handle);
 
 
 	uint16_t BlockMove(uint16_t trap);
