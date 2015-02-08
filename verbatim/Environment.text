@@ -4,7 +4,10 @@
 # $MPW uses MacOS : paths.
 #
 # $MPW includes the trailing ':'.
-#Be mindful of this since '::' is equivalent to '..' in Unix.
+# Since '::' is equivalent to '..' in Unix,
+# A ':'' after a variable (eg, ${MPW}:)
+# will be dropped if it's duplicative.
+#
 #
 # = assigns (replacing any existing value)
 # ?= will not replace an existing value.

@@ -82,6 +82,20 @@ namespace {
 	%%{
 		machine variables;	
 
+		coalesce_colon := |*
+
+			':' {
+				if (rv.length() && rv.back() != ':')
+					rv.push_back(':');
+
+				fgoto main;
+			};
+			any {
+				fhold;
+				fgoto main;
+			};
+		*|;
+
 		main := |*
 
 			'{' [A-Za-z0-9_]+ '}' {
@@ -90,15 +104,23 @@ namespace {
 				auto iter = Environment.find(name);
 				if (iter != Environment.end())
 					rv.append(iter->second);
+
+				fgoto coalesce_colon;
 			};
 
 			# backwards compatibility.
 			'${' [A-Za-z0-9_]+ '}' {
 
-				std::string name(ts + 2, te - 1);
-				auto iter = Environment.find(name);
-				if (iter != Environment.end())
-					rv.append(iter->second);
+				if (pathname) {
+					rv.append(ts, te);
+				} else {
+					std::string name(ts + 2, te - 1);
+					auto iter = Environment.find(name);
+					if (iter != Environment.end())
+						rv.append(iter->second);
+
+					fgoto coalesce_colon;
+				}
 			};
 
 			# backwards compatibility.
@@ -112,6 +134,8 @@ namespace {
 					auto iter = Environment.find(name);
 					if (iter != Environment.end())
 						rv.append(iter->second);
+
+					fgoto coalesce_colon;
 				}
 			};
 
