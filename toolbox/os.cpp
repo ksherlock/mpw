@@ -1026,6 +1026,31 @@ namespace OS
 		return MacOS::dsCoreErr;
 	}
 
+	uint16_t SetOSTrapAddress(uint16_t trap)
+	{
+		//pascal void SetOSTrapAddress(long trapAddr, short trapNum);
+
+		/* 
+		 * on entry:
+		 * A0 Address of patch
+		 * D0 trap number
+		 *
+		 * on exit:
+		 *
+		 */
+
+		uint16_t trapNumber = cpuGetDReg(0);
+		uint32_t trapAddress = cpuGetAReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa000);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x SetOSTrapAddress($%08x, $%04x %s)\n",
+			trap, trapAddress, trapNumber, trapName);
+
+
+		return MacOS::dsCoreErr;
+	}
+
 
 	#pragma mark XP - RAM
 

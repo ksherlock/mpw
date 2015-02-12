@@ -91,6 +91,7 @@ namespace OS
 	uint16_t SetToolTrapAddress(uint16_t trap);
 
 	uint16_t GetOSTrapAddress(uint16_t trap);
+	uint16_t SetOSTrapAddress(uint16_t trap);
 
 	#pragma mark - Alias Manager
 

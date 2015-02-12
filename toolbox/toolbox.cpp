@@ -222,6 +222,10 @@ namespace ToolBox {
 				d0 = OS::GetOSTrapAddress(trap);
 				break;
 
+			case 0xa247:
+				d0 = OS::SetOSTrapAddress(trap);
+				break;
+
 			case 0xA823:
 				d0 = OS::AliasDispatch(trap);
 				break;
