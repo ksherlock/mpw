@@ -191,6 +191,38 @@ namespace OS {
 		return 0; // MacOS::dsCoreErr;
 	}
 
+	uint16_t SetOSTrapAddress(uint16_t trap)
+	{
+		//pascal void SetOSTrapAddress(long trapAddr, short trapNum);
+
+		/* 
+		 * on entry:
+		 * A0 Address of patch
+		 * D0 trap number
+		 *
+		 * on exit:
+		 *
+		 */
+
+		// Used by 3.2, 3.3 Link to patch
+		// MaxBlock (bug with CloseResFile).
+
+		uint16_t trapNumber = cpuGetDReg(0);
+		uint32_t trapAddress = cpuGetAReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa000);
+		if (!trapName) trapName = "Unknown";
+
+		Log("%04x SetToolTrapAddress($%08x, $%04x (%s))\n",
+			trap, trapAddress, trapNumber, trapName);
+
+
+		trapNumber &= 0x00ff;
+		os_address[trapNumber] = trapAddress;
+
+		return 0;
+	}
+
+
 	uint16_t OSDispatch(uint16_t trap)
 	{
 		uint16_t selector;
@@ -540,6 +572,10 @@ namespace ToolBox {
 
 			case 0xA346:
 				d0 = OS::GetOSTrapAddress(trap);
+				break;
+
+			case 0xa247:
+				d0 = OS::SetOSTrapAddress(trap);
 				break;
 
 			case 0xA823:
