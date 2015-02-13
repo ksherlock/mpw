@@ -6,6 +6,45 @@
 
 // 
 
+
+template<int Bytes>
+void Push__(uint32_t sp)
+{
+	static_assert(Bytes == 0, "Invalid Stack Size");
+}
+
+template<int Bytes, typename... Args>
+void Push__(uint32_t sp, uint16_t value, Args&&... args);
+
+template<int Bytes, typename... Args>
+void Push__(uint32_t sp, uint32_t value, Args&&... args);
+
+
+template<int Bytes, typename... Args>
+void Push__(uint32_t sp, uint16_t value, Args&&... args)
+{
+	memoryWriteWord(value, sp);
+	Push__<Bytes-2>(sp + 2, std::forward<Args>(args)...);
+}
+
+template<int Bytes, typename... Args>
+void Push__(uint32_t sp, uint32_t value, Args&&... args)
+{
+	memoryWriteLong(value, sp);
+	Push__<Bytes-4>(sp + 4, std::forward<Args>(args)...);
+}
+
+template<int Bytes, typename... Args>
+void Push(Args&&... args)
+{
+	uint32_t sp = cpuGetAReg(7) - Bytes;
+	cpuSetAReg(7, sp);
+
+	Push__<Bytes>(sp, std::forward<Args>(args)...);
+
+}
+
+
 template<unsigned N>
 void ToolReturn(uint32_t sp, uint32_t value)
 {

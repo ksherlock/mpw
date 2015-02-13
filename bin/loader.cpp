@@ -687,7 +687,6 @@ std::string find_exe(const std::string &name)
 		return "";
 	}
 
-
 	// otherwise, check the Commands variable for locations.
 	std::string commands = MPW::GetEnv("Commands");
 	if (commands.empty()) return old_find_exe(name);
@@ -938,6 +937,7 @@ int main(int argc, char **argv)
 
 	MM::Init(Memory, MemorySize, kGlobalSize, Flags.stackSize);
 	OS::Init();
+	ToolBox::Init();
 	MPW::Init(argc, argv);
 
 
