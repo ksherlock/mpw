@@ -1,5 +1,15 @@
 
 -------------------------
+0.8.0 - February 12, 2014
+-------------------------
+
+* new debugger feature: templates ("a0;t HFileInfo" to display as an HFileInfo struct)
+* Prevent OS X Resource Manager from byteswapping resource data. Rez and DeRez now work.
+* .sym and .ntkc files considered binary (Newton tools)
+* some support for the MetroWerks MPW tools
+* Lots of other miscellaneous bug fixes and tweaks
+
+-------------------------
 0.7.9.a - January 4, 2014
 -------------------------
 
