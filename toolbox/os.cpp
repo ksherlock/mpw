@@ -1180,7 +1180,7 @@ namespace OS
 					iter->when = now + std::chrono::microseconds(micro);
 
 				}
-				memoryWriteWord(tmTaskPtr + _qType, 0x8000);
+				memoryWriteWord(0x8000, tmTaskPtr + _qType);
 			}
 		}
 
@@ -1239,8 +1239,8 @@ namespace OS
 						count = micro / 10000;
 				}
 
-				memoryWriteWord(tmTaskPtr + _qType, 0);
-				memoryWriteLong(tmTaskPtr + _tmCount, count);
+				memoryWriteWord(0, tmTaskPtr + _qType);
+				memoryWriteLong(count, tmTaskPtr + _tmCount);
 			}
 		}
 
