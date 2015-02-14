@@ -1307,8 +1307,10 @@ void Shell()
 				}
 			}
 
-			// todo -- don't add if same as previous command.
-			add_history(cp);
+			// don't add if same as previous entry.
+			HIST_ENTRY *he = current_history();
+			if (he == nullptr || strcmp(he->line, cp) != 0)
+				add_history(cp);
 		}
 		free(cp);
 	}
