@@ -210,8 +210,8 @@ namespace Debug {
 			unsigned s = (type & 0x0f00) >> 8;
 
 			for (unsigned i = 0; i < indent; ++i) fputc('>',stdout);
-			fputs(e->name->c_str(),stdout);
-			for(unsigned i = indent + e->name->length(); i < 40; ++i) fputc(' ',stdout);
+			printf("%08x %s", address + offset, e->name->c_str());
+			for(unsigned i = indent + e->name->length(); i < 32; ++i) fputc(' ',stdout);
 
 			// todo -- support arrays
 			// todo -- pretty print values (boolean, oserr, ostype, etc.)
