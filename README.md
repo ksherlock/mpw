@@ -7,12 +7,12 @@ Please check the [wiki](https://github.com/ksherlock/mpw/wiki/_pages) for useful
 
 ## System compatibility
 
-Currently, only OS X 10.8 with case-insensitive HFS+ is supported.
+Currently, only OS X 10.8+ with case-insensitive HFS+ is supported.
 
 ## License
 
 The 680x0 CPU code is from [WinFellow](http://fellow.sourceforge.net) and is 
-licensed under GPL v2 or later.  Consequently, the rest of the code is licensed 
+licensed under GPL v2 or later.  Consequently, the compiled binary is licensed 
 under the GPL v2 as well.
 
 The memory allocator (NewHandle/NewPointer) code is from [mempoolite](https://github.com/jeftyneg/mempoolite), 
@@ -22,7 +22,7 @@ is in the public domain.
 ## Building
 
 Compiling requires cmake, ragel, lemon, and a recent version of clang++ with 
-c++11 support.  It has only been built and tested with OS X 10.8.
+c++11 support.  It has only been built and tested with OS X 10.8+.
 
 mkdir build
 cd build
@@ -87,6 +87,6 @@ or create a shell script (in `/usr/local/bin`, etc)
     exec mpw AsmIIgs $@
 
 
-mpw looks in the current directory and then in the `$MPW:Tools:` directory
-for the command to run.  The MPW `$Commands` variable is not yet supported.
+mpw uses the MPW `$Commands` variable to find the command, similar to `$PATH` on Unix.  If the `$Commands` variable
+is not set, mpw looks in the current directory and then in the `$MPW:Tools:` directory.
 
