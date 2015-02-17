@@ -29,6 +29,86 @@
 #include <cstdio>
 #include <vector>
 
+#include <sys/types.h>
+#include <limits.h>
+
+namespace _env_rl {
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+    #define _GETDELIM_GROWBY 128 /* amount to grow line buffer by */
+    #define _GETDELIM_MINLEN 4 /* minimum line buffer size */
+     
+    ssize_t getdelim(char ** lineptr, size_t * n, int delimiter, FILE * stream) {
+        char *buf, *pos;
+        int c;
+        ssize_t bytes;
+         
+        if (lineptr == NULL || n == NULL) {
+            errno = EINVAL;
+            return -1;
+        }
+        if (stream == NULL) {
+            errno = EBADF;
+            return -1;
+        }
+         
+        /* resize (or allocate) the line buffer if necessary */
+        buf = *lineptr;
+        if (buf == NULL || *n < _GETDELIM_MINLEN) {
+            buf = (char*)realloc(*lineptr, _GETDELIM_GROWBY);
+            if (buf == NULL) {
+                /* ENOMEM */
+                return -1;
+            }
+            *n = _GETDELIM_GROWBY;
+            *lineptr = buf;
+        }
+         
+        /* read characters until delimiter is found, end of file is reached, or an
+        error occurs. */
+        bytes = 0;
+        pos = buf;
+        while ((c = getc(stream)) != EOF) {
+            if (bytes + 1 >= SSIZE_MAX) {
+                errno = EOVERFLOW;
+                return -1;
+            }
+            bytes++;
+            if (bytes >= *n - 1) {
+                buf = (char*)realloc(*lineptr, *n + _GETDELIM_GROWBY);
+                if (buf == NULL) {
+                    /* ENOMEM */
+                    return -1;
+                }
+                *n += _GETDELIM_GROWBY;
+                pos = buf + bytes - 1;
+                *lineptr = buf;
+            }
+             
+            *pos++ = (char) c;
+            if (c == delimiter) {
+                break;
+            }
+        }
+         
+        if (ferror(stream) || (feof(stream) && (bytes == 0))) {
+            /* EOF, or an error from getc(). */
+            return -1;
+        }
+         
+        *pos = '\0';
+        return bytes;
+    }
+#endif
+     
+     
+    ssize_t getline(char ** lineptr, size_t * n, FILE * stream) {
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+        return getdelim(lineptr, n, '\n', stream);
+#else
+        return ::getline(lineptr, n, stream);
+#endif
+    } 
+}
 
 namespace MPW
 {
@@ -308,7 +388,7 @@ namespace MPW {
 			char *line;
 			ssize_t length;
 
-			length = getline(&lineBuffer, &lineSize, fp);
+			length = _env_rl::getline(&lineBuffer, &lineSize, fp);
 			if (!length) continue; //?
 			if (length < 0) break; // eof or error.
 

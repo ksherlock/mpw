@@ -28,6 +28,7 @@
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 
 #include <signal.h>
 

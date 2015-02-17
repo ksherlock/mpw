@@ -3,6 +3,8 @@
 #include "debugger_internal.h"
 #include "loader.h" // Flags.
 
+#include <algorithm>
+
 #include <toolbox/toolbox.h>
 
 

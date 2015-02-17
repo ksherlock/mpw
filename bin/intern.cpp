@@ -1,5 +1,6 @@
 #include "intern.h"
 #include <unordered_map>
+#include <cstring>
 
 namespace {
 

@@ -32,6 +32,9 @@
 
 #include <stdexcept>
 #include <cerrno>
+#include <cstring>
+#include <algorithm>
+#include <memory>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -115,7 +118,7 @@ namespace OS { namespace Internal {
 			if (rv1 == 1 && rv2 == 2)
 			{
 				#if BYTE_ORDER == BIG_ENDIAN
-				ftype = (ftype >> 8) | (ftype << 8)
+				ftype = (ftype >> 8) | (ftype << 8);
 				#endif
 
 				char tmp[8] = {
@@ -187,7 +190,7 @@ namespace OS { namespace Internal {
 
 
 		// convert pdos types...
-		if (::memcmp(buffer + 4, "pdos", 4) == 0)
+		if (std::memcmp(buffer + 4, "pdos", 4) == 0)
 		{
 			// mpw expects 'xx  ' where
 			// xx are the ascii-encode hex value of the file type.

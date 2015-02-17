@@ -30,6 +30,7 @@
 
 #include <vector>
 #include <string>
+#include <cstring>
 #include <deque>
 #include <unordered_map>
 

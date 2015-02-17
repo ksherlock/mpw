@@ -59,7 +59,9 @@ using ToolBox::Log;
 
 using MacOS::macos_error_from_errno;
 
-
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+#define st_birthtime st_mtime
+#endif
 
 namespace {
 

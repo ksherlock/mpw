@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <cassert>
+#include <cstddef>
 #include "debugger.h"
 
 #include <toolbox/MM.h>

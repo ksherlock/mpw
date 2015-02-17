@@ -25,9 +25,12 @@
  */
 
 #include <string>
+#include <cstring>
 #include <list>
 #include <map>
 #include <unordered_set>
+
+#include <unistd.h>
 
 #include <CoreServices/CoreServices.h>
 
