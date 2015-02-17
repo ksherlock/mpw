@@ -25,6 +25,7 @@
  */
 
 #include <string>
+#include <cstring>
 #include <vector>
 #include <algorithm>
 #include <unordered_map>

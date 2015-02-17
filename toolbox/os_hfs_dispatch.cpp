@@ -25,13 +25,14 @@
  */
 
 #include <cerrno>
- #include <cassert>
+#include <cassert>
 #include <cctype>
 #include <ctime>
 #include <algorithm>
 #include <chrono>
 #include <deque>
 #include <string>
+#include <cstring>
 
 #include <sys/xattr.h>
 #include <sys/stat.h>
@@ -54,6 +55,10 @@
 #include "stackframe.h"
 #include "fs_spec.h"
  
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+#define st_birthtime st_mtime
+#endif
+
 using ToolBox::Log;
 
 using MacOS::macos_error_from_errno;

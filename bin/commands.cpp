@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <ctime>
 #include <cstdio>
+#include <cstring>
 
 
 #include <toolbox/os.h>

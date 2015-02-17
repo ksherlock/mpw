@@ -31,6 +31,7 @@
 #include <deque>
 
 #include <cstdint>
+#include <cstring>
 #include <stdlib.h>
 
 #include "debugger.h"
@@ -368,7 +369,7 @@ bool ParseLine(const char *iter, Command *command)
 	//ParseTrace(stdout, "--> ");
 	command->action = cmdNull;
 
-	int length = strlen(iter);
+	int length = std::strlen(iter);
 	const char *p = iter;
 	const char *pe = iter + length;
 	const char *eof = pe;

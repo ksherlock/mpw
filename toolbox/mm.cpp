@@ -32,6 +32,7 @@
 #include <cpu/fmem.h>
 
 #include <string>
+#include <cstring>
 #include <deque>
 #include <vector>
 #include <map>

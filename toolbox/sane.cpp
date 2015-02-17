@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include <string>
+#include <cstring>
 #include <cmath>
 
 #include "stackframe.h"
@@ -133,13 +134,13 @@ using std::to_string;
 
 		complex &operator=(long double ld)
 		{
-			switch(fpclassify(ld))
+			switch(std::fpclassify(ld))
 			{
 				case FP_NAN:
 					_data = NaN;
 					break;
 				case FP_INFINITE:
-					if (signbit(ld))
+					if (std::signbit(ld))
 					{
 						_data = -INT64_MAX;
 					}
@@ -159,13 +160,13 @@ using std::to_string;
 
 		complex &operator=(double d)
 		{
-			switch(fpclassify(d))
+			switch(std::fpclassify(d))
 			{
 				case FP_NAN:
 					_data = NaN;
 					break;
 				case FP_INFINITE:
-					if (signbit(d))
+					if (std::signbit(d))
 					{
 						_data = -INT64_MAX;
 					}
@@ -720,18 +721,18 @@ using std::to_string;
 	}
 
 
-	inline int classify(float x) { return fpclassify(x); }
-	inline int classify(double x) { return fpclassify(x); }
-	inline int classify(extended x) { return fpclassify(x); }
+	inline int classify(float x) { return std::fpclassify(x); }
+	inline int classify(double x) { return std::fpclassify(x); }
+	inline int classify(extended x) { return std::fpclassify(x); }
 	inline int classify(complex c) { 
 		if (c.isnan()) return FP_NAN;
 		if ((uint64_t)c == (uint64_t)0) return FP_ZERO;
 		return FP_NORMAL;
 	}
 
-	inline int sign(float x) { return signbit(x); }
-	inline int sign(double x) { return signbit(x); }
-	inline int sign(extended x) { return signbit(x); }
+	inline int sign(float x) { return std::signbit(x); }
+	inline int sign(double x) { return std::signbit(x); }
+	inline int sign(extended x) { return std::signbit(x); }
 	inline int sign(complex c) {
 		if (c.isnan()) return 0;
 		return ((int64_t)c < (int64_t)0) ? 1 : 0; 

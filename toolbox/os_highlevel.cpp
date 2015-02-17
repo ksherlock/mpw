@@ -31,6 +31,7 @@
 #include <chrono>
 #include <deque>
 #include <string>
+#include <cstring>
 
 #include <sys/xattr.h>
 #include <sys/stat.h>
@@ -40,6 +41,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include <strings.h>
 

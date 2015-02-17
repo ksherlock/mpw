@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <string>
+#include <sys/types.h>
 
 namespace OS { namespace Internal {
 
