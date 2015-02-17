@@ -246,19 +246,23 @@ void cpuSetModel(ULO major, ULO minor)
   if (makeOpcodeTable) cpuMakeOpcodeTableForModel();
 }
 
+#if defined(__BIG_ENDIAN__)
+void cpuSetDRegWord(ULO regno, UWO val) {*((WOR*)&cpu_regs[0][regno]+1) = val;}
+void cpuSetDRegByte(ULO regno, UBY val) {*((UBY*)&cpu_regs[0][regno]+3) = val;}
+#else
 void cpuSetDRegWord(ULO regno, UWO val) {*((WOR*)&cpu_regs[0][regno]) = val;}
 void cpuSetDRegByte(ULO regno, UBY val) {*((UBY*)&cpu_regs[0][regno]) = val;}
+#endif
 UWO cpuGetRegWord(ULO i, ULO regno) {return (UWO)cpu_regs[i][regno];}
 
 UWO cpuGetDRegWord(ULO regno) {return (UWO)cpu_regs[0][regno];}
 UBY cpuGetDRegByte(ULO regno) {return (UBY)cpu_regs[0][regno];}
 
+UWO cpuGetARegWord(ULO regno) {return (UWO)cpu_regs[1][regno];}
+UBY cpuGetARegByte(ULO regno) {return (UBY)cpu_regs[1][regno];}
 ULO cpuGetDRegWordSignExtLong(ULO regno) {return cpuSignExtWordToLong(cpuGetDRegWord(regno));}
 UWO cpuGetDRegByteSignExtWord(ULO regno) {return cpuSignExtByteToWord(cpuGetDRegByte(regno));}
 ULO cpuGetDRegByteSignExtLong(ULO regno) {return cpuSignExtByteToLong(cpuGetDRegByte(regno));}
-
-UWO cpuGetARegWord(ULO regno) {return (UWO)cpu_regs[1][regno];}
-UBY cpuGetARegByte(ULO regno) {return (UBY)cpu_regs[1][regno];}
 
 typedef UWO (*cpuGetWordFunc)(void);
 typedef ULO (*cpuGetLongFunc)(void);
