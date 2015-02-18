@@ -27,8 +27,8 @@ namespace OS { namespace Internal {
 		std::string filename;
 
 		FDEntry() :
-			refcount(0), 
-			text(false), 
+			refcount(0),
+			text(false),
 			resource(false)
 		{}
 

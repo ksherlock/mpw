@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -104,7 +104,7 @@ namespace {
 	};
 
 	std::deque<BackTraceInfo> BackTrace;
-	
+
 
 
 
@@ -121,7 +121,7 @@ namespace {
 			break;
 		case 0x4E74: // rtd #
 			mboffset = 4;
-			break;			
+			break;
 		default:
 			return;
 			break;
@@ -137,7 +137,7 @@ namespace {
 			b -= 0x80;
 			pc++;
 			if (!b) b = Debug::ReadByte(pc++);
-			
+
 			s.reserve(b);
 			for (unsigned i = 0; i < b; ++i)
 			{
@@ -185,7 +185,7 @@ namespace {
 			}
 			else
 			{
-				printf("$%08X   Tool       #$%04X                                   ; %04X\n", 
+				printf("$%08X   Tool       #$%04X                                   ; %04X\n",
 					pc, opcode, opcode);
 			}
 
@@ -207,7 +207,7 @@ namespace {
 		{
 			case 0x4EBA: // jsr offset(pc)
 			{
-				int16_t offset = Debug::ReadWord(pc + 2); 
+				int16_t offset = Debug::ReadWord(pc + 2);
 				address = pc + 2 + offset;
 				break;
 			}
@@ -215,7 +215,7 @@ namespace {
 			{
 				address = Debug::ReadLong(pc + 2);
 				break;
-			}			
+			}
 			case 0x4EF9: // jmp address
 			{
 				address = Debug::ReadLong(pc + 2);
@@ -225,14 +225,14 @@ namespace {
 			{
 				// check if address is a jmp address (see above)
 				// and follow it. a5 should never change.
-				int16_t offset = Debug::ReadWord(pc + 2); 
+				int16_t offset = Debug::ReadWord(pc + 2);
 				address = cpuGetAReg(5) + offset;
 
-				if (Debug::ReadWord(address) == 0x4EF9) 
+				if (Debug::ReadWord(address) == 0x4EF9)
 					address = Debug::ReadLong(address + 2);
 				else address = 0;
 
-				break;				
+				break;
 			}
 
 			// consider checking branches?
@@ -297,7 +297,7 @@ namespace {
 		{
 			if (!trace) disasm(pc);
 			printf("CPU stopped\n");
-			return false; 
+			return false;
 		}
 
 		if (sigInt)
@@ -305,7 +305,7 @@ namespace {
 			if (!trace) disasm(pc);
 			printf("^C break\n");
 			sigInt = false;
-			return false; 			
+			return false;
 		}
 
 		if (memBreak)
@@ -377,7 +377,7 @@ namespace {
 				break;
 			case 4:
 				fprintf(stdout, " [%08x]\n", value);
-				break;				
+				break;
 			default:
 				fprintf(stdout, "\n");
 				break;
@@ -607,7 +607,7 @@ void Print(uint32_t data)
 			if (data <= 0xffff)
 				printf(" '%s'", tmp + 2);
 			break;
-			
+
 		case 0x08:
 			if (data <= 0xff)
 				printf(" '%s'", tmp + 3);
@@ -690,15 +690,15 @@ void PrintRegisters(const BackTraceInfo &i)
 {
 	const char *srbits = srBits(i.csr);
 
-	printf("    0        1        2        3        4        5        6        7\n");	
+	printf("    0        1        2        3        4        5        6        7\n");
 	printf("D:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		i.d[0], i.d[1], i.d[2], i.d[3], 
+		i.d[0], i.d[1], i.d[2], i.d[3],
 		i.d[4], i.d[5], i.d[6], i.d[7]
 
 	);
 
 	printf("A:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		i.a[0], i.a[1], i.a[2], i.a[3], 
+		i.a[0], i.a[1], i.a[2], i.a[3],
 		i.a[4], i.a[5], i.a[6], i.a[7]
 	);
 
@@ -711,15 +711,15 @@ void PrintRegisters()
 	uint16_t sr = cpuGetSR();
 	const char *srbits = srBits(sr);
 
-	printf("    0        1        2        3        4        5        6        7\n");	
+	printf("    0        1        2        3        4        5        6        7\n");
 	printf("D:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		cpuGetDReg(0), cpuGetDReg(1), cpuGetDReg(2), cpuGetDReg(3), 
+		cpuGetDReg(0), cpuGetDReg(1), cpuGetDReg(2), cpuGetDReg(3),
 		cpuGetDReg(4), cpuGetDReg(5), cpuGetDReg(6), cpuGetDReg(7)
 
 	);
 
 	printf("A:  %08x %08x %08x %08x %08x %08x %08x %08x\n",
-		cpuGetAReg(0), cpuGetAReg(1), cpuGetAReg(2), cpuGetAReg(3), 
+		cpuGetAReg(0), cpuGetAReg(1), cpuGetAReg(2), cpuGetAReg(3),
 		cpuGetAReg(4), cpuGetAReg(5), cpuGetAReg(6), cpuGetAReg(7)
 	);
 
@@ -787,7 +787,7 @@ void PrintBackTrace()
 		disasm(prev->pc);
 		btdiff(*prev, current);
 
-		// 
+		//
 		prev = &current;
 	}
 
@@ -950,7 +950,7 @@ void Step(const Command &cmd)
 	int count = 0;
 	if (cmd.argc == 1) count = (int)cmd.argv[0];
 	if (count < 1) count = 1;
-	
+
 	// TODO -- move to common function...
 	for (int i = 0; i < count; ++i)
 	{
@@ -1001,7 +1001,7 @@ void SetXRegister(unsigned reg, uint32_t value)
 		if (value & 0x01)
 		{
 			fprintf(stderr, "Address is not aligned: $%08x\n", value);
-			return;			
+			return;
 		}
 		if (value > Flags.memorySize)
 		{
@@ -1084,7 +1084,7 @@ void Info(uint32_t address)
 	}
 
 	// 4 as an error
-	// almost all are negative 16-bit values, 
+	// almost all are negative 16-bit values,
 	// but may also be a positive 16-bit value.
 	uint16_t error = 0;
 	if (address <= 0xffff) error = address;
@@ -1155,7 +1155,7 @@ namespace {
 		auto end = iter;
 
 		if (!count) return NULL;
-		if (count > 100) return NULL; 
+		if (count > 100) return NULL;
 
 		if (count == 1)
 		{
@@ -1172,7 +1172,7 @@ namespace {
 		auto min_length = begin->first.length();
 
 		// item 0 is the longest match. (fill in later.)
-		buffer[i++] = NULL; 
+		buffer[i++] = NULL;
 		for (iter = begin; iter != end; ++iter)
 		{
 			buffer[i++] = strdup(iter->first.c_str());
@@ -1188,7 +1188,7 @@ namespace {
 
 			if (i >= min_length)
 			{
-				buffer[0][i] = 0; 
+				buffer[0][i] = 0;
 				break;
 			}
 
@@ -1319,5 +1319,3 @@ void Shell()
 }
 
 } // namespace Debugger
-
-

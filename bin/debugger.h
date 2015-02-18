@@ -43,11 +43,11 @@ struct Token {
 	intValue(0), stringValue(0), subtype(0)
 	{}
 
-	Token(uint32_t i) : 
+	Token(uint32_t i) :
 	intValue(i), subtype(0)
 	{}
 
-	Token(std::string *s, unsigned st  = 0) : 
+	Token(std::string *s, unsigned st  = 0) :
 	intValue(0), stringValue(s), subtype(st)
 	{}
 #endif

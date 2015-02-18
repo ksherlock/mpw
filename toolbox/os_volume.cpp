@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -80,12 +80,12 @@ namespace OS {
 		 * pass a pointer to a Str31 value if you want that name returned.
 		 * If you pass NIL in the ioNamePtr field, no volume name is
 		 * returned.
-		 * 
+		 *
 		 * If you pass a working directory reference number in ioVRefNum
 		 * (or if the default directory is a subdirectory), the number
 		 * of files and directories in the specified directory (the
 		 * directory’s valence) is returned in ioVNmFls.
-		 * 
+		 *
 		 * You can read the ioVDrvInfo and ioVDRefNum fields to determine
 		 * whether the specified volume is online, offline, or ejected.
 		 * For online volumes, ioVDrvInfo contains the drive number of
@@ -98,8 +98,8 @@ namespace OS {
 		 * 0. If the volume is not online, the value of ioVDRefNum is
 		 * either the negative of the drive number (if the volume is
 		 * offline) or the drive number itself (if the volume is ejected).
-		 * 
-		 * 
+		 *
+		 *
 		 * You can get information about all the online volumes by making
 		 * repeated calls to PBHGetVInfo, starting with the value of
 		 * ioVolIndex set to 1 and incrementing that value until PBHGetVInfo
@@ -182,7 +182,7 @@ namespace OS {
 
 		uint32_t parm = cpuGetAReg(0);
 
-		Log("%04x FlushVol(%08x)\n", trap, parm);		
+		Log("%04x FlushVol(%08x)\n", trap, parm);
 
 		// volume is specified with ioNamePtr or ioVRefNum.
 		// could go through open fds and fsync(fd), fcntl(fd, F_FULLFSYNC) them.

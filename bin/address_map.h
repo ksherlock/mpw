@@ -58,7 +58,7 @@ public:
 	{
 		return map.end();
 	}
-	
+
 	size_t size()
 	{
 		return map.size();

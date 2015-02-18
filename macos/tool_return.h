@@ -73,13 +73,13 @@ namespace MacOS {
 			return *this;
 		}
 
-		
+
 		constexpr const T* operator->() const
 		{
 			return &_value;
 		}
 
-		
+
 		constexpr const T& operator *() const
 		{
 			return _value;
@@ -117,7 +117,7 @@ namespace MacOS {
 	{
 		public:
 
-		tool_return() 
+		tool_return()
 		{}
 
 		tool_return(macos_error error) : tool_return_base(error)
@@ -133,5 +133,5 @@ namespace MacOS {
 	};
 
 
-} // namespace IIgs
+} // namespace
 #endif

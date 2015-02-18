@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -80,13 +80,13 @@ namespace {
 		// %1010 | 1 x . .  | . . . . . . . . |
 		//
 		// if x = 1, an extra rts is pushed,
-		return (trap & 0x0c00) == 0x0c00;			
+		return (trap & 0x0c00) == 0x0c00;
 	}
 
 	inline constexpr bool save_a0(uint16_t trap)
 	{
 		// %1010 | 0 . . x  | . . . . . . . . |
-		// 
+		//
 		// if x = 0, a0 is saved and restored.
 		// if x = 1, a0 is not saved and restored.
 		return (trap & 0x0900) == 0x0000;
@@ -108,7 +108,7 @@ namespace OS {
 
 	uint16_t GetToolTrapAddress(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 trap number
 		 *
@@ -138,7 +138,7 @@ namespace OS {
 	{
 		//pascal void SetToolTrapAddress(long trapAddr, short trapNum);
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 Address of patch
 		 * D0 trap number
@@ -167,7 +167,7 @@ namespace OS {
 
 	uint16_t GetOSTrapAddress(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 trap number
 		 *
@@ -197,7 +197,7 @@ namespace OS {
 	{
 		//pascal void SetOSTrapAddress(long trapAddr, short trapNum);
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 Address of patch
 		 * D0 trap number
@@ -255,9 +255,9 @@ namespace OS {
 
 
 			default:
-				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
+				fprintf(stderr, "OSDispatch: selector %04x not implemented\n",
 					selector);
-				exit(1);			
+				exit(1);
 		}
 
 	}
@@ -267,7 +267,7 @@ namespace OS {
 namespace ToolBox {
 
 	bool Init() {
-		// 
+		//
 		std::fill(std::begin(trap_address), std::end(trap_address), 0);
 		std::fill(std::begin(os_address), std::end(os_address), 0);
 
@@ -280,7 +280,7 @@ namespace ToolBox {
 
 		for (unsigned i = 0; i < 1024; ++i) {
 			*code++ = 0xafff;
-			*code++ = 0xa800 | i; 
+			*code++ = 0xa800 | i;
 		}
 
 		for (unsigned i = 0; i < 256; ++i) {
@@ -325,7 +325,7 @@ namespace ToolBox {
 			#if 0
 
 			/*
-			 * os stubs: 
+			 * os stubs:
 			 * os_return_a0
 			 * pop registers a0, a1, d0, d1, d2
 			 * pop long word
@@ -339,11 +339,11 @@ namespace ToolBox {
 			 * rts
 			 *
 			 * os_entry_a0:
-			 * 
+			 *
 			 */
 			else
 			{
-				// os calls push the trap dispatcher pc as well.  
+				// os calls push the trap dispatcher pc as well.
 				uint32_t tmp;
 				uint32_t a0, a1, d0, d1, d2;
 				if (save_a0(trap))
@@ -386,7 +386,7 @@ namespace ToolBox {
 		 *
 		 * Most development environments, including MPW, do not use
 		 * this feature.
-		 * 
+		 *
 		 * (Trap Manager, 8-20)
 		 */
 
@@ -414,7 +414,7 @@ namespace ToolBox {
 				 * parameters were pushed on the stack but
 				 * the a-line instruction was intercepted
 				 * before an exception occurred.  Therefore,
-				 * we need to push the return address on the 
+				 * we need to push the return address on the
 				 * stack and set the new pc to the trap address.
 				 *
 				 * returnPC may have been previously set from the
@@ -435,7 +435,7 @@ namespace ToolBox {
 			// Trap Manager 8-12.
 
 			// not actually an issue yet, will only matter
-			// if os address is overridden. 
+			// if os address is overridden.
 
 			if (save_a0(trap)) {
 				saveA0 = true;
@@ -513,7 +513,7 @@ namespace ToolBox {
 			case 0xa011:
 				d0 = OS::GetEOF(trap);
 				break;
-				
+
 			case 0xa012:
 				d0 = OS::SetEOF(trap);
 				break;
@@ -537,7 +537,7 @@ namespace ToolBox {
 			case 0xa215: // HSetVol
 				d0 = OS::HSetVol(trap);
 				break;
-				
+
 
 			case 0xa018:
 				d0 = OS::GetFPos(trap);
@@ -554,7 +554,7 @@ namespace ToolBox {
 			case 0xa060:
 				d0 = OS::FSDispatch(trap);
 				break;
-				
+
 			case 0xa260:
 				d0 = OS::HFSDispatch(trap);
 				break;
@@ -644,7 +644,7 @@ namespace ToolBox {
 			case 0xA01C:
 				d0 = MM::FreeMem(trap);
 				break;
-				
+
 			// CompactMem (cbNeeded: Size) : Size;
 			case 0xa04c:
 				d0 = MM::CompactMem(trap);
@@ -690,7 +690,7 @@ namespace ToolBox {
 			case 0xa11a:
 				d0 = MM::GetZone(trap);
 				break;
-				
+
 			case 0xa01b:
 				d0 = MM::SetZone(trap);
 				break;
@@ -721,7 +721,7 @@ namespace ToolBox {
 			case 0xa9c6:
 				d0 = OS::SecondsToDate(trap);
 				break;
-		
+
 			// TickCount : LONGINT;
 			case 0xa975:
 				d0 = OS::TickCount(trap);
@@ -771,7 +771,7 @@ namespace ToolBox {
 			case 0xA027:
 				d0 = MM::ReallocHandle(trap);
 				break;
-				
+
 			case 0xA02B:
 				d0 = MM::EmptyHandle(trap);
 				break;
@@ -890,7 +890,7 @@ namespace ToolBox {
 			case 0xa9a5:
 				d0 = RM::GetResourceSizeOnDisk(trap);
 				break;
-				
+
 			case 0xa9a6:
 				d0 = RM::GetResAttrs(trap);
 				break;
@@ -914,7 +914,7 @@ namespace ToolBox {
 			case 0xa9ad:
 				d0 = RM::RemoveResource(trap);
 				break;
-				
+
 			// ResError : INTEGER;
 			case 0xa9af:
 				d0 = RM::ResError(trap);

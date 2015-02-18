@@ -43,7 +43,7 @@ namespace OS
 	uint16_t Create(uint16_t trap);
 	uint16_t Delete(uint16_t trap);
 	uint16_t FlushVol(uint16_t trap);
-	
+
 	uint16_t GetFileInfo(uint16_t trap);
 	uint16_t HGetFileInfo(uint16_t trap);
 	uint16_t SetFileInfo(uint16_t trap);
@@ -56,7 +56,7 @@ namespace OS
 
 	uint16_t GetVol(uint16_t trap);
 	uint16_t HGetVol(uint16_t trap);
-	
+
 	uint16_t HGetVInfo(uint16_t trap);
 
 	uint16_t SetVol(uint16_t trap);

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <utility>
 
-// 
+//
 
 
 template<int Bytes>

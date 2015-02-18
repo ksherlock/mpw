@@ -1,18 +1,18 @@
 /*
      File:       Traps.h
- 
+
      Contains:   A-Trap constants.
- 
+
      Version:    Technology: Mac OS 9
                  Release:    Universal Interfaces 3.4
- 
+
      Copyright:  © 1985-2001 by Apple Computer, Inc., all rights reserved
- 
+
      Bugs?:      For bug reports, consult the following page on
                  the World Wide Web:
- 
+
                      http://developer.apple.com/bugreporter/
- 
+
 */
 #ifndef __macos_traps__
 #define __macos_traps__
@@ -1079,4 +1079,3 @@ enum {
 #endif
 
 #endif /* __TRAPS__ */
-

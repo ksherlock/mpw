@@ -11,12 +11,12 @@ namespace Loader {
 	typedef std::map<std::string, std::pair<uint32_t, uint32_t>> DebugNameTable;
 	namespace Native {
 
-		/* 
+		/*
 		 * loads the file
 		 * sets registers PC and A5.
 		 * sets certain globals.
 		 *
-		 * Dependencies: MM, RM 
+		 * Dependencies: MM, RM
 		 */
 		uint16_t LoadFile(const std::string &path);
 

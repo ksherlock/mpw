@@ -554,7 +554,7 @@ but a special error is needed to patch secondary inits.*/
 #ifdef __cplusplus
 }
 #endif
-    
+
 
 #ifdef __cplusplus
 

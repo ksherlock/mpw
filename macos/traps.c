@@ -7,10 +7,10 @@ const char *TrapName(uint16_t trap)
 
     switch(trap)
     {
-/* 
-    
+/*
+
     ; QuickDraw
-    
+
 */
 
 	case 0xA817: return "_CopyMask";
@@ -196,10 +196,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA8FB: return "_MapRgn";
 	case 0xA8FC: return "_MapPoly";
 
-/* 
-    
+/*
+
     ; Toolbox
-    
+
 */
 
 	case 0xA80D: return "_Count1Resources";
@@ -511,34 +511,34 @@ const char *TrapName(uint16_t trap)
 	case 0xABF2: return "_ThreadDispatch";
 	case 0xABFF: return "_DebugStr";
 
-/* 
-    
+/*
+
     ; Resource Manager
-    
+
 */
 
 	case 0xA822: return "_ResourceDispatch";
 
-/* 
-    
+/*
+
     ; PPCToolbox
-    
+
 */
 
 	case 0xA0DD: return "_PPC";
 
-/* 
-    
+/*
+
     ; Alias Manager
-    
+
 */
 
 	case 0xA823: return "_AliasDispatch";
 
-/* 
-    
+/*
+
     ; Device Manager (some shared by the File Manager)
-    
+
 */
 
 	case 0xA000: return "_Open";
@@ -549,10 +549,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA005: return "_Status";
 	case 0xA006: return "_KillIO";
 
-/* 
-    
+/*
+
     ; File Manager
-    
+
 */
 
 	case 0xA007: return "_GetVolInfo";
@@ -595,27 +595,27 @@ const char *TrapName(uint16_t trap)
 	case 0xA241: return "_HSetFLock";
 	case 0xA242: return "_HRstFLock";
 
-/* 
-    
+/*
+
     ; dispatch trap for remaining File Manager (and Desktop Manager) calls
-    
+
 */
 
 	case 0xA060: return "_FSDispatch";
 	case 0xA260: return "_HFSDispatch";
 
-/* 
-    
+/*
+
     ; High level FSSpec calls
-    
+
 */
 
 	case 0xAA52: return "_HighLevelHFSDispatch";
 
-/* 
-    
+/*
+
     ; Memory Manager
-    
+
 */
 
 	case 0xA019: return "_InitZone";
@@ -652,10 +652,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA08F: return "_DeferUserFn";
 	case 0xA08D: return "_DebugUtil";
 
-/* 
-    
+/*
+
     ; Event Manager
-    
+
 */
 
 	case 0xA02F: return "_PostEvent";
@@ -697,8 +697,8 @@ const char *TrapName(uint16_t trap)
 //	case 0xA057: return "_SetApplBase";
 	case 0xA198: return "_HWPriv";
 
-/* 
-    
+/*
+
     ; New names for (mostly) new flavors of old LwrString trap (redone <13>)
 */
 
@@ -707,10 +707,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA456: return "_UpperText";
 	case 0xA656: return "_StripUpperText";
 
-/* 
-    
+/*
+
     ; Temporary Memory routines
-    
+
 */
 
 	case 0xA88F: return "_OSDispatch";
@@ -765,10 +765,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA087: return "_IOPMsgRequest";
 	case 0xA088: return "_IOPMoveData";
 
-/* 
-    
+/*
+
     ; Power Manager
-    
+
 */
 
 	case 0xA09F: return "_PowerDispatch";
@@ -782,19 +782,19 @@ const char *TrapName(uint16_t trap)
 	case 0xA48A: return "_SleepQRemove";
 //	case 0xA48A: return "_SlpQRemove";
 
-/* 
-    
+/*
+
     ; Comm. Toolbox
-    
+
 */
 
 	case 0xA08B: return "_CommToolboxDispatch";
 	case 0xA090: return "_SysEnvirons";
 
-/* 
-    
+/*
+
     ; Egret Manager
-    
+
 */
 
 	case 0xA092: return "_EgretDispatch";
@@ -809,10 +809,10 @@ const char *TrapName(uint16_t trap)
 //	case 0xA9C3: return "_KeyTrans";
 	case 0xA9C3: return "_KeyTranslate";
 
-/* 
-    
+/*
+
     ; TextEdit
-    
+
 */
 
 	case 0xA9CB: return "_TEGetText";
@@ -842,10 +842,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA83D: return "_TEDispatch";
 	case 0xA83E: return "_TEStyleNew";
 
-/* 
-    
+/*
+
     ; Color Quickdraw
-    
+
 */
 
 	case 0xAA00: return "_OpenCPort";
@@ -899,10 +899,10 @@ const char *TrapName(uint16_t trap)
 	case 0xAA4F: return "_CalcCMask";
 	case 0xAA51: return "_CopyDeepMask";
 
-/* 
-    
+/*
+
     ; Routines for video devices
-    
+
 */
 
 	case 0xAA27: return "_GetMaxDevice";
@@ -920,10 +920,10 @@ const char *TrapName(uint16_t trap)
 	case 0xAA32: return "_GetGDevice";
 	case 0xABCA: return "_DeviceLoop";
 
-/* 
-    
+/*
+
     ; Color Manager
-    
+
 */
 
 	case 0xAA33: return "_Color2Index";
@@ -933,10 +933,10 @@ const char *TrapName(uint16_t trap)
 	case 0xAA37: return "_GetSubTable";
 	case 0xAA38: return "_UpdatePixMap";
 
-/* 
-    
+/*
+
     ; Dialog Manager
-    
+
 */
 
 //	case 0xAA4B: return "_NewCDialog";
@@ -956,10 +956,10 @@ const char *TrapName(uint16_t trap)
 	case 0xAA4E: return "_SetStdCProcs";
 	case 0xABF8: return "_StdOpcodeProc";
 
-/* 
-    
+/*
+
     ; added to Toolbox for color
-    
+
 */
 
 	case 0xAA41: return "_SetWinColor";
@@ -976,10 +976,10 @@ const char *TrapName(uint16_t trap)
 	case 0xA809: return "_GetControlVariant";
 	case 0xA80A: return "_GetWVariant";
 
-/* 
-    
+/*
+
     ; added to Menu Manager for color
-    
+
 */
 
 //	case 0xAA60: return "_DelMCEntries";
@@ -991,36 +991,36 @@ const char *TrapName(uint16_t trap)
 	case 0xAA64: return "_GetMCEntry";
 	case 0xAA65: return "_SetMCEntries";
 
-/* 
-    
+/*
+
     ; Menu Manager
-    
+
 */
 
 	case 0xAA66: return "_MenuChoice";
 
-/* 
-    
+/*
+
     ; Dialog Manager?
-    
+
 */
 
 	case 0xAA67: return "_ModalDialogMenuSetup";
 	case 0xAA68: return "_DialogDispatch";
 
-/* 
-    
+/*
+
     ; Font Manager
-    
+
 */
 
 	case 0xA814: return "_SetFractEnable";
 	case 0xA854: return "_FontDispatch";
 
-/* 
-    
+/*
+
     ; Palette Manager
-    
+
 */
 
 	case 0xAA90: return "_InitPalettes";
@@ -1044,10 +1044,10 @@ const char *TrapName(uint16_t trap)
 	case 0xAAA1: return "_CopyPalette";
 	case 0xAAA2: return "_PaletteDispatch";
 
-/* 
-    
+/*
+
     ; Sound Manager
-    
+
 */
 
 	case 0xA800: return "_SoundDispatch";
@@ -1079,26 +1079,26 @@ const char *TrapName(uint16_t trap)
 	case 0xA05E: return "_NMInstall";
 	case 0xA05F: return "_NMRemove";
 
-/* 
-    
+/*
+
     ; All QDOffscreen Routines go through one trap with a selector
-    
+
 */
 
 	case 0xAB1D: return "_QDExtensions";
 
-/* 
-    
+/*
+
     ; UserDelay
-    
+
 */
 
 	case 0xA84C: return "_UserDelay";
 
-/* 
-    
+/*
+
     ; Component Manager
-    
+
 */
 
 	case 0xA82A: return "_ComponentDispatch";
@@ -1114,10 +1114,10 @@ const char *TrapName(uint16_t trap)
 	case 0xAA59: return "_MixedModeDispatch";
 	case 0xAA5A: return "_CodeFragmentDispatch";
 
-/* 
-    
+/*
+
     ; Translation Manager
-    
+
 */
 
 	case 0xABFC: return "_TranslationDispatch";

@@ -24,7 +24,7 @@
 	// hd / hexdump expression [:expression]
 	// stack ?
 	// brk expression
-	// tbrk expression 
+	// tbrk expression
 namespace {
 	int tox(char c)
 	{
@@ -36,7 +36,7 @@ namespace {
 
 	uint32_t scan10(const char *begin, const char *end)
 	{
-		return std::accumulate(begin, end, 0, 
+		return std::accumulate(begin, end, 0,
 			[](uint32_t value, char c){
 				return value * 10 + c - '0';
 			});
@@ -44,7 +44,7 @@ namespace {
 
 	uint32_t scan16(const char *begin, const char *end)
 	{
-		return std::accumulate(begin, end, 0, 
+		return std::accumulate(begin, end, 0,
 			[](uint32_t value, char c){
 				return (value << 4) + tox(c);
 			});
@@ -237,7 +237,7 @@ bool ParseLine(const char *iter, Command *command)
 
 		'tbrk' | 'tbreak' | 'toolbreak' {
 			Parse(parser, tkTBREAK, 0, command);
-			continue;	
+			continue;
 		}
 
 		'mbrk' | 'mbreak' | 'rwbrk' | 'rwbreak' {
@@ -265,7 +265,7 @@ bool ParseLine(const char *iter, Command *command)
 			Parse(parser, tkPRINT, 0, command);
 			continue;
 		}
-	
+
 		'r' | 'run' {
 			Parse(parser, tkCONTINUE, 0, command);
 			continue;
@@ -324,4 +324,3 @@ bool ParseLine(const char *iter, Command *command)
 
 
 } // namespace Debugger
-

@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -57,7 +57,7 @@ using MacOS::macos_error_from_errno;
 
 namespace MPW
 {
-	
+
 	uint32_t ftrap_dup(uint32_t parm, uint32_t arg)
 	{
 		uint32_t d0;
@@ -96,7 +96,7 @@ namespace MPW
 			{
 				d0 = 0;
 				fd.refcount++;
-			} 
+			}
 			else
 			{
 				d0 = kEINVAL;
@@ -139,7 +139,7 @@ namespace MPW
 
 	uint32_t ftrap_interactive(uint32_t parm, uint32_t arg)
 	{
-		// return 0 if interactive, an error if 
+		// return 0 if interactive, an error if
 		// non-interactive.
 
 		uint32_t d0;
@@ -153,8 +153,8 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
-		// linkgs reads from stdin and 
-		// doesn't work quite right when 
+		// linkgs reads from stdin and
+		// doesn't work quite right when
 		// this returns 0.  So, don't.
 
 		f.error = 0;
@@ -183,7 +183,7 @@ namespace MPW
 			{
 				int tty = ::isatty(fd);
 				d0 = tty ? 0 : kEINVAL;
-			} 
+			}
 			else
 			{
 				d0 = kEINVAL;
@@ -252,7 +252,7 @@ namespace MPW
 				return kEINVAL;
 			}
 		);
-		
+
 #if 0
 		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
 		{
@@ -382,7 +382,7 @@ namespace MPW
 				return kEINVAL;
 			}
 		);
-		
+
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -434,7 +434,7 @@ namespace MPW
 				break;
 
 			default:
-				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);	
+				fprintf(stderr, "ioctl - unsupported op %04x\n", cmd);
 				exit(1);
 				break;
 		}

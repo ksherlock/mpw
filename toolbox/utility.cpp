@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,7 +44,7 @@ namespace Utility {
 	uint16_t NewString(uint16_t trap)
 	{
 		/*
-		 * NewString allocates the specified string as a relocatable object 
+		 * NewString allocates the specified string as a relocatable object
 		 * in the heap and returns a handle to it.
 		 */
 
@@ -83,9 +83,9 @@ namespace Utility {
 	uint16_t GetString(uint16_t trap)
 	{
 		/*
-		 * The GetString function loads a string from a string ('STR ') 
-		 * resource into memory. It returns a handle to the string with the 
-		 * specified resource ID, reading it from the resource file if 
+		 * The GetString function loads a string from a string ('STR ')
+		 * resource into memory. It returns a handle to the string with the
+		 * specified resource ID, reading it from the resource file if
 		 * necessary.
 		 */
 
@@ -107,9 +107,9 @@ namespace Utility {
 	// FUNCTION BitTst (bytePtr: Ptr; bitNum: LONGINT) : BOOLEAN;
 	uint16_t BitTst(uint16_t trap)
 	{
-		/* 
-		 * BitTst tests whether a given bit is set and returns TRUE if so or 
-		 * FALSE if not. The bit is specified by bitNum, an offset from the 
+		/*
+		 * BitTst tests whether a given bit is set and returns TRUE if so or
+		 * FALSE if not. The bit is specified by bitNum, an offset from the
 		 * high-order bit of the byte pointed to by bytePtr.
 		 */
 

@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -53,10 +53,10 @@ namespace OS { namespace Internal {
 
 
 	/*
-     
+
      tech note PT515
      ProDOS -> Macintosh conversion
-     
+
      ProDOS             Macintosh
      Filetype    Auxtype    Creator    Filetype
      $00          $0000     'pdos'     'BINA'
@@ -65,24 +65,24 @@ namespace OS { namespace Internal {
      $FF (SYS)    (any)     'pdos'     'PSYS'
      $B3 (S16)    (any)     'pdos'     'PS16'
      $uv          $wxyz     'pdos'     'p' $uv $wx $yz
-     
+
      Programmer's Reference for System 6.0:
-     
-     ProDOS Macintosh 
-     File Type Auxiliary Type Creator Type File Type 
-     $00        $0000           “pdos”  “BINA” 
-     $04 (TXT)  $0000           “pdos”  “TEXT” 
-     $FF (SYS)  (any)           “pdos”  “PSYS” 
-     $B3 (S16)  $DByz           “pdos”  “p” $B3 $DB $yz 
-     $B3 (S16)  (any)           “pdos”  “PS16” 
-     $D7        $0000           “pdos”  “MIDI” 
-     $D8        $0000           “pdos”  “AIFF” 
-     $D8        $0001           “pdos”  “AIFC” 
-     $E0        $0005           “dCpy”  “dImg” 
-     $FF (SYS)  (any)           “pdos”  “PSYS” 
-     $uv        $wxyz           “pdos”  “p” $uv $wx $yz 
-     
-	
+
+     ProDOS Macintosh
+     File Type Auxiliary Type Creator Type File Type
+     $00        $0000           “pdos”  “BINA”
+     $04 (TXT)  $0000           “pdos”  “TEXT”
+     $FF (SYS)  (any)           “pdos”  “PSYS”
+     $B3 (S16)  $DByz           “pdos”  “p” $B3 $DB $yz
+     $B3 (S16)  (any)           “pdos”  “PS16”
+     $D7        $0000           “pdos”  “MIDI”
+     $D8        $0000           “pdos”  “AIFF”
+     $D8        $0001           “pdos”  “AIFC”
+     $E0        $0005           “dCpy”  “dImg”
+     $FF (SYS)  (any)           “pdos”  “PSYS”
+     $uv        $wxyz           “pdos”  “p” $uv $wx $yz
+
+
 	  mpw standard:
      $uv        (any)          "pdos"  printf("%02x  ",$uv)
 
@@ -122,7 +122,7 @@ namespace OS { namespace Internal {
 				#endif
 
 				char tmp[8] = {
-					'p', ' ', ' ', ' ', 
+					'p', ' ', ' ', ' ',
 					'p', 'd', 'o', 's'
 				};
 				tmp[1] = (char)ftype;
@@ -186,7 +186,7 @@ namespace OS { namespace Internal {
 		if (IsTextFile(pathName))
 		{
 			std::memcpy(buffer, "TEXTMPS ", 8);
-		}	
+		}
 
 
 		// convert pdos types...
@@ -195,7 +195,7 @@ namespace OS { namespace Internal {
 			// mpw expects 'xx  ' where
 			// xx are the ascii-encode hex value of the file type.
 			// the hfs fst uses 'p' ftype8 auxtype16
-			
+
 			// todo -- but only if auxtype is $0000 ??
 			if (buffer[0] == 'p')
 			{
@@ -329,7 +329,7 @@ namespace OS { namespace Internal {
 			dates[i++].tv_sec = MacToUnix(backupDate);
 			list.commonattr |= ATTR_CMN_BKUPTIME;
 		}
-		
+
 
 
 		if (!i) return 0;
@@ -471,7 +471,7 @@ namespace OS { namespace Internal {
 
 			if (size > 0)
 			{
-				std::transform(trbuffer.get(), trbuffer.get() + size, (uint8_t *)buffer, 
+				std::transform(trbuffer.get(), trbuffer.get() + size, (uint8_t *)buffer,
 					[](uint8_t c) { return c == '\n' ? '\r' : c; }
 				);
 			}
@@ -507,7 +507,7 @@ namespace OS { namespace Internal {
 
 			if (count > 0)
 			{
-				std::transform((const uint8_t *)buffer, (const uint8_t *)buffer + count, trbuffer.get(), 
+				std::transform((const uint8_t *)buffer, (const uint8_t *)buffer + count, trbuffer.get(),
 					[](uint8_t c) { return c == '\r' ? '\n' : c; }
 				);
 			}
@@ -529,7 +529,7 @@ namespace OS { namespace Internal {
 		if (filename.empty()) return MacOS::bdNamErr;
 
 		int access = 0;
-		
+
 		// ignore the deny bits for now.
 		switch(ioPermission & 0x0f)
 		{
@@ -548,7 +548,7 @@ namespace OS { namespace Internal {
 		}
 
 		std::string xname = filename;
-		if (fork) 
+		if (fork)
 			xname.append(_PATH_RSRCFORKSPEC);
 
 		Log("     open(%s, %04x)\n", xname.c_str(), access);

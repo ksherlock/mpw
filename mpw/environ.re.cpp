@@ -29,7 +29,7 @@ std::string EvalString(std::string &s, std::unordered_map<std::string, std::stri
 		re2c:yyfill:enable   = 0;
 		re2c:yych:conversion = 1;
 		re2c:indent:top      = 1;
-		
+
 		'$' [A-Za-z0-9_]+ {
 			std::string tmp(begin + 1, cp);
 
@@ -44,7 +44,7 @@ std::string EvalString(std::string &s, std::unordered_map<std::string, std::stri
 		}
 
 		'${' [A-Za-z0-9_]+ '}' {
-		
+
 			std::string tmp(begin + 2, cp - 1);
 
 			auto iter = env.find(tmp);
@@ -86,7 +86,7 @@ void LoadEnvironment(std::string &envfile, std::unordered_map<std::string, std::
 		char *end;
 		char *iter;
 
-		size_t length;		
+		size_t length;
 
 		begin = fgetln(fp, &length);
 		if (!begin) break; // eof or error.

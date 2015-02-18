@@ -6,7 +6,7 @@
 namespace Process {
 
 	uint16_t GetCurrentProcess();
-	uint16_t GetProcessInformation();	
+	uint16_t GetProcessInformation();
 
 }
 

@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -69,7 +69,7 @@ namespace Loader {
 			// todo -- also add std::string segmentName?
 		};
 
-		struct Segment0Info 
+		struct Segment0Info
 		{
 			Segment0Info()
 			{}
@@ -88,7 +88,7 @@ namespace Loader {
 			// %0xxxxxxx -> 7-bit value
 			// %1xxxxxxx xxxxxxxx -> 15-bit value
 			// %00000000 1xxxxxxx x{8} x{8} x{8} -> 31 bit value
-			// ^ that's what the documentation says.. 
+			// ^ that's what the documentation says..
 			// that's how the 32-bit bootstrap works
 			// DumpCode ignores the high 2 bytes.
 			for(;;)
@@ -224,7 +224,7 @@ namespace Loader {
 
 	}
 
-	namespace Native 
+	namespace Native
 	{
 
 		uint16_t LoadFile(const std::string &path)
@@ -248,10 +248,10 @@ namespace Loader {
 
 			::FSGetResourceForkName(&fork);
 
-			err = ::FSOpenResourceFile(&ref, 
-				fork.length, 
-				fork.unicode, 
-				fsRdPerm, 
+			err = ::FSOpenResourceFile(&ref,
+				fork.length,
+				fork.unicode,
+				fsRdPerm,
 				&refNum);
 
 			if (err) return err;
@@ -266,7 +266,7 @@ namespace Loader {
 			Segment0Info seg0;
 			err = LoadCode0(seg0);
 
-			// iterate through the jump table to get the other 
+			// iterate through the jump table to get the other
 			// code segments to load
 			bool farModel = false;
 			for (uint32_t jtEntry = seg0.jtStart; jtEntry < seg0.jtEnd; jtEntry += 8)
@@ -363,7 +363,7 @@ namespace Loader {
 
 
 
-		// 
+		//
 		void LoadDebugNames(DebugNameTable &table)
 		{
 
@@ -420,7 +420,7 @@ namespace Loader {
 					case 0x4E74: // rtd #
 						pc += 2; // skip the argument.
 						eof = true;
-						break;	
+						break;
 
 					default:
 						break;
@@ -474,7 +474,7 @@ namespace Loader {
 					}
 
 					// verify name is legal.
-					bool ok = std::all_of(s.begin(), s.end(), 
+					bool ok = std::all_of(s.begin(), s.end(),
 						[](char c) {
 							if (c >= 'A' && c <= 'Z') return true;
 							if (c >= 'a' && c <= 'z') return true;
@@ -524,7 +524,7 @@ namespace Loader {
 
 	/*
 	 * struct { uint32_t a5; uint32_t pc; };
-	 * future state: Native::LoadFile(const std::string &path, a5pc) -> 
+	 * future state: Native::LoadFile(const std::string &path, a5pc) ->
 	 * load file, set global page variables, set A5, return PC.
 	 *
 	 */
@@ -532,7 +532,7 @@ namespace Loader {
 
 	uint16_t UnloadSeg(uint16_t trap)
 	{
-		// UnloadSeg (routineAddr: Ptr);	
+		// UnloadSeg (routineAddr: Ptr);
 
 		/*
 		 * ------------

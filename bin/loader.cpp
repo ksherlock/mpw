@@ -4,13 +4,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -121,7 +121,7 @@ void reloc1(const uint8_t *r, uint32_t address, uint32_t offset)
 	// %0xxxxxxx -> 7-bit value
 	// %1xxxxxxx xxxxxxxx -> 15-bit value
 	// %00000000 1xxxxxxx x{8} x{8} x{8} -> 31 bit value
-	// ^ that's what the documentation says.. 
+	// ^ that's what the documentation says..
 	// that's how the 32-bit bootstrap works
 	// DumpCode ignores the high 2 bytes.
 	for(;;)
@@ -302,7 +302,7 @@ uint32_t load(const char *file)
 		}
 
 		ReleaseResource(h);
-    }	
+    }
 
     // now link the segment 0 jump table...
     assert(a5);
@@ -392,7 +392,7 @@ void GlobalInit()
 	// 0x0a06 - MinusOne
 	memoryWriteLong(0xffffffff, MacOS::MinusOne);
 
-	
+
 	// 0x0130 -- ApplLimit
 	memoryWriteLong(Flags.memorySize - Flags.stackSize - 1, MacOS::ApplLimit);
 	memoryWriteLong(kGlobalSize, MacOS::ApplZone);
@@ -562,7 +562,7 @@ void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)
 				break;
 			case 4:
 				fprintf(stderr, " [%08x]\n", value);
-				break;				
+				break;
 			default:
 				fprintf(stderr, "\n");
 				break;
@@ -624,7 +624,7 @@ bool parse_number(const char *input, uint32_t *dest)
 			value *= 1024 * 1024;
 		else if (strcasecmp(end, "K") == 0)
 			value *= 1024;
-		else 
+		else
 		{
 			fprintf(stderr, "%s - invalid input\n", input);
 			return false;
@@ -747,7 +747,7 @@ void MainLoop()
 
 		if (cpuGetStop()) break; // will this also be set by an interrupt?
 
-	
+
 		#ifndef CPU_INSTRUCTION_LOGGING
 		if (Flags.traceCPU || Flags.traceMacsbug)
 		{
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
 		kDebugger,
 		kMemoryStats,
 	};
-	static struct option LongOpts[] = 
+	static struct option LongOpts[] =
 	{
 		{ "ram",required_argument, NULL, 'r' },
 		{ "stack", required_argument, NULL, 's' },
@@ -831,7 +831,7 @@ int main(int argc, char **argv)
 			case kTraceMPW:
 				Flags.traceMPW = true;
 				break;
-				
+
 			case kMemoryStats:
 				Flags.memoryStats = true;
 				break;
@@ -968,7 +968,7 @@ int main(int argc, char **argv)
 	MPW::Trace = Flags.traceMPW;
 	ToolBox::Trace = Flags.traceToolBox;
 
-	
+
 	if (Flags.traceCPU || Flags.traceMacsbug)
 	{
 		#ifdef CPU_INSTRUCTION_LOGGING
@@ -995,6 +995,6 @@ int main(int argc, char **argv)
 	if (rv > 0xff) rv = 0xff;
 
 
-	
+
 	exit(rv);
 }

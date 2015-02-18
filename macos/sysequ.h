@@ -263,7 +263,7 @@ enum {
 enum {
     SysParam = 0x1F8,               /*[GLOBAL VAR] Low-memory copy of parameter RAM (20 bytes)
    system parameter memory [20 bytes]*/
-    CrsrThresh = 0x8EC,             /*[GLOBAL VAR] Mouse-scaling threshold (word) 
+    CrsrThresh = 0x8EC,             /*[GLOBAL VAR] Mouse-scaling threshold (word)
    delta threshold for mouse scaling [word]*/
     JCrsrTask = 0x8EE,              /*[GLOBAL VAR]  address of CrsrVBLTask [long]*/
     MTemp = 0x828,                  /*[GLOBAL VAR]  Low-level interrupt mouse location [long]*/
@@ -318,7 +318,7 @@ enum {
     MaskPtr = 0x31A,                /*[GLOBAL VAR]  Memory Manager Pointer Mask [long]*/
     MinStack = 0x31E,               /*[GLOBAL VAR] Minimum space allotment for stack (long)
    min stack size used in InitApplZone [long]*/
-    DefltStack = 0x322,             /*[GLOBAL VAR] Default space allotment for stack (long) 
+    DefltStack = 0x322,             /*[GLOBAL VAR] Default space allotment for stack (long)
    default size of stack [long]*/
     MMDefFlags = 0x326,             /*[GLOBAL VAR]  default zone flags [word]*/
     DSAlertTab = 0x2BA,             /*[GLOBAL VAR] Pointer to system error alert table in use
@@ -362,7 +362,7 @@ enum {
     TagData = 0x2FA,                /*[GLOBAL VAR]  sector tag info for disk drivers [14 bytes]*/
     BufTgFNum = 0x2FC,              /*[GLOBAL VAR] File tags buffer:  file number (long)
    file number [long]*/
-    BufTgFFlg = 0x300,              /*[GLOBAL VAR] File tags buffer:  flags (word:  bit 1=1 if resource fork) 
+    BufTgFFlg = 0x300,              /*[GLOBAL VAR] File tags buffer:  flags (word:  bit 1=1 if resource fork)
    flags [word]*/
     BufTgFBkNum = 0x302,            /*[GLOBAL VAR] File tags buffer:  logical block number (word)
    logical block number [word]*/
@@ -400,7 +400,7 @@ enum {
   Z-ordered linked list of windows [pointer]*/
     PaintWhite = 0x9DC,             /*[GLOBAL VAR] Flag for whether to paint window white before update event (word)
   erase newly drawn windows? [word]*/
-    WMgrPort = 0x9DE,               /*[GLOBAL VAR] Pointer to Window Manager port 
+    WMgrPort = 0x9DE,               /*[GLOBAL VAR] Pointer to Window Manager port
   window manager's grafport [pointer]*/
     GrayRgn = 0x9EE,                /*[GLOBAL VAR] Handle to region drawn as desktop
   rounded gray desk region [handle]*/
@@ -439,7 +439,7 @@ enum {
   system map [handle]*/
     SysMap = 0xA58,                 /*[GLOBAL VAR] Reference number of system resource file (word)
   reference number of system map [word]*/
-    CurMap = 0xA5A,                 /*[GLOBAL VAR] Reference number of current resource file (word) 
+    CurMap = 0xA5A,                 /*[GLOBAL VAR] Reference number of current resource file (word)
   reference number of current map [word]*/
     ResReadOnly = 0xA5C,            /*[GLOBAL VAR] Read only flag [word]*/
     ResLoad = 0xA5E,                /*[GLOBAL VAR] Current SetResLoad state (word)

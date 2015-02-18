@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -46,7 +46,7 @@
 using ToolBox::Log;
 
 
-namespace 
+namespace
 {
 	mplite_t pool;
 
@@ -81,7 +81,7 @@ namespace
 	{
 		const unsigned HandleCount = 128; // 512 bytes of handle blocks.
 
-		uint8_t *block = (uint8_t *)mplite_malloc(&pool, 
+		uint8_t *block = (uint8_t *)mplite_malloc(&pool,
 			sizeof(uint32_t) * HandleCount);
 
 		if (!block) return false;
@@ -92,7 +92,7 @@ namespace
 		for ( ; hh < end; hh += sizeof(uint32_t))
 		{
 			HandleQueue.push_back(hh);
-		} 
+		}
 
 		return true;
 	}
@@ -118,10 +118,10 @@ namespace MM
 		MemorySize = memorySize;
 		HeapSize = memorySize - stack;
 
-		ok = mplite_init(&pool, 
-			memory + globals, 
-			memorySize - globals - stack, 
-			32, 
+		ok = mplite_init(&pool,
+			memory + globals,
+			memorySize - globals - stack,
+			32,
 			NULL);
 
 		if (ok != MPLITE_OK) return false;
@@ -170,16 +170,16 @@ namespace MM
 				if (iter != HandleMap.end())
 				{
 					const HandleInfo &info = iter->second;
-					printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c %c\n", 
-						iter->first, 
-						info.address, 
-						info.size, 
+					printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c %c\n",
+						iter->first,
+						info.address,
+						info.size,
 						info.locked ? 'L' : ' ',
 						info.purgeable ? 'P' : ' ',
 						info.resource ? 'R' : ' '
 					);
 					return;
-				}			
+				}
 			}
 
 			// 3. check if the address is within a handle.
@@ -195,10 +195,10 @@ namespace MM
 					if (!info.size) end++;
 					if (address >= begin && address < end)
 					{
-						printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c %c\n", 
-							kv.first, 
-							info.address, 
-							info.size, 
+						printf("Handle $%08x Pointer: $%08x Size: $%08x Flags: %c %c %c\n",
+							kv.first,
+							info.address,
+							info.size,
 							info.locked ? 'L' : ' ',
 							info.purgeable ? 'P' : ' ',
 							info.resource ? 'R' : ' '
@@ -221,10 +221,10 @@ namespace MM
 				const auto h = kv.first;
 				const auto & info = kv.second;
 				fprintf(stdout, "%08x %08x %08x %c %c %c\n",
-					h, 
-					info.address, 
-					info.size, 
-					info.locked? 'L' : ' ', 
+					h,
+					info.address,
+					info.size,
+					info.locked? 'L' : ' ',
 					info.purgeable? 'P' : ' ',
 					info.resource ? 'R' : ' '
 					);
@@ -255,7 +255,7 @@ namespace MM
 
 			return SetMemError(0);
 		}
-		
+
 		uint16_t DisposePtr(uint32_t mcptr)
 		{
 
@@ -305,7 +305,7 @@ namespace MM
 					HandleQueue.push_back(hh);
 					return SetMemError(MacOS::memFullErr);
 				}
-				mcptr = ptr - Memory; 
+				mcptr = ptr - Memory;
 
 				if (clear)
 					std::memset(ptr, 0, size);
@@ -424,7 +424,7 @@ namespace MM
 			// 1. - resizing to 0.
 			if (!newSize)
 			{
-				if (info.locked) 
+				if (info.locked)
 				{
 					//return SetMemError(MacOS::memLockedErr);
 
@@ -493,7 +493,7 @@ namespace MM
 				}
 
 				fprintf(stderr, "mplite_realloc failed.\n");
-				Native::PrintMemoryStats();			
+				Native::PrintMemoryStats();
 
 				if (i > 0) return SetMemError(MacOS::memFullErr);
 
@@ -600,7 +600,7 @@ namespace MM
 
 		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 		SetMemError(0);
-		return iter->second;		
+		return iter->second;
 	}
 
 
@@ -611,8 +611,8 @@ namespace MM
 	{
 		// also implements BlockMoveData.
 		// BlockMove will flush caches, BlockMoveData will not.
-		
-		/* 
+
+		/*
 		 * on entry:
 		 * A0 Pointer to source
 		 * A1 Pointer to destination
@@ -638,7 +638,7 @@ namespace MM
 		if (source == 0 || dest == 0 || count == 0)
 			return 0;
 		#endif
-		
+
 		std::memmove(Memory + dest, Memory + source, count);
 
 		return 0;
@@ -649,7 +649,7 @@ namespace MM
 	{
 		// todo -- add function to check pool for largest block?
 
-		/* 
+		/*
 		 * on entry:
 		 * D0: cbNeeded (long word)
 		 *
@@ -669,7 +669,7 @@ namespace MM
 	uint32_t MaxMem(uint16_t trap)
 	{
 		// return largest contiguous free block size.
-		/* 
+		/*
 		 * on entry:
 		 * (nothing)
 		 *
@@ -687,12 +687,12 @@ namespace MM
 	uint32_t MaxBlock(uint16_t trap)
 	{
 		/*
-		 * The MaxBlock function returns the maximum contiguous space, in bytes, that you 
-		 * could obtain after compacting the current heap zone. MaxBlock does not actually 
+		 * The MaxBlock function returns the maximum contiguous space, in bytes, that you
+		 * could obtain after compacting the current heap zone. MaxBlock does not actually
 		 * do the compaction.
 		 */
-		 
-		/* 
+
+		/*
 		 * on entry:
 		 * (nothing)
 		 *
@@ -710,7 +710,7 @@ namespace MM
 	uint32_t FreeMem(uint16_t trap)
 	{
 		// total free memory.
-		/* 
+		/*
 		 * on entry:
 		 * (nothing)
 		 *
@@ -730,7 +730,7 @@ namespace MM
 
 	uint16_t ReserveMem(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0: cbNeeded (long word)
 		 *
@@ -754,7 +754,7 @@ namespace MM
 
 	uint16_t MoveHHi(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0: Handle to move
 		 *
@@ -779,7 +779,7 @@ namespace MM
 	uint32_t StackSpace(uint16_t trap)
 	{
 
-		/* 
+		/*
 		 * on entry:
 		 *
 		 * on exit:
@@ -807,7 +807,7 @@ namespace MM
 
 	uint16_t NewPtr(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 Number of logical bytes requested
 		 *
@@ -838,7 +838,7 @@ namespace MM
 
 	uint16_t DisposePtr(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Pointer to the nonrelocatable block to be disposed of
 		 *
@@ -860,7 +860,7 @@ namespace MM
 
 	uint32_t GetPtrSize(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 pointer
 		 *
@@ -882,7 +882,7 @@ namespace MM
 
 	uint16_t SetPtrSize(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 pointer
 		 * D0 new size
@@ -918,7 +918,7 @@ namespace MM
 
 	uint16_t NewHandle(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 Number of logical bytes requested
 		 *
@@ -946,7 +946,7 @@ namespace MM
 
 	uint16_t DisposeHandle(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle to be disposed of
 		 *
@@ -964,7 +964,7 @@ namespace MM
 
 	uint16_t EmptyHandle(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle to be disposed of
 		 *
@@ -997,7 +997,7 @@ namespace MM
 
 	/*
 	 * ReallocHandle (h: Handle; logicalSize: Size);
-	 * 
+	 *
 	 * ReallocHandle allocates a new relocatable block with a logical
 	 * size of logicalSize bytes. It then updates handle h by setting
 	 * its master pointer to point to the new block. The main use of
@@ -1006,12 +1006,12 @@ namespace MM
 	 * be: If it points to an existing block, that block is released
 	 * before the new block is created.
 	 *
-	 * In case of an error, no new block is allocated and handle h is 
+	 * In case of an error, no new block is allocated and handle h is
 	 * left unchanged.
 	 */
 	uint16_t ReallocHandle(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle to be disposed of
 		 * D0 Logical Size
@@ -1070,7 +1070,7 @@ namespace MM
 
 	uint32_t GetHandleSize(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 handle
 		 *
@@ -1105,7 +1105,7 @@ namespace MM
 	uint16_t SetHandleSize(uint16_t trap)
 	{
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 pointer
 		 * D0 new size
@@ -1133,7 +1133,7 @@ namespace MM
 		 * A0 Master pointer
 		 *
 		 * on exit:
-		 * A0 Handle to master pointer’s relocatable block 
+		 * A0 Handle to master pointer’s relocatable block
 		 * D0 Unchanged
 		 *
 		 */
@@ -1209,7 +1209,7 @@ namespace MM
 		// see HSetRBit, HClrRBit
 		if (info.resource) flags |= (1 << 5);
 		if (info.purgeable) flags |= (1 << 6);
-		if (info.locked) flags |= (1 << 7); 
+		if (info.locked) flags |= (1 << 7);
 
 		SetMemError(0);
 		return flags;
@@ -1248,7 +1248,7 @@ namespace MM
 
 	uint16_t HPurge(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle
 		 *
@@ -1273,7 +1273,7 @@ namespace MM
 
 	uint16_t HNoPurge(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle
 		 *
@@ -1297,7 +1297,7 @@ namespace MM
 
 	uint16_t HLock(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle
 		 *
@@ -1320,7 +1320,7 @@ namespace MM
 
 	uint16_t HUnlock(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle
 		 *
@@ -1346,7 +1346,7 @@ namespace MM
 
 	uint16_t HandToHand(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 source Handle
 		 *
@@ -1365,7 +1365,7 @@ namespace MM
 			return SetMemError(MacOS::memWZErr);
 
 
-		auto const info = iter->second; 
+		auto const info = iter->second;
 
 
 		uint32_t destHandle;
@@ -1375,7 +1375,7 @@ namespace MM
 		{
 			std::memmove(memoryPointer(destPtr), memoryPointer(info.address), info.size);
 		}
-		
+
 		cpuSetAReg(0, destHandle);
 		return d0; // SetMemError called by Native::NewHandle.
 	}
@@ -1383,7 +1383,7 @@ namespace MM
 
 	uint16_t PtrToHand(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 source Pointer
 		 * D0 size
@@ -1406,7 +1406,7 @@ namespace MM
 		{
 			std::memmove(memoryPointer(destPtr), memoryPointer(mcptr), size);
 		}
-		
+
 		cpuSetAReg(0, destHandle);
 		return d0; // SetMemError called by Native::NewHandle.
 	}
@@ -1415,7 +1415,7 @@ namespace MM
 	{
 		// FUNCTION PtrAndHand (pntr: Ptr; hndl: Handle; size: LongInt): OSErr;
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 source Pointer
 		 * A1 dest Handle
@@ -1452,7 +1452,7 @@ namespace MM
 		if (iter == HandleMap.end())
 			return SetMemError(MacOS::memWZErr);
 
-		auto const info = iter->second; 
+		auto const info = iter->second;
 
 		std::memmove(memoryPointer(info.address + oldSize), memoryPointer(ptr), size);
 
@@ -1465,7 +1465,7 @@ namespace MM
 	#pragma mark -
 	uint32_t StripAddress(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * d0 Address to strip
 		 *
@@ -1491,12 +1491,12 @@ namespace MM
 	uint16_t HandleZone(uint16_t trap)
 	{
 		// FUNCTION HandleZone (h: Handle): THz;
-		/* 
+		/*
 		 * on entry:
 		 * A0 Handle whose zone is to be found
 		 *
 		 * on exit:
-		 * A0 Pointer to handle’s heap zone 
+		 * A0 Pointer to handle’s heap zone
 		 * D0 Result code
 		 *
 		 */
@@ -1525,7 +1525,7 @@ namespace MM
 		 * on entry:
 		 *
 		 * on exit:
-		 * A0 Pointer to current heap zone 
+		 * A0 Pointer to current heap zone
 		 * D0 Result code
 		 */
 
@@ -1573,7 +1573,7 @@ namespace MM
 
 		/*
 		 * Registers on exit:
-		 * A0 Maximum number of contiguous bytes after purge 
+		 * A0 Maximum number of contiguous bytes after purge
 		 * D0 Total free memory after purge
 		 */
 
@@ -1635,7 +1635,7 @@ namespace MM
 
 	uint16_t TempHLock(void)
 	{
-		// PROCEDURE TempHLock (theHandle: Handle; VAR resultCode: OSErr);	
+		// PROCEDURE TempHLock (theHandle: Handle; VAR resultCode: OSErr);
 		uint32_t theHandle;
 		uint32_t resultCode;
 
@@ -1651,7 +1651,7 @@ namespace MM
 
 	uint16_t TempHUnlock(void)
 	{
-		// PROCEDURE TempHUnlock (theHandle: Handle; VAR resultCode: OSErr);	
+		// PROCEDURE TempHUnlock (theHandle: Handle; VAR resultCode: OSErr);
 		uint32_t theHandle;
 		uint32_t resultCode;
 
@@ -1668,7 +1668,7 @@ namespace MM
 
 	uint16_t TempDisposeHandle(void)
 	{
-		// PROCEDURE TempDisposeHandle (theHandle: Handle; VAR resultCode: OSErr);	
+		// PROCEDURE TempDisposeHandle (theHandle: Handle; VAR resultCode: OSErr);
 		uint32_t theHandle;
 		uint32_t resultCode;
 

@@ -6,7 +6,7 @@
 namespace RM
 {
 
-	namespace Native 
+	namespace Native
 	{
 		uint16_t SetResLoad(bool tf);
 		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle);
@@ -15,7 +15,7 @@ namespace RM
 	uint16_t CloseResFile(uint16_t trap);
 	uint16_t GetNamedResource(uint16_t trap);
 	uint16_t Get1NamedResource(uint16_t trap);
-	
+
 	uint16_t GetResource(uint16_t trap);
 	uint16_t Get1Resource(uint16_t trap);
 	uint16_t Get1IndResource(uint16_t trap);

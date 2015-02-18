@@ -83,7 +83,7 @@ namespace Debug {
 		if (iter != Types.end())
 		{
 			if (iter->second == type) return; // ok, just a duplicate.
-			fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			fprintf(stderr, "Template Error: line %d - redefining %s\n",
 				info->LineNumber, name->c_str());
 
 			return;
@@ -91,13 +91,13 @@ namespace Debug {
 
 		if (Templates.find(*name) != Templates.end())
 		{
-			fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			fprintf(stderr, "Template Error: line %d - redefining %s\n",
 				info->LineNumber, name->c_str());
 
-			return;	
+			return;
 		}
 
-		Types.emplace(std::make_pair(*name, type)); 
+		Types.emplace(std::make_pair(*name, type));
 	}
 
 
@@ -110,16 +110,16 @@ namespace Debug {
 
 		if (Templates.find(*name) != Templates.end())
 		{
-			fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			fprintf(stderr, "Template Error: line %d - redefining %s\n",
 				info->LineNumber, name->c_str());
-			return;	
+			return;
 		}
 
 		if (Types.find(*name) != Types.end())
 		{
-			fprintf(stderr, "Template Error: line %d - redefining %s\n", 
+			fprintf(stderr, "Template Error: line %d - redefining %s\n",
 				info->LineNumber, name->c_str());
-			return;	
+			return;
 		}
 
 		firstField = Reverse(firstField);
@@ -135,10 +135,10 @@ namespace Debug {
 			return isprint(c) ? c : '.';
 		});
 
-		if (s.size() > 40) { 
-			s.resize(37); 
+		if (s.size() > 40) {
+			s.resize(37);
 			s.append("...");
-		}	
+		}
 	}
 	void PrettyPrint(uint32_t value, unsigned type)
 	{
@@ -224,7 +224,7 @@ namespace Debug {
 						uint8_t value = ReadByte(address + offset);
 						printf("      %02x", value);
 						PrettyPrint(value, type);
-						break; 
+						break;
 					}
 
 				case 2:
@@ -232,7 +232,7 @@ namespace Debug {
 						uint16_t value = ReadWord(address + offset);
 						printf("    %04x", value);
 						PrettyPrint(value, type);
-						break; 
+						break;
 					}
 
 				case 4:
@@ -240,12 +240,12 @@ namespace Debug {
 						uint32_t value = ReadLong(address + offset);
 						printf("%08x", value);
 						PrettyPrint(value, type);
-						break; 
+						break;
 					}
 
 				case 0:
 					// either a pointer or a struct
-					if (type & 0x8000) { 
+					if (type & 0x8000) {
 						// pointer.
 						uint32_t value = ReadLong(address + offset);
 						printf("%08x", value);

@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -74,7 +74,7 @@ namespace OS {
 		long                parID;
 		StrFileName         name;                   // a Str63 on MacOS
 	};
-	*/	
+	*/
 
 	// MacOS: -> { -1, 1, "MacOS" }
 	// MacOS:dumper -> {-1, 2 "dumper"}
@@ -90,7 +90,7 @@ namespace OS {
 		// expand the path.  Also handles relative paths.
 		char *cp = ::fs_spec_realpath(path.c_str(), buffer);
 		if (!cp) return "";
-		
+
 		return std::string(cp);
 	}
 
@@ -107,7 +107,7 @@ namespace OS {
 		// FSMakeFSSpec(vRefNum: Integer; dirID: LongInt; fileName: Str255; VAR spec: FSSpec): OSErr;
 
 		// todo -- if the file does not exist (but the path is otherwise valid), create the spec but return fnfErr.
-		
+
 		/*
 		 * See Chapter 2, File Manager / Using the File Manager, 2-35
 		 *
@@ -123,7 +123,7 @@ namespace OS {
 		StackFrame<14>(vRefNum, dirID, fileName, spec);
 
 		std::string sname = ToolBox::ReadPString(fileName, true);
-		Log("     FSMakeFSSpec(%04x, %08x, %s, %08x)\n", 
+		Log("     FSMakeFSSpec(%04x, %08x, %s, %08x)\n",
 			vRefNum, dirID, sname.c_str(), spec);
 
 		if (vRefNum == 0 && dirID > 0 && sname.length())
@@ -153,7 +153,7 @@ namespace OS {
 			if (path.empty())
 			{
 				std::memset(memoryPointer(spec), 0, 8);
-				return MacOS::mFulErr;	
+				return MacOS::mFulErr;
 			}
 
 			int pos = path.find_last_of('/');
@@ -214,7 +214,7 @@ namespace OS {
 		int fd = Internal::FDEntry::open(sname, permission, 0);
 		if (fd < 0) return fd;
 
-		memoryWriteWord(fd, refNum);				
+		memoryWriteWord(fd, refNum);
 
 		return 0;
 	}
@@ -273,7 +273,7 @@ namespace OS {
 	{
 
 		// FUNCTION FSpCreate (spec: FSSpec; creator: OSType;
-		//                     fileType: OSType; scriptTag: ScriptCode): 
+		//                     fileType: OSType; scriptTag: ScriptCode):
 		// OSErr;
 
 		uint16_t d0 = 0;
@@ -290,8 +290,8 @@ namespace OS {
 		int parentID = memoryReadLong(spec + 2);
 		std::string sname = ToolBox::ReadPString(spec + 6, false);
 
-		Log("     FSpCreate(%s, %08x ('%s'), %08x ('%s'), %02x)\n",  
-			sname.c_str(), 
+		Log("     FSpCreate(%s, %08x ('%s'), %08x ('%s'), %02x)\n",
+			sname.c_str(),
 			creator, ToolBox::TypeToString(creator).c_str(),
 			fileType, ToolBox::TypeToString(fileType).c_str(),
 			scriptTag);
@@ -355,7 +355,7 @@ namespace OS {
 		int ok = 0;
 		if (S_ISDIR(st.st_mode))
 			ok = ::rmdir(sname.c_str());
-		else 
+		else
 			ok = ::unlink(sname.c_str());
 
 		if (ok < 0)
@@ -430,7 +430,7 @@ namespace OS {
 		 * $000D FSpOpenResFile
 		 * $000E FSpCreateResFile
 		 * $000F FSpExchangeFiles
-		 */		
+		 */
 
 		uint16_t selector;
 		uint16_t d0;

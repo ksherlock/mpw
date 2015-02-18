@@ -31,7 +31,7 @@ namespace MPW {
 
 	enum
 	{
-		kF_GTABINFO = (('e' << 8) | 0x00),		/* get tab offset for file */	
+		kF_GTABINFO = (('e' << 8) | 0x00),		/* get tab offset for file */
 		kF_STABINFO = (('e' << 8) | 0x01),		/* set 	"	"		"	"  */
 		kF_GFONTINFO = (('e' << 8) | 0x02),		/* get font number and size for file */
 		kF_SFONTINFO = (('e' << 8) | 0x03),		/* set 	"		"	"	"	"	" 	 */

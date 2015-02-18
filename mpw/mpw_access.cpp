@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -93,7 +93,7 @@ namespace MPW
 	{
 		// get_tab_info(const char *name, uint32_t *tabSize)
 
-		// hard code for now.  
+		// hard code for now.
 		// Could check xattr for actual value.
 		// That would be rather pointless unless some editor respected
 		// it.
@@ -134,7 +134,7 @@ namespace MPW
 
 		rv = ::unlink(sname.c_str());
 		if (rv < 0) return 0x40000000 | mpw_errno_from_errno();
-		
+
 		return 0;
 	}
 
@@ -204,7 +204,7 @@ namespace MPW
 
 
 			// adjust the binary flags...
-			// some apps are good about this but 
+			// some apps are good about this but
 			// dumpobj, makelib, linkiigs don't set O_BINARY (but should)
 			// MPW Assembler sets O_BINARY (but shouldn't)
 
@@ -241,7 +241,7 @@ namespace MPW
 		uint32_t parm = memoryReadLong(sp + 12);
 
 		Log("%04x Access(%08x, %04x, %08x)\n", trap, name, op, parm);
-		
+
 		switch (op)
 		{
 		case kF_OPEN:
@@ -268,14 +268,14 @@ namespace MPW
 			d0 = ftrap_set_font_info(name, parm);
 			break;
 
-			
+
 		default:
 			d0 = 0x40000000 | kEINVAL;
-			fprintf(stderr, "faccess - unsupported op %04x\n", op);	
-			exit(1);	
+			fprintf(stderr, "faccess - unsupported op %04x\n", op);
+			exit(1);
 		}
 
-		cpuSetDReg(0, d0);				
+		cpuSetDReg(0, d0);
 	}
 
 

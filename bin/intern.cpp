@@ -13,9 +13,9 @@ namespace {
 		unsigned int hash = 5381;
 
 		for(size_t i = 0; i < length; ++i)
-		{   
+		{
 			hash = ((hash << 5) + hash) + (begin[i]);
-		}   
+		}
 
 		return hash;
 	}
@@ -46,9 +46,9 @@ namespace Intern {
 		// insert it. I suppose this could throw, in which case a string would leak.
 		std::string *s = new std::string(std::move(str));
 		InternTable.emplace(std::make_pair(hash, s));
-		return s;		
+		return s;
 	}
-	
+
 	const std::string *String(const char *begin, size_t size)
 	{
 		if (!size) return &EmptyString;
@@ -96,7 +96,3 @@ namespace Intern {
 
 
 }
-
-
-
-

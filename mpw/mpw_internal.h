@@ -12,7 +12,7 @@ namespace MPW
 	{
 		if (Trace) fprintf(stderr, format, args...);
 	}
-	
+
 }
 
 #endif

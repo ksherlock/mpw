@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -54,7 +54,7 @@
 #include "toolbox.h"
 #include "stackframe.h"
 #include "fs_spec.h"
- 
+
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
 #define st_birthtime st_mtime
 #endif
@@ -87,7 +87,7 @@ namespace OS {
 
 		/*
 		 * TODO - this is a Massive hack.
-		 * MPW returns this: for a 0/0 entry.  
+		 * MPW returns this: for a 0/0 entry.
 		 * PBGetWDInfo
 		 * 0
 		 * ioNamePtr: MacOS
@@ -245,7 +245,7 @@ namespace OS {
 			{
 				memoryWriteByte(0, parm + _ioFlAttrib);
 
-				memoryWriteByte(0, parm + _ioACUser);				
+				memoryWriteByte(0, parm + _ioACUser);
 				Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false); // finder info
 				memoryWriteLong(0, parm + _ioDirID);
 				memoryWriteWord(0, parm + _ioFlStBlk);
@@ -377,7 +377,7 @@ namespace OS {
 			{
 				d0 = macos_error_from_errno();
 				memoryWriteWord(d0, parm + _ioResult);
-				return d0; 
+				return d0;
 			}
 
 			// just nop if it's a directory.
@@ -385,13 +385,13 @@ namespace OS {
 			{
 				d0 = 0;
 
-				d0 = Internal::SetFileDates(sname, 
-					memoryReadLong(parm + _ioDrCrDat), 
-					memoryReadLong(parm + _ioDrMdDat), 
+				d0 = Internal::SetFileDates(sname,
+					memoryReadLong(parm + _ioDrCrDat),
+					memoryReadLong(parm + _ioDrMdDat),
 					memoryReadLong(parm + _ioDrBkDat));
 
 				memoryWriteWord(d0, parm + _ioResult);
-				return d0; 
+				return d0;
 			}
 		}
 
@@ -399,9 +399,9 @@ namespace OS {
 		// set the finder info.  could also call utimes or setattrlist, I suppose.
 		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false);
 
-		if (d0 == 0) d0 = Internal::SetFileDates(sname, 
-			memoryReadLong(parm + _ioFlCrDat), 
-			memoryReadLong(parm + _ioFlMdDat), 
+		if (d0 == 0) d0 = Internal::SetFileDates(sname,
+			memoryReadLong(parm + _ioFlCrDat),
+			memoryReadLong(parm + _ioFlMdDat),
 			memoryReadLong(parm + _ioFlBkDat));
 
 
@@ -433,7 +433,7 @@ namespace OS {
 	{
 		// AccessParam.ioDenyModes short word matches
 		// up with the permission byte considering it's big-endian.
-		
+
 		Log("     PBHOpenDeny\n");
 		return OS::OpenCommon(paramBlock, true, false);
 	}
@@ -465,7 +465,7 @@ namespace OS {
 				break;
 
 			default:
-				fprintf(stderr, "FSDispatch: selector %08x not implemented\n", 
+				fprintf(stderr, "FSDispatch: selector %08x not implemented\n",
 					selector);
 				exit(1);
 		}
@@ -504,7 +504,7 @@ namespace OS {
 				return PBHOpenRFDeny(paramBlock);
 
 			default:
-				fprintf(stderr, "HFSDispatch: selector %08x not implemented\n", 
+				fprintf(stderr, "HFSDispatch: selector %08x not implemented\n",
 					selector);
 				exit(1);
 		}

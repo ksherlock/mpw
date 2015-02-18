@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -38,7 +38,7 @@
 
 #include <macos/traps.h>
 #include <macos/errors.h>
- 
+
 #include "toolbox.h"
 
 #include "loader.h"
@@ -100,9 +100,9 @@ namespace ToolBox {
 				return Process::GetProcessInformation();
 
 			default:
-				fprintf(stderr, "OSDispatch: selector %04x not implemented\n", 
+				fprintf(stderr, "OSDispatch: selector %04x not implemented\n",
 					selector);
-				exit(1);			
+				exit(1);
 		}
 
 	}
@@ -164,7 +164,7 @@ namespace ToolBox {
 			case 0xa011:
 				d0 = OS::GetEOF(trap);
 				break;
-				
+
 			case 0xa012:
 				d0 = OS::SetEOF(trap);
 				break;
@@ -188,7 +188,7 @@ namespace ToolBox {
 			case 0xa215: // HSetVol
 				d0 = OS::HSetVol(trap);
 				break;
-				
+
 
 			case 0xa018:
 				d0 = OS::GetFPos(trap);
@@ -205,7 +205,7 @@ namespace ToolBox {
 			case 0xa060:
 				d0 = OS::FSDispatch(trap);
 				break;
-				
+
 			case 0xa260:
 				d0 = OS::HFSDispatch(trap);
 				break;
@@ -295,7 +295,7 @@ namespace ToolBox {
 			case 0xA01C:
 				d0 = MM::FreeMem(trap);
 				break;
-				
+
 			// CompactMem (cbNeeded: Size) : Size;
 			case 0xa04c:
 				d0 = MM::CompactMem(trap);
@@ -341,7 +341,7 @@ namespace ToolBox {
 			case 0xa11a:
 				d0 = MM::GetZone(trap);
 				break;
-				
+
 			case 0xa01b:
 				d0 = MM::SetZone(trap);
 				break;
@@ -372,7 +372,7 @@ namespace ToolBox {
 			case 0xa9c6:
 				d0 = OS::SecondsToDate(trap);
 				break;
-		
+
 			// TickCount : LONGINT;
 			case 0xa975:
 				d0 = OS::TickCount(trap);
@@ -422,7 +422,7 @@ namespace ToolBox {
 			case 0xA027:
 				d0 = MM::ReallocHandle(trap);
 				break;
-				
+
 			case 0xA02B:
 				d0 = MM::EmptyHandle(trap);
 				break;
@@ -541,7 +541,7 @@ namespace ToolBox {
 			case 0xa9a5:
 				d0 = RM::GetResourceSizeOnDisk(trap);
 				break;
-				
+
 			case 0xa9a6:
 				d0 = RM::GetResAttrs(trap);
 				break;
@@ -565,7 +565,7 @@ namespace ToolBox {
 			case 0xa9ad:
 				d0 = RM::RemoveResource(trap);
 				break;
-				
+
 			// ResError : INTEGER;
 			case 0xa9af:
 				d0 = RM::ResError(trap);
@@ -694,7 +694,7 @@ namespace ToolBox {
 
 		return tmp;
 	}
-	
+
 	std::string ReadPString(uint32_t address, bool fname)
 	{
 		std::string tmp;
@@ -702,11 +702,11 @@ namespace ToolBox {
 		if (address)
 		{
 			unsigned length = memoryReadByte(address);
-		
+
 			tmp.assign((char *)memoryPointer(address + 1), length);
 
 			if (fname) tmp = MacToUnix(tmp);
-			
+
 		}
 
 		return tmp;

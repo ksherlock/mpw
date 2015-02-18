@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -77,13 +77,13 @@ namespace {
 
 		pos = s.find_last_of("./:");
 
-		if (pos == s.npos) return tmp;		
+		if (pos == s.npos) return tmp;
 		if (s[pos++] != '.') return tmp;
 		if (pos >= s.length()) return tmp;
 
 		tmp = s.substr(pos);
 
-		std::transform(tmp.begin(), tmp.end(), tmp.begin(), 
+		std::transform(tmp.begin(), tmp.end(), tmp.begin(),
 			[](char c) { return tolower(c); }
 		);
 
@@ -133,7 +133,7 @@ namespace OS
 			if (rv >= 8 && memcmp(buffer, "TEXT", 4) == 0)
 				return true;
 		}
-		
+
 		std::string ext = extension(s);
 		if (ext.empty()) return false;
 
@@ -158,7 +158,7 @@ namespace OS
 				if (ext == "equ") // asm iigs include file.
 					return true;
 				break;
-			
+
 			case 'i':
 				if (ext == "i") // asmiigs include file
 					return true;
@@ -167,7 +167,7 @@ namespace OS
 				break;
 
 			case 'h':
-				if (ext == "h") // c header 
+				if (ext == "h") // c header
 					return true;
 				break;
 
@@ -242,7 +242,7 @@ namespace OS
 				if (buffer[0] == 'B' && buffer[2] == ' ' && buffer[3] == ' ')
 					return true;
 
-				// "p" $uv $wx $yz 
+				// "p" $uv $wx $yz
 				if (buffer[0] == 'p')
 				{
 					uint8_t fileType = buffer[1];
@@ -271,7 +271,7 @@ namespace OS
 					return true;
 				// Newton C++ Tools output
 				if (ext == "ntkc")
-					return true;				
+					return true;
 				break;
 
 			case 'o':
@@ -284,7 +284,7 @@ namespace OS
 			case 's':
 				// Newton C++ Intermediate file
 				if (ext == "sym")
-					return true;				
+					return true;
 				break;
 		}
 
@@ -382,7 +382,7 @@ namespace OS
 		else
 		{
 			::close(fd);
-			d0 = 0;		
+			d0 = 0;
 		}
 
 		memoryWriteWord(d0, parm + _ioResult);
@@ -421,7 +421,7 @@ namespace OS
 
 		int fd;
 
-		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn); 
+		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn);
 		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
 
 		std::string sname = ToolBox::ReadPString(namePtr, true);
@@ -436,7 +436,7 @@ namespace OS
 		d0 = fd < 0 ? fd : 0;
 		if (fd >= 0)
 		{
-			memoryWriteWord(fd, parm + _ioRefNum);				
+			memoryWriteWord(fd, parm + _ioRefNum);
 		}
 
 		memoryWriteWord(d0, parm + _ioResult);
@@ -507,7 +507,7 @@ namespace OS
 			d0 = 0;
 			pos += count;
 			memoryWriteLong(count, parm + 40);
-		} 
+		}
 
 		if (count == 0)
 		{
@@ -567,7 +567,7 @@ namespace OS
 			d0 = 0;
 			pos += count;
 			memoryWriteLong(count, parm + 40);
-		} 
+		}
 
 		if (count < 0)
 		{
@@ -781,11 +781,11 @@ namespace OS
 	uint16_t CmpString(uint16_t trap)
 	{
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 Pointer to first character of first string
 		 * A1 Pointer to first character of second string
-		 * D0 (high) length of first string 
+		 * D0 (high) length of first string
 		 * D0 (low) length of second string
 		 *
 		 * on exit:
@@ -814,9 +814,9 @@ namespace OS
 
 		bool eq;
 		eq = std::equal(
-			a.begin(), 
-			a.end(), 
-			b.begin(), 
+			a.begin(),
+			a.end(),
+			b.begin(),
 			[caseSens](char a, char b){
 				if (!caseSens)
 				{
@@ -846,7 +846,7 @@ namespace OS
 	uint16_t ReadDateTime(uint16_t trap)
 	{
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 Pointer to long word secs
 		 *
@@ -875,7 +875,7 @@ namespace OS
 
 	uint16_t SecondsToDate(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 Seconds since midnight, January 1, 1904
 		 * A0 pointer to date-time record
@@ -933,7 +933,7 @@ namespace OS
 	uint16_t Microseconds(uint16_t trap)
 	{
 
-		// UnsignedWide is a uint64_t 
+		// UnsignedWide is a uint64_t
 		// Microseconds(UnsignedWide * microTickCount)
 		// FOURWORDINLINE(0xA193, 0x225F, 0x22C8, 0x2280);
 
@@ -961,7 +961,7 @@ namespace OS
 #ifdef OLD_TRAP_DISPATCH
 	uint16_t GetToolTrapAddress(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 trap number
 		 *
@@ -983,7 +983,7 @@ namespace OS
 	{
 		//pascal void SetToolTrapAddress(long trapAddr, short trapNum);
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 Address of patch
 		 * D0 trap number
@@ -1009,7 +1009,7 @@ namespace OS
 
 	uint16_t GetOSTrapAddress(uint16_t trap)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * D0 trap number
 		 *
@@ -1031,7 +1031,7 @@ namespace OS
 	{
 		//pascal void SetOSTrapAddress(long trapAddr, short trapNum);
 
-		/* 
+		/*
 		 * on entry:
 		 * A0 Address of patch
 		 * D0 trap number

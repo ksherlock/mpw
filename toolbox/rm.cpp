@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -65,7 +65,7 @@ namespace
 
 
 	// https://developer.apple.com/library/mac/documentation/Carbon/Reference/CoreEndianReference/
-	
+
 	OSStatus FlipperNoFlipping(OSType dataDomain, OSType dataType, SInt16 id, void *dataPtr, ByteCount dataSize, Boolean currentlyNative, void *refCon)
 	{
 		return 0;
@@ -92,7 +92,7 @@ namespace
 #if 0
 	struct ResEntry
 	{
-		ResEntry(uint32_t type = 0, uint32_t id = 0) : 
+		ResEntry(uint32_t type = 0, uint32_t id = 0) :
 			resType(type), resID(id)
 		{}
 		uint32_t resType;
@@ -118,8 +118,8 @@ namespace
 	bool LoadResType(uint32_t type)
 	{
 		// this filtering was originally to
-		// block cursors ('acur').  Can probably 
-		// change it to a blacklist rather than 
+		// block cursors ('acur').  Can probably
+		// change it to a blacklist rather than
 		// a whitelist at some point.
 
 		return true;
@@ -156,7 +156,7 @@ namespace RM
 
 
 
-	namespace Native 
+	namespace Native
 	{
 
 		// not to be confused with MacOS LoadResource(theHandle)
@@ -240,8 +240,8 @@ namespace RM
 
 		Log("%04x CloseResFile(%04x)\n", trap, refNum);
 
-		// If the value of the refNum parameter is 0, it represents the System file and is ignored. 
-		
+		// If the value of the refNum parameter is 0, it represents the System file and is ignored.
+
 		if (refNum != 0)
 		{
 			::CloseResFile(refNum);
@@ -277,12 +277,12 @@ namespace RM
 
 		std::string sname = ToolBox::ReadPString(name);
 
-		Log("%04x Get1NamedResource(%08x ('%s'), %s)\n", 
+		Log("%04x Get1NamedResource(%08x ('%s'), %s)\n",
 			trap, theType, TypeToString(theType).c_str(), sname.c_str());
 
 		uint32_t resourceHandle;
 		uint32_t d0;
-		d0 = Native::LoadResource(theType, resourceHandle, 
+		d0 = Native::LoadResource(theType, resourceHandle,
 			[theType, name](){
 				return ::Get1NamedResource(theType, memoryPointer(name));
 			}
@@ -304,12 +304,12 @@ namespace RM
 
 		std::string sname = ToolBox::ReadPString(name);
 
-		Log("%04x GetNamedResource(%08x ('%s'), %s)\n", 
+		Log("%04x GetNamedResource(%08x ('%s'), %s)\n",
 			trap, theType, TypeToString(theType).c_str(), sname.c_str());
 
 		uint32_t resourceHandle;
 		uint32_t d0;
-		d0 = Native::LoadResource(theType, resourceHandle, 
+		d0 = Native::LoadResource(theType, resourceHandle,
 			[theType, name](){
 				return ::GetNamedResource(theType, memoryPointer(name));
 			}
@@ -342,13 +342,13 @@ namespace RM
 
 		sp = StackFrame<6>(theType, theID);
 
-		Log("%04x GetResource(%08x ('%s'), %04x)\n", 
+		Log("%04x GetResource(%08x ('%s'), %04x)\n",
 				trap, theType, TypeToString(theType).c_str(), theID);
 
 
 		uint32_t resourceHandle;
 		uint32_t d0;
-		d0 = Native::LoadResource(theType, resourceHandle, 
+		d0 = Native::LoadResource(theType, resourceHandle,
 			[theType, theID](){
 				return ::GetResource(theType, theID);
 			}
@@ -387,7 +387,7 @@ namespace RM
 
 		uint32_t resourceHandle;
 		uint32_t d0;
-		d0 = Native::LoadResource(theType, resourceHandle, 
+		d0 = Native::LoadResource(theType, resourceHandle,
 			[theType, theID](){
 				return ::Get1Resource(theType, theID);
 			}
@@ -401,7 +401,7 @@ namespace RM
 
 	uint16_t ReleaseResource(uint16_t trap)
 	{
-		// ReleaseResource (theResource: Handle);	
+		// ReleaseResource (theResource: Handle);
 
 		/*
 		 * ------------
@@ -496,7 +496,7 @@ namespace RM
 		{
 			if (creator || fileType)
 				OS::Internal::SetFinderInfo(path, fileType, creator);
-			
+
 			close(fd);
 		}
 
@@ -525,12 +525,12 @@ namespace RM
 		// PROCEDURE CreateResFile (fileName: Str255);
 
 		/*
-		 * CreateResFile creates a resource file containing no resource 
-		 * data. If there's no file at all with the given name, it also 
-		 * creates an empty data fork for the file. If there's already a 
-		 * resource file with the given name (that is, a resource fork 
-		 * that isn't empty), CreateResFile will do nothing and the 
-		 * ResError function will return an appropriate Operating System 
+		 * CreateResFile creates a resource file containing no resource
+		 * data. If there's no file at all with the given name, it also
+		 * creates an empty data fork for the file. If there's already a
+		 * resource file with the given name (that is, a resource fork
+		 * that isn't empty), CreateResFile will do nothing and the
+		 * ResError function will return an appropriate Operating System
 		 * result code.
 		 */
 
@@ -562,7 +562,7 @@ namespace RM
 
 		std::string sname = ToolBox::ReadPString(fileName, true);
 
-		Log("%04x HCreateResFile(%04x, %08x, %s)\n", 
+		Log("%04x HCreateResFile(%04x, %08x, %s)\n",
 			trap, vRefNum, dirID, sname.c_str());
 
 
@@ -597,8 +597,8 @@ namespace RM
 		int parentID = memoryReadLong(spec + 2);
 		std::string sname = ToolBox::ReadPString(spec + 6, false);
 
-		Log("     FSpCreateResFile(%s, %08x ('%s'), %08x ('%s'), %02x)\n",  
-			sname.c_str(), 
+		Log("     FSpCreateResFile(%s, %08x ('%s'), %08x ('%s'), %02x)\n",
+			sname.c_str(),
 			creator, ToolBox::TypeToString(creator).c_str(),
 			fileType, ToolBox::TypeToString(fileType).c_str(),
 			scriptTag);
@@ -632,10 +632,10 @@ namespace RM
 		::FSGetResourceForkName(&fork);
 
 		refNum = -1;
-		error = ::FSOpenResourceFile(&ref, 
+		error = ::FSOpenResourceFile(&ref,
 			fork.length,
 			fork.unicode,
-			permission, 
+			permission,
 			&refNum);
 
 		if (error != noErr)
@@ -647,7 +647,7 @@ namespace RM
 	uint16_t OpenResFile(uint16_t trap)
 	{
 		// OpenResFile (fileName: Str255) : INTEGER;
-		
+
 		uint32_t sp;
 		uint32_t fileName;
 
@@ -680,7 +680,7 @@ namespace RM
 
 		std::string sname = ToolBox::ReadPString(fileName, true);
 
-		Log("%04x HOpenResFile(%04x, %08x, %s, %04x)\n", 
+		Log("%04x HOpenResFile(%04x, %08x, %s, %04x)\n",
 			trap, vRefNum, dirID, sname.c_str(), permission);
 
 		if (vRefNum) {
@@ -766,10 +766,10 @@ namespace RM
         ::FSGetResourceForkName(&fork);
 
         refNum = -1;
-    	error = ::FSOpenResourceFile(&ref, 
-    		fork.length, 
-    		fork.unicode, 
-    		permission, 
+    	error = ::FSOpenResourceFile(&ref,
+    		fork.length,
+    		fork.unicode,
+    		permission,
     		&refNum);
 
 		ToolReturn<2>(sp, (uint16_t)refNum);
@@ -787,7 +787,7 @@ namespace RM
 
 		sp = StackFrame<4>(theType);
 
-		Log("%04x Count1Resources(%08x ('%s'))\n", 
+		Log("%04x Count1Resources(%08x ('%s'))\n",
 			trap, theType, TypeToString(theType).c_str());
 
 		count = ::Count1Resources(theType);
@@ -825,7 +825,7 @@ namespace RM
 
 
 		// set the resChanged attribute so when UpdateResFile() is called
-		// (or the app exits) 
+		// (or the app exits)
 		// also needs to update the carbon handle/data with the mpw handle
 		// since the data has changed....
 
@@ -932,7 +932,7 @@ namespace RM
 		if (!nativeHandle) return SetResError(MacOS::addResFailed);
 
 
-		std::memcpy(*(uint8_t **)nativeHandle, memoryPointer(info->address), info->size);  
+		std::memcpy(*(uint8_t **)nativeHandle, memoryPointer(info->address), info->size);
 
 		rhandle_map.insert({theData, nativeHandle});
 
@@ -1048,12 +1048,12 @@ namespace RM
 		uint16_t index;
 
 		sp = StackFrame<6>(theType, index);
-		Log("%04x Get1IndResource(%08x ('%s'), %04x)\n", 
+		Log("%04x Get1IndResource(%08x ('%s'), %04x)\n",
 			trap, theType, TypeToString(theType).c_str(), index);
 
 		uint32_t resourceHandle = 0;
 		uint16_t d0;
-		d0 = Native::LoadResource(theType, resourceHandle, 
+		d0 = Native::LoadResource(theType, resourceHandle,
 			[theType, index](){
 				return ::Get1IndResource(theType, index);
 			}
@@ -1115,7 +1115,7 @@ namespace RM
 
 	uint16_t GetResInfo(uint16_t trap)
 	{
-		// PROCEDURE GetResInfo (theResource: Handle; 
+		// PROCEDURE GetResInfo (theResource: Handle;
 		// VAR theID: INTEGER; VAR theType: ResType; VAR name: Str255);
 
 		uint32_t theResource;
@@ -1134,7 +1134,7 @@ namespace RM
 
 		Handle nativeHandle = iter->second;
 		ResID nativeID = 0;
-		ResType nativeType = 0;		
+		ResType nativeType = 0;
 		Str255 nativeName = {0};
 
 		::GetResInfo(nativeHandle, &nativeID, &nativeType, nativeName);
@@ -1155,9 +1155,9 @@ namespace RM
 		// PROCEDURE LoadResource (theResource: Handle);
 
 		// this loads the resource from disk, if not already
-		// loaded. (if purgeable or SetResLoad(false)) 
+		// loaded. (if purgeable or SetResLoad(false))
 
-		// this needs cooperation with MM to check if 
+		// this needs cooperation with MM to check if
 		// handle was purged.
 
 		OSErr err;
@@ -1265,7 +1265,7 @@ namespace RM
 
 		Log("%04x Get1IndType(%08x, %04x)\n", trap, theType, index);
 
-		ResType nativeType = 0;		
+		ResType nativeType = 0;
 
 		::Get1IndType(&nativeType, index);
 

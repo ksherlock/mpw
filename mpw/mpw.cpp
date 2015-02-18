@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -57,7 +57,7 @@
 extern char **environ;
 
 
-namespace MPW { 
+namespace MPW {
 
 	// for dup counts, etc.
 	//std::vector<int> FDTable;
@@ -152,7 +152,7 @@ namespace MPW
 				{
 					std::string s(pwd.pw_dir);
 					if (s.back() != '/') s.push_back('/');
-					s.append("mpw");					
+					s.append("mpw");
 					if (isdir(s))
 					{
 						path = std::move(s);
@@ -222,7 +222,7 @@ namespace MPW
 		FDTable[STDOUT_FILENO].text = true;
 
 		FDTable[STDERR_FILENO].refcount = 1;
-		FDTable[STDERR_FILENO].text = true;		
+		FDTable[STDERR_FILENO].text = true;
 		*/
 
 		OS::Internal::FDEntry::allocate(STDIN_FILENO).text = true;
@@ -238,7 +238,7 @@ namespace MPW
 		argv[0] = basename(argv[0]);
 
 
-		// 0x0910 CurApName 
+		// 0x0910 CurApName
 		{
 			char str32[32];
 
@@ -371,7 +371,7 @@ namespace MPW
 			memoryWriteWord(0x4E75, fptr + 6); // rts
 
 			memoryWriteWord(fClose, fptr + 8);
-			memoryWriteWord(0x4E75, fptr + 10); // rts			
+			memoryWriteWord(0x4E75, fptr + 10); // rts
 
 			memoryWriteWord(fRead, fptr + 12);
 			memoryWriteWord(0x4E75, fptr + 14); // rts

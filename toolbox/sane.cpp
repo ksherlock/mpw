@@ -3,13 +3,13 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
+ *    and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -103,7 +103,7 @@ using std::to_string;
 	// long double is an 80-bit extended with an extra 48-bits of 0 padding.
 	typedef long double extended;
 
-	// comp is an int64_t but 0x8000_0000_0000_0000 is NaN 
+	// comp is an int64_t but 0x8000_0000_0000_0000 is NaN
 	//typedef int64_t complex;
 
 	struct complex {
@@ -215,7 +215,7 @@ using std::to_string;
 	std::string to_string(complex c)
 	{
 		if (c.isnan()) return std::string("nan");
-		
+
 		return std::to_string((int64_t)c);
 	}
 
@@ -289,7 +289,7 @@ using std::to_string;
 
 		// now cast...
 
-		return *((long double *)buffer);		
+		return *((long double *)buffer);
 	}
 
 
@@ -312,13 +312,13 @@ using std::to_string;
 	void writenum<int64_t>(int64_t value, uint32_t address)
 	{
 		memoryWriteLongLong(value, address);
-	}	
+	}
 
 	template<>
 	void writenum<complex>(complex value, uint32_t address)
 	{
 		memoryWriteLongLong(value, address);
-	}	
+	}
 
 	template<>
 	void writenum<float>(float value, uint32_t address)
@@ -326,7 +326,7 @@ using std::to_string;
 		static_assert(sizeof(value) == 4, "unexpected float size");
 
 		memoryWriteLong(*((uint32_t *)&value), address);
-	}	
+	}
 
 	template<>
 	void writenum<double>(double value, uint32_t address)
@@ -334,7 +334,7 @@ using std::to_string;
 		static_assert(sizeof(value) == 8, "unexpected double size");
 
 		memoryWriteLongLong(*((uint64_t *)&value), address);
-	}	
+	}
 
 	template<>
 	void writenum<long double>(long double value, uint32_t address)
@@ -349,7 +349,7 @@ using std::to_string;
 		// little-endian specific.
 		for(unsigned i = 0; i < 10; ++i)
 			memoryWriteByte(buffer[9 - i], address + i);
-	}	
+	}
 
 
 
@@ -639,7 +639,7 @@ using std::to_string;
 
 		// TODO -- verify if src/dest are backwards here
 		//
-		
+
 		//
 		// check if ordered...
 
@@ -724,7 +724,7 @@ using std::to_string;
 	inline int classify(float x) { return std::fpclassify(x); }
 	inline int classify(double x) { return std::fpclassify(x); }
 	inline int classify(extended x) { return std::fpclassify(x); }
-	inline int classify(complex c) { 
+	inline int classify(complex c) {
 		if (c.isnan()) return FP_NAN;
 		if ((uint64_t)c == (uint64_t)0) return FP_ZERO;
 		return FP_NORMAL;
@@ -735,15 +735,15 @@ using std::to_string;
 	inline int sign(extended x) { return std::signbit(x); }
 	inline int sign(complex c) {
 		if (c.isnan()) return 0;
-		return ((int64_t)c < (int64_t)0) ? 1 : 0; 
+		return ((int64_t)c < (int64_t)0) ? 1 : 0;
 	}
 
 	template <class SrcType>
 	uint16_t fclassify(const char *name)
 	{
 		/*
-		 * The classify operations set the sign of the destination to 
-		 * the sign of the source and the value of the destination 
+		 * The classify operations set the sign of the destination to
+		 * the sign of the source and the value of the destination
 		 * according to the class of the source, as shown in Table E-18.
 		 * The destination is an integer variable. (pg 273)
 		 *
@@ -821,9 +821,9 @@ using std::to_string;
 
 	/*
 	 * environment is a uint16_t *.
-	 * void setenvironment(environment e); 
+	 * void setenvironment(environment e);
 	 * void getenvironment(environment *e);
-	 * void procentry(environment *e); 
+	 * void procentry(environment *e);
 	 * void procexit(environment e);
 	 */
 
@@ -916,7 +916,7 @@ using std::to_string;
 			case 0x1002: return fsub<float>("FSUBS");
 			//case 0x3002: return fsub<complex>("FSUBC");
 			case 0x2002: return fsub<int16_t>("FSUBI");
-			case 0x2802: return fsub<int32_t>("FSUBL");			
+			case 0x2802: return fsub<int32_t>("FSUBL");
 
 			// multiplication
 			case 0x0004: return fmul<extended>("FMULX");
@@ -993,7 +993,7 @@ using std::to_string;
 
 	uint16_t NumToString(void)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Pointer to pascal string
 		 * D0 The number
@@ -1019,7 +1019,7 @@ using std::to_string;
 
 	uint32_t StringToNum(void)
 	{
-		/* 
+		/*
 		 * on entry:
 		 * A0 Pointer to pascal string
 		 *
@@ -1067,7 +1067,7 @@ using std::to_string;
 
 	uint32_t fpstr2dec()
 	{
-		// void str2dec(const char *s,short *ix,decimal *d,short *vp); 
+		// void str2dec(const char *s,short *ix,decimal *d,short *vp);
 
 #if 0
 #define SIGDIGLEN 20						/* significant decimal digits */
@@ -1089,7 +1089,7 @@ struct decimal {
 		uint32_t indexPtr;
 		uint32_t decimalPtr;
 		uint32_t validPtr;
-		
+
 		uint16_t valid;
 		uint16_t index;
 		decimal d;
@@ -1117,7 +1117,7 @@ struct decimal {
 			int over = d.sig.length() - 20;
 			d.sig.resize(20);
 			d.exp += over;
-		} 
+		}
 
 		memoryWriteByte(d.sgn, decimalPtr);
 		memoryWriteByte(0, decimalPtr + 1);
@@ -1142,7 +1142,7 @@ struct decimal {
 		case 0x00:
 			return NumToString();
 			break;
-			
+
 		case 0x01:
 			return StringToNum();
 			break;

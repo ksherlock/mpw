@@ -45,7 +45,7 @@ namespace MM
 		bool purgeable = false;
 		bool resource = false;
 
-		HandleInfo(uint32_t a = 0, uint32_t s = 0) : 
+		HandleInfo(uint32_t a = 0, uint32_t s = 0) :
 			address(a), size(s)
 		{}
 	};
@@ -64,7 +64,7 @@ namespace MM
 	uint32_t FreeMem(uint16_t trap);
 	uint16_t ReserveMem(uint16_t trap);
 	uint32_t PurgeSpace(uint16_t trap);
-	
+
 
 	uint16_t DisposeHandle(uint16_t trap);
 	uint16_t DisposePtr(uint16_t trap);
