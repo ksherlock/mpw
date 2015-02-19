@@ -885,6 +885,29 @@ using std::to_string;
 		return 0;
 	}
 
+	uint16_t ftintx()
+	{
+		// truncate (round towards 0 regardless of rounding settings)
+
+		uint32_t address;
+		uint16_t op;
+
+		StackFrame<6>(address, op);
+
+		Log("     FTINTX(%08x)\n", address);
+
+		extended s = readnum<extended>(address);
+
+		if (ToolBox::Trace)
+		{
+			std::string tmp1 = to_string(s);
+			Log("     %s\n", tmp1.c_str());
+		}
+		s = std::trunc(s);
+		writenum<extended>(s, address);
+		return 0;
+	}
+
 	extern "C" void cpuSetFlagsAbs(UWO f);
 	uint16_t fp68k(uint16_t trap)
 	{
@@ -977,7 +1000,7 @@ using std::to_string;
 				return fdecimal<extended>("FDEC2X");
 				break;
 
-
+			case 0x0016: return ftintx();
 			case 0x0017: return fprocentry();
 			case 0x0019: return fprocexit();
 			case 0x0003: return fgetenv();
@@ -1065,7 +1088,7 @@ using std::to_string;
 		return tmp;
 	}
 
-	uint32_t fpstr2dec()
+	uint32_t fstr2dec(char type)
 	{
 		// void str2dec(const char *s,short *ix,decimal *d,short *vp);
 
@@ -1098,13 +1121,16 @@ struct decimal {
 
 		index = memoryReadWord(indexPtr);
 
-		std::string str = ToolBox::ReadPString(stringPtr, false);
-		Log("     FPSTR2DEC(%s, %04x, %08x, %08x)\n",
-			 str.c_str(), index, decimalPtr, validPtr);
+		std::string str;
+		if (type == 'P') str = ToolBox::ReadPString(stringPtr, false);
+		if (type == 'C') str = ToolBox::ReadCString(stringPtr, false);
 
-		index--;
+		Log("     F%cSTR2DEC(%s, %04x, %08x, %08x)\n",
+			 type, str.c_str(), index, decimalPtr, validPtr);
+
+		if (type == 'P') index--;
 		str2dec(str, index, d, valid);
-		index++;
+		if (type == 'P') index++;
 
 		memoryWriteWord(index, indexPtr);
 		memoryWriteWord(valid, validPtr);
@@ -1149,8 +1175,15 @@ struct decimal {
 
 		case 0x02:
 			// fpstr2dec
-			return fpstr2dec();
+			return fstr2dec('P');
 			break;
+
+
+		case 0x04:
+			// fcstr2dec
+			return fstr2dec('C');
+			break;
+
 
 		default:
 			fprintf(stderr, "decstr68k -- op %04x is not yet supported\n", op);
