@@ -253,7 +253,7 @@ using std::to_string;
 	template<>
 	float readnum<float>(uint32_t address)
 	{
-		static_assert(sizeof(float) == 4, "unexpected long double size");
+		static_assert(sizeof(float) == 4, "unexpected float size");
 
 		uint32_t x = memoryReadLong(address);
 		return *((float *)&x);
@@ -262,7 +262,7 @@ using std::to_string;
 	template<>
 	double readnum<double>(uint32_t address)
 	{
-		static_assert(sizeof(double) == 8, "unexpected long double size");
+		static_assert(sizeof(double) == 8, "unexpected double size");
 
 		uint64_t x = memoryReadLongLong(address);
 		return *((double *)&x);
