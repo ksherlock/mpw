@@ -353,94 +353,11 @@ using std::to_string;
 
 
 
-	uint16_t fl2x()
-	{
-		// long to extended (80-bit fp)
-		uint16_t op;
-		uint32_t dest;
-		uint32_t src;
-
-		StackFrame<10>(src, dest, op);
-
-		Log("     FL2X(%08x, %08x, %04x)\n", src, dest, op);
-
-		int32_t i = readnum<int32_t>(src);
-
-		if (ToolBox::Trace)
-		{
-			std::string tmp1 = std::to_string(i);
-			Log("     %s\n", tmp1.c_str());
-		}
-
-		writenum<extended>((extended)i, dest);
-
-		return 0;
-	}
-
-#if 0
-	uint16_t fdivx()
-	{
-		// div extended (80-bit fp)
-		uint16_t op;
-		uint32_t dest;
-		uint32_t src;
-
-		StackFrame<10>(src, dest, op);
-
-		Log("     FDIVX(%08x, %08x, %04x)\n", src, dest, op);
-
-		extended s = readnum<extended>(src);
-		extended d = readnum<extended>(dest);
-
-		if (ToolBox::Trace)
-		{
-			std::string tmp1 = std::to_string(d);
-			std::string tmp2 = std::to_string(s);
-			Log("     %s / %s\n", tmp1.c_str(), tmp2.c_str());
-		}
-
-		// dest = dest / src
-		d = d / s;
-
-		writenum<extended>((extended)d, dest);
-
-		return 0;
-	}
-
-	uint16_t fmulx()
-	{
-		// multiply extended (80-bit fp)
-		uint16_t op;
-		uint32_t dest;
-		uint32_t src;
-
-		StackFrame<10>(src, dest, op);
-
-		Log("     FMULX(%08x, %08x, %04x)\n", src, dest, op);
-
-		extended s = readnum<extended>(src);
-		extended d = readnum<extended>(dest);
-
-		if (ToolBox::Trace)
-		{
-			std::string tmp1 = std::to_string(d);
-			std::string tmp2 = std::to_string(s);
-			Log("     %s * %s\n", tmp1.c_str(), tmp2.c_str());
-		}
-
-		d = d * s;
-
-		writenum<extended>((extended)d, dest);
-
-		return 0;
-		return 0;
-	}
-#endif
-
 	uint16_t fx2dec()
 	{
 		// extended (80-bit fp) to decimal
 		// convert a to d based on decform f
+		// used by printf %g, %f, %e, etc
 		uint16_t op;
 		uint32_t f_adr;
 		uint32_t a_adr;
