@@ -39,6 +39,7 @@
 
 #include "stackframe.h"
 #include "complex.h"
+#include "fpinfo.h"
 
 using ToolBox::Log;
 
@@ -101,6 +102,8 @@ using its_complicated::signbit;
 		const uint16_t DefaultEnvironment = 0;
 
 		uint16_t Environment = DefaultEnvironment;
+
+
 
 
 
@@ -354,6 +357,9 @@ using its_complicated::signbit;
 
 		if (df.digits < 0) df.digits = 0;
 
+		fpinfo fpi(s);
+		//fprintf(stderr, "%02x %02x %08x %016llx\n", fpi.sign, fpi.one, fpi.exp, fpi.sig);
+
 		// handle infinity, nan as a special case.
 		switch (fpclassify(s))
 		{
@@ -364,11 +370,14 @@ using its_complicated::signbit;
 				return 0;
 
 			case FP_NAN:
-				// NAN type should be encoded in the sig.
-				// 3.2 CSANELib.o nan() function is broken.
-				d.sgn = signbit(s);
-				d.sig = "N40xx000000000000";
-				d.write(d_adr);
+				// NAN type encoded in the sig.
+				{
+					char buffer[20]; // 16 + 2 needed
+					snprintf(buffer, 20, "N%016llx", fpi.sig);
+					d.sgn = signbit(s);
+					d.sig = buffer;
+					d.write(d_adr);
+				}
 				return 0;				
 
 			case FP_INFINITE:
@@ -383,6 +392,7 @@ using its_complicated::signbit;
 
 		}
 
+		// normal and subnormal handled here....
 
 		#if 0
 		if (df.style == decform::FIXEDDECIMAL)

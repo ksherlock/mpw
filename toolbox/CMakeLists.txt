@@ -28,6 +28,7 @@ set(TOOLBOX_SRC
 	fs_spec.cpp
 	realpath.c
 	dispatch.cpp
+	fpinfo.cpp
 )
 
 
