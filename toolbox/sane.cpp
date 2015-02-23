@@ -38,6 +38,7 @@
 #include <cmath>
 
 #include "stackframe.h"
+#include "complex.h"
 
 using ToolBox::Log;
 
@@ -46,7 +47,12 @@ namespace SANE
 {
 
 using std::to_string;
+using std::fpclassify;
+using std::signbit;
 
+using its_complicated::to_string;
+using its_complicated::fpclassify;
+using its_complicated::signbit;
 
 	namespace {
 		// default environment is:
@@ -103,121 +109,6 @@ using std::to_string;
 	// long double is an 80-bit extended with an extra 48-bits of 0 padding.
 	typedef long double extended;
 
-	// comp is an int64_t but 0x8000_0000_0000_0000 is NaN
-	//typedef int64_t complex;
-
-	struct complex {
-
-	public:
-		const uint64_t NaN = 0x8000000000000000;
-		complex(const complex &rhs) : _data(rhs._data)
-		{}
-		complex(uint64_t rhs) : _data(rhs)
-		{}
-
-		bool isnan() const
-		{
-			return _data == NaN;
-		}
-
-		complex &operator=(const complex &rhs)
-		{
-			_data = rhs._data;
-			return *this;
-		}
-
-		complex &operator=(uint64_t rhs)
-		{
-			_data = rhs;
-			return *this;
-		}
-
-		complex &operator=(long double ld)
-		{
-			switch(std::fpclassify(ld))
-			{
-				case FP_NAN:
-					_data = NaN;
-					break;
-				case FP_INFINITE:
-					if (std::signbit(ld))
-					{
-						_data = -INT64_MAX;
-					}
-					else
-					{
-						_data = INT64_MAX;
-					}
-					break;
-				default:
-					_data = ld;
-					break;
-			}
-
-			return *this;
-		}
-
-
-		complex &operator=(double d)
-		{
-			switch(std::fpclassify(d))
-			{
-				case FP_NAN:
-					_data = NaN;
-					break;
-				case FP_INFINITE:
-					if (std::signbit(d))
-					{
-						_data = -INT64_MAX;
-					}
-					else
-					{
-						_data = INT64_MAX;
-					}
-					break;
-				default:
-					_data = d;
-					break;
-			}
-
-			return *this;
-		}
-
-
-		operator uint64_t() const {
-			return _data;
-		}
-
-		operator int64_t() const {
-			return _data;
-		}
-
-		operator long double() const {
-			if (_data == NaN)
-				return NAN;
-			return _data;
-		}
-
-		operator double() const {
-			if (_data == NaN)
-				return NAN;
-			return _data;
-		}
-
-
-	private:
-		int64_t _data;
-
-	};
-
-	// can't override std::to_string, but can import std::to_string
-	// then override SANE::to_string.
-	std::string to_string(complex c)
-	{
-		if (c.isnan()) return std::string("nan");
-
-		return std::to_string((int64_t)c);
-	}
 
 
 	template <class T>
