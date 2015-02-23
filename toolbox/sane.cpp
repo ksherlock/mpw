@@ -242,6 +242,70 @@ using its_complicated::signbit;
 			memoryWriteByte(buffer[9 - i], address + i);
 	}
 
+	decform decform::read(uint32_t address)
+	{
+		enum {
+			_style = 0,
+			_unused = 1,
+			_digits = 2,
+		};
+
+		decform d;
+		if (!address) return d;
+		d.style = memoryReadByte(address + _style);
+		d.digits = memoryReadWord(address + _digits);
+		return d;
+	}
+	void decform::write(uint32_t address)
+	{
+		enum {
+			_style = 0,
+			_unused = 1,
+			_digits = 2,
+		};
+
+		if (!address) return;
+		memoryWriteByte(style, address + _style);
+		memoryWriteWord(digits, address + _digits);
+	}
+
+	decimal decimal::read(uint32_t address)
+	{
+		enum {
+			_sgn = 0,
+			_exp = 2,
+			_sig = 4,
+
+			SIGDIGLEN = 20,
+		};
+
+		decimal d;
+		if (!address) return d;
+
+		d.sgn = memoryReadByte(address + _sgn);
+		d.exp = memoryReadWord(address + _exp);
+		//unsigned length = memoryReadByte(address + _sig);
+		//length = std::min(length, (unsigned)SIGDIGLEN);
+		d.sig = ToolBox::ReadPString(address + _sig, false);
+		return d;
+	}
+	void decimal::write(uint32_t address)
+	{
+		enum {
+			_sgn = 0,
+			_exp = 2,
+			_sig = 4,
+
+			SIGDIGLEN = 20,
+		};
+
+		memoryWriteByte(sgn, address + _sgn);
+		memoryWriteByte(0, address + _sgn + 1); // unused.
+		memoryWriteWord(exp, address + _exp);
+
+		// check if <= SIGDIGLEN?
+		ToolBox::WritePString(address + _sig, sig);
+	}
 
 
 	uint16_t fx2dec()
@@ -249,30 +313,90 @@ using its_complicated::signbit;
 		// extended (80-bit fp) to decimal
 		// convert a to d based on decform f
 		// used by printf %g, %f, %e, etc
+
+
 		uint16_t op;
 		uint32_t f_adr;
 		uint32_t a_adr;
 		uint32_t d_adr;
 
+		decform df;
+		decimal d;
+
 		StackFrame<14>(f_adr, a_adr, d_adr, op);
+
 
 		Log("     FX2DEC(%08x, %08x, %08x, %04x)\n", f_adr, a_adr, d_adr, op);
 
 		fprintf(stderr, "warning: FX2DEC not yet implemented\n");
 
 		extended s = readnum<extended>(a_adr);
+		df = decform::read(f_adr);
 
 		if (ToolBox::Trace)
 		{
 			std::string tmp1 = std::to_string(s);
-			Log("     %s\n", tmp1.c_str());
+			Log("     %s (style: %d digits: %d)\n", tmp1.c_str(), df.style, df.digits);
 		}
 
-		// ugh, really don't want to write this code right now.
-		memoryWriteWord(0, d_adr);
-		memoryWriteWord(0, d_adr + 2);
-		memoryWriteWord(0, d_adr + 4);
 
+		/*
+		 * SANE pp 30, 31
+		 *
+		 * Floating style:
+		 * [-| ]m[.nnn]e[+|-]dddd
+		 *
+		 * Fixed style:
+		 * [-]mmm[.nnn]
+		 */
+
+		// this doesn't entirely apply for fx2dec, though.
+
+		if (df.digits < 0) df.digits = 0;
+
+		// handle infinity, nan as a special case.
+		switch (fpclassify(s))
+		{
+			case FP_ZERO:
+				d.sgn = signbit(s);
+				d.sig = "0";
+				d.write(d_adr);
+				return 0;
+
+			case FP_NAN:
+				// NAN type should be encoded in the sig.
+				// 3.2 CSANELib.o nan() function is broken.
+				d.sgn = signbit(s);
+				d.sig = "N40xx000000000000";
+				d.write(d_adr);
+				return 0;				
+
+			case FP_INFINITE:
+
+				d.sgn = signbit(s);
+				d.sig = "I";
+				d.write(d_adr);
+				return 0;					
+
+			default:
+				break;
+
+		}
+
+
+		#if 0
+		if (df.style == decform::FIXEDDECIMAL)
+		{
+			char buffer[decimal::SIGDIGLEN];
+			snprintf(buffer, sizeof(buffer), "%.*Lg", df.digits, s);
+
+
+		}
+		#endif
+
+		// ugh, really don't want to write this code right now.
+
+		d.write(d_adr);
 		return 0;
 	}
 
@@ -484,7 +608,7 @@ using its_complicated::signbit;
 		StackFrame<10>(decimalPtr, dest, op);
 
 		uint16_t sgn = memoryReadByte(decimalPtr);
-		uint16_t exp = memoryReadWord(decimalPtr + 2);
+		int16_t exp = memoryReadWord(decimalPtr + 2);
 		std::string sig;
 		sig = ToolBox::ReadPString(decimalPtr + 4, false);
 
@@ -529,22 +653,6 @@ using its_complicated::signbit;
 	}
 
 
-	inline int classify(float x) { return std::fpclassify(x); }
-	inline int classify(double x) { return std::fpclassify(x); }
-	inline int classify(extended x) { return std::fpclassify(x); }
-	inline int classify(complex c) {
-		if (c.isnan()) return FP_NAN;
-		if ((uint64_t)c == (uint64_t)0) return FP_ZERO;
-		return FP_NORMAL;
-	}
-
-	inline int sign(float x) { return std::signbit(x); }
-	inline int sign(double x) { return std::signbit(x); }
-	inline int sign(extended x) { return std::signbit(x); }
-	inline int sign(complex c) {
-		if (c.isnan()) return 0;
-		return ((int64_t)c < (int64_t)0) ? 1 : 0;
-	}
 
 	template <class SrcType>
 	uint16_t fclassify(const char *name)
@@ -595,7 +703,7 @@ using its_complicated::signbit;
 
 		int16_t klass = 0;
 
-		switch(classify(s))
+		switch(fpclassify(s))
 		{
 			case FP_INFINITE:
 				klass = 3;
@@ -617,7 +725,7 @@ using its_complicated::signbit;
 				break;
 
 		}
-		if (sign(s)) klass = -klass;
+		if (signbit(s)) klass = -klass;
 
 		if (dest) {
 			memoryWriteWord(klass, dest);
