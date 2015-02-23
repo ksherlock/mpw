@@ -86,11 +86,11 @@ void fpinfo::init(long double *ld)
 	sexp = ((split *)ld)->i[1];
 	#else
 	i = ((split *)ld)->i[1];
-	sexp = ((split *)ld)->i[0];
+	sexp = ((split *)ld)->i[0] & 0xffff;
 	#endif
 
-	sign = sexp >> 15;
-	sig = sexp & ((1 << 15) - 1);
+	sign = (sexp >> 15) & 0x01;
+	exp = sexp & ((1 << 15) - 1);
 
 	one = i >> 63;
 	sig = i & ((UINT64_C(1) << 63) - 1);
