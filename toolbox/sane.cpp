@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string>
 #include <cstring>
+#include <algorithm>
 #include <cmath>
 
 #include "stackframe.h"
@@ -50,6 +51,7 @@ namespace SANE
 using std::to_string;
 using std::fpclassify;
 using std::signbit;
+using std::abs;
 
 using its_complicated::to_string;
 using its_complicated::fpclassify;
@@ -310,6 +312,72 @@ using its_complicated::signbit;
 		ToolBox::WritePString(address + _sig, sig);
 	}
 
+	void format_f(extended x, int precision, std::string &mm, std::string &nn)
+	{
+		char *buffer = nullptr;
+
+		mm.clear();
+		nn.clear();
+
+		if (precision < 0) precision = 0;
+		int length = asprintf(&buffer, "%.*Lf", precision, x);
+		std::string tmp(buffer, length);
+		free(buffer);
+
+		auto dot = tmp.find('.');
+		if (dot == tmp.npos)
+		{
+			mm = std::move(tmp);
+		}
+		else
+		{
+			mm = tmp.substr(0, dot);
+			nn = tmp.substr(dot + 1);
+		}
+
+		// skip mm if it's 0
+		if (mm.length() == 1 && mm.front() == '0') mm.clear();
+
+		// skip nn if it's 0000...
+		if (std::all_of(nn.begin(), nn.end(), [](char c){ return c == '0'; }))
+			nn.clear();
+	}
+
+	void format_e(extended x, int precision, std::string &mm, std::string &nn, int &exp)
+	{
+		char *buffer = nullptr;
+
+		exp = 0;
+		mm.clear();
+		nn.clear();
+
+		if (precision < 0) precision = 0;
+		if (precision > 19) precision = 19;
+
+		int length = asprintf(&buffer, "%.*Le", precision, x);
+		// output mm . nn e[+-]exp
+		// mm e[+-]exp
+		std::string tmp(buffer, length);
+		free(buffer);
+
+		auto dot = tmp.find('.');
+		auto e = tmp.find('e');
+
+		if (dot == tmp.npos)
+		{
+			mm = tmp.substr(0, e);
+		}
+		else
+		{
+			mm = tmp.substr(0, dot);
+			nn = tmp.substr(dot + 1, e - dot - 1);
+		}
+
+		char sign = tmp[e+1];
+		tmp = tmp.substr(e + 2);
+		exp = std::stoi(tmp);
+		if (sign == '-') exp = -exp;
+	}
 
 	uint16_t fx2dec()
 	{
@@ -331,8 +399,6 @@ using its_complicated::signbit;
 
 		Log("     FX2DEC(%08x, %08x, %08x, %04x)\n", f_adr, a_adr, d_adr, op);
 
-		fprintf(stderr, "warning: FX2DEC not yet implemented\n");
-
 		extended s = readnum<extended>(a_adr);
 		df = decform::read(f_adr);
 
@@ -353,18 +419,20 @@ using its_complicated::signbit;
 		 * [-]mmm[.nnn]
 		 */
 
-		// this doesn't entirely apply for fx2dec, though.
 
 		if (df.digits < 0) df.digits = 0;
+		if (df.digits > 19) df.digits = 19;
 
 		fpinfo fpi(s);
-		//fprintf(stderr, "%02x %02x %08x %016llx\n", fpi.sign, fpi.one, fpi.exp, fpi.sig);
+		//fprintf(stderr, "%02x %02x %d %016llx\n", fpi.sign, fpi.one, fpi.exp, fpi.sig);
+
+
+		d.sgn = signbit(s);
 
 		// handle infinity, nan as a special case.
 		switch (fpclassify(s))
 		{
 			case FP_ZERO:
-				d.sgn = signbit(s);
 				d.sig = "0";
 				d.write(d_adr);
 				return 0;
@@ -374,7 +442,6 @@ using its_complicated::signbit;
 				{
 					char buffer[20]; // 16 + 2 needed
 					snprintf(buffer, 20, "N%016llx", fpi.sig);
-					d.sgn = signbit(s);
 					d.sig = buffer;
 					d.write(d_adr);
 				}
@@ -382,7 +449,6 @@ using its_complicated::signbit;
 
 			case FP_INFINITE:
 
-				d.sgn = signbit(s);
 				d.sig = "I";
 				d.write(d_adr);
 				return 0;					
@@ -394,20 +460,95 @@ using its_complicated::signbit;
 
 		// normal and subnormal handled here....
 
-		#if 0
-		if (df.style == decform::FIXEDDECIMAL)
+		// float decimal: df.digits refers to the total length
+		// fixed decimal: df.digits refers to the fractional part only.
+
+		s = abs(s);
+
+
+		if (s < 1.0 && df.style == decform::FLOATDECIMAL)
 		{
-			char buffer[decimal::SIGDIGLEN];
-			snprintf(buffer, sizeof(buffer), "%.*Lg", df.digits, s);
+			std::string mm;
+			std::string nn;
 
+			format_e(s, df.digits - 1, mm, nn, d.exp);
 
+			d.sig = mm + nn;
+
+			// better be < 0...
+			if (d.exp < 0)
+				d.exp -= nn.length();
+
+			d.write(d_adr);
+			return 0;
 		}
-		#endif
+		else // s > 1
+		{
 
-		// ugh, really don't want to write this code right now.
+			std::string mm;
+			std::string nn;
 
-		d.write(d_adr);
-		return 0;
+			format_f(s, df.digits, mm, nn);
+
+			if (mm.empty() && nn.empty())
+			{
+				// very large 0.
+				d.sig = "0";
+				d.write(d_adr);
+				return 0;
+			}
+
+			// if nn is empty (or 0s), this is a large number,
+			// and we don't have to worry about the fraction.
+			if (nn.empty())
+			{
+				d.exp = 0;
+
+				if (df.style == decform::FIXEDDECIMAL) df.digits = 19;
+
+				// limit the length.
+				if (mm.length() > df.digits)
+				{
+					d.exp = mm.length() - df.digits;
+					mm.resize(df.digits);
+				}
+				d.sig = std::move(mm);
+
+			}
+			else
+			{
+				if (df.style == decform::FIXEDDECIMAL)
+				{
+					// digits is the total size, mm + nn
+					// re-format with new precision.
+					// this is getting repetitive...
+
+					if (mm.length())
+					{
+						int precision = df.digits - mm.length();
+						if (precision < 0) precision = 1;	
+
+						format_f(s, precision, mm, nn);					
+					}
+				}
+				// todo -- if mm is empty and nn has leading 0s, 
+				// drop the leading 0s and adjust the exponent
+				// accordingly.
+
+				d.sig = mm + nn;
+				d.exp = -nn.length();
+
+				if (d.sig.length() > 19)
+				{
+					d.exp += (d.sig.length() - 19);
+					d.sig.resize(19);
+				}
+			}
+
+
+			d.write(d_adr);
+			return 0;
+		}
 	}
 
 

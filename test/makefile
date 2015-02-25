@@ -5,7 +5,8 @@ MAKEFLAGS += --no-builtin-rules
 .SUFFIXES:
 .SECONDARY:
 
-MPW ?= mpw
+MPWFLAGS = -DMPWVersion=3.2
+MPW ?= mpw 
 
 LIBS = \
 	{Libraries}Stubs.o \
@@ -25,7 +26,7 @@ LDFLAGS = -w -c 'MPS ' -t MPST \
 SCFLAGS = -p
 
 TARGETS = test_new_handle test_new_handle_2 test_new_pointer test_volumes \
-	test_createresfile test_hwpriv
+	test_createresfile test_hwpriv test_sane
 
 all : $(TARGETS)
 
@@ -44,10 +45,16 @@ clean :
 # test_volumes : o/test_volumes.o
 # 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
+test_sane: o/nan.o o/test_sane.o 
+	$(MPW) $(MPWFLAGS) Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 % : o/%.o
-	$(MPW) Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+	$(MPW) $(MPWFLAGS) Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 o/%.o : %.c
-	$(MPW) SC $(SCFLAGS) $< -o $@
+	$(MPW) $(MPWFLAGS) SC $(SCFLAGS) $< -o $@
+
+o/%.o : %.asm
+	$(MPW) $(MPWFLAGS) Asm $(ASMFLAGS) $< -o $@
+
 
