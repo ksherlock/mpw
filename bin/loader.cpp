@@ -397,6 +397,10 @@ void GlobalInit()
 	memoryWriteLong(Flags.memorySize - Flags.stackSize - 1, MacOS::ApplLimit);
 	memoryWriteLong(kGlobalSize, MacOS::ApplZone);
 	memoryWriteLong(Flags.memorySize - 1, MacOS::BufPtr);
+
+	//
+	memoryWriteLong(Flags.stackRange.first, MacOS::CurStackBase);
+
 }
 
 
