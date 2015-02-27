@@ -1567,6 +1567,26 @@ namespace MM
 		return 0;
 	}
 
+	uint16_t SetApplLimit(uint16_t trap)
+	{
+		// PROCEDURE SetApplLimit (zoneLimit: Ptr);
+
+		/*
+		 * on entry
+		 * A0 Pointer to desired new zone limit
+		 *
+		 * on exit
+		 * D0 Result code
+		 */
+
+		uint32_t zoneLimit = cpuGetAReg(0);
+
+		Log("%04x SetApplLimit(%08x)\n", trap, zoneLimit);
+		return 0;
+	}
+
+
+
 	uint32_t PurgeSpace(uint16_t trap)
 	{
 		// PROCEDURE PurgeSpace (VAR total: LongInt; VAR contig: LongInt);

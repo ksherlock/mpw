@@ -622,6 +622,10 @@ namespace ToolBox {
 				d0 = MM::HUnlock(trap);
 				break;
 
+			case 0xa02d:
+				d0 = MM::SetApplLimit(trap);
+				break;
+
 			// BlockMove (sourcePtr,destPtr: Ptr; byteCount: Size);
 			case 0xa02e: // BlockMove
 			case 0xa22e: // BlockMoveData
