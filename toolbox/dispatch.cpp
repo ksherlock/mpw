@@ -224,6 +224,67 @@ namespace OS {
 		return 0;
 	}
 
+	uint16_t GetTrapAddress(uint16_t trap)
+	{
+
+		// FUNCTION GetTrapAddress (trapNum: Integer) :LongInt;
+
+		/*
+		 * on entry:
+		 * D0 An A-line trap word
+		 *
+		 * on exit:
+		 * A0 Address of next routine in the daisy chain (a system software routine or a patch)
+		 */
+
+		 /*
+		  * The GetTrapAddress function was used when both the Operating
+		  * System trap addresses and Toolbox trap addresses were located
+		  * in the same trap dispatch table. Today, any system software
+		  * routine with the trap number $00 to $4F, $54, or $57 is drawn
+		  * from the Operating System dispatch table; any other software
+		  * routine is taken from the Toolbox dispatch table.
+		 */
+
+		uint16_t trapNumber = cpuGetDReg(0);
+		const char *trapName = TrapName(trapNumber | 0xa000);
+		if (!trapName) trapName = "Unknown";		  
+
+		Log("%04x GetTrapAddress($%04x (%s))\n", trap, trapNumber, trapName);
+
+		trapNumber &= 0x03ff;
+		bool os = false;
+		if (trapNumber >= 0x00 && trapNumber <= 0x4f) os = true;
+		if (trapNumber >= 0x54 && trapNumber <= 0x57) os = true;
+
+		if (os)
+		{
+
+			if (os_address[trapNumber])
+			{
+				cpuSetAReg(0, os_address[trapNumber]);
+				return 0;
+			}
+
+			cpuSetAReg(0, OSGlue + trapNumber * 4);
+			return 0;
+
+		}
+		else
+		{
+			if (trap_address[trapNumber])
+			{
+				cpuSetAReg(0, trap_address[trapNumber]);
+				return 0;
+			}
+
+			cpuSetAReg(0, ToolGlue + trapNumber * 4);
+			return 0;			
+		}
+
+
+	}
+
 
 	uint16_t OSDispatch(uint16_t trap)
 	{
@@ -563,6 +624,10 @@ namespace ToolBox {
 				d0 = OS::HighLevelHFSDispatch(trap);
 				break;
 
+
+			case 0xa146:
+				d0 = OS::GetTrapAddress(trap);
+				break;
 
 			case 0xA746:
 				d0 = OS::GetToolTrapAddress(trap);
