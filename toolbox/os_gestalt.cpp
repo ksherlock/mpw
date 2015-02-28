@@ -32,6 +32,7 @@
 #include <deque>
 #include <string>
 #include <map>
+#include <type_traits>
 
 #include <sys/xattr.h>
 #include <sys/stat.h>
@@ -55,6 +56,8 @@
 
 using ToolBox::Log;
 
+#define FOUR_CHAR_CODE(x) x
+
 namespace OS {
 
 	enum
@@ -65,9 +68,45 @@ namespace OS {
 		gestaltLocationErr = -5553,
 	};
 
+
+	enum {
+		gestaltOSAttr                 = FOUR_CHAR_CODE('os  '), /* o/s attributes */
+		gestaltSysZoneGrowable        = 0,    /* system heap is growable */
+		gestaltLaunchCanReturn        = 1,    /* can return from launch */
+		gestaltLaunchFullFileSpec     = 2,    /* can launch from full file spec */
+		gestaltLaunchControl          = 3,    /* launch control support available */
+		gestaltTempMemSupport         = 4,    /* temp memory support */
+		gestaltRealTempMemory         = 5,    /* temp memory handles are real */
+		gestaltTempMemTracked         = 6,    /* temporary memory handles are tracked */
+		gestaltIPCSupport             = 7,    /* IPC support is present */
+		gestaltSysDebuggerSupport     = 8,    /* system debugger support is present */
+		gestaltNativeProcessMgrBit    = 19    /* the process manager itself is native */
+	};
+
+
+	template<unsigned...>
+	struct make_bitmask;
+
+	template<>
+	struct make_bitmask<> : public std::integral_constant<uint32_t, 0>
+	{};
+
+	template<unsigned First, unsigned... Rest>
+	struct make_bitmask<First, Rest...> : 
+	public std::integral_constant<uint32_t, (1 << First) | make_bitmask<Rest...>::value > 
+	{};
+
+
+
+
 	std::map<uint32_t, uint32_t> GestaltMap = {
 		{'alis', 1}, // Alias Manager
 		{'tmgr', 2}, // Time Manager (2 = revised, 3 = extended.)
+		{
+			// enable temp memory for codewarrior
+			gestaltOSAttr, 
+			make_bitmask<gestaltTempMemSupport, gestaltRealTempMemory, gestaltTempMemTracked>::value
+		},
 	};
 
 	uint16_t Gestalt(uint16_t trap)
