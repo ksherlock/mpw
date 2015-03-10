@@ -12,6 +12,105 @@ void dump_decimal(const decimal *d)
 }
 
 
+void test_inf(void)
+{
+
+	decimal d;
+	decform df;
+	char buffer[80+1];
+
+	printf("\nInfinity\n");
+
+	df.style = 1;
+	df.digits = 10;
+	num2dec(&df,-inf(), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+	df.style = 0;
+	df.digits = 10;
+	num2dec(&df, -inf(), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+	df.style = 1;
+	df.digits = 0;
+	num2dec(&df, inf(), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+	df.style = 0;
+	df.digits = 0;
+	num2dec(&df, inf(), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+}
+
+void test_nan(void)
+{
+
+
+	// num2dec generates N[16-digit]
+	// str2dec generates NAN(001) -- NAN(255)
+
+	decimal d;
+	decform df;
+	char buffer[80+1];
+
+	printf("\nNaN\n");
+
+	df.style = 1;
+	df.digits = 0;
+	num2dec(&df,nan(1), &d);
+	dump_decimal(&d);
+	//  7 : N4001000000000000
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+	df.style = 0;
+	df.digits = 0;
+	num2dec(&df, nan(2), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+
+	df.style = 1;
+	df.digits = 10;
+	num2dec(&df,-nan(3), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+	df.style = 0;
+	df.digits = 10;
+	num2dec(&df, nan(4), &d);
+	dump_decimal(&d);
+	//
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+
+	df.style = 0;
+	df.digits = 10;
+	num2dec(&df, nan(255), &d);
+	dump_decimal(&d);
+	//  7 : N40FF000000000000
+
+	dec2str(&df, &d, buffer);
+	fprintf(stdout, "%s\n", buffer);
+}
+
 void test_fxc2dec(void)
 {
 	decimal d;
@@ -125,55 +224,9 @@ void test_fxc2dec(void)
 	//
 
 
-	df.style = 1;
-	df.digits = 0;
-	num2dec(&df,nan(1), &d);
-	dump_decimal(&d);
-	//
-
-	df.style = 0;
-	df.digits = 0;
-	num2dec(&df, nan(2), &d);
-	dump_decimal(&d);
-	//
 
 
 
-	df.style = 1;
-	df.digits = 10;
-	num2dec(&df,-nan(3), &d);
-	dump_decimal(&d);
-	//
-
-	df.style = 0;
-	df.digits = 10;
-	num2dec(&df, nan(4), &d);
-	dump_decimal(&d);
-	//
-
-
-	df.style = 1;
-	df.digits = 10;
-	num2dec(&df,-inf(), &d);
-	dump_decimal(&d);
-	//
-
-	df.style = 0;
-	df.digits = 10;
-	num2dec(&df, -inf(), &d);
-	dump_decimal(&d);
-
-
-	df.style = 1;
-	df.digits = 0;
-	num2dec(&df, inf(), &d);
-	dump_decimal(&d);
-	//
-
-	df.style = 0;
-	df.digits = 0;
-	num2dec(&df, inf(), &d);
-	dump_decimal(&d);
 
 
 	df.style = 0;
@@ -200,28 +253,27 @@ void test_fxc2dec(void)
 	dump_decimal(&d);
 	// s/b -4 0
 
-
-
-
 }
 
 int main(int argc, char **argv)
 {
-	extended x;
-	decimal d;
+	//extended x;
+	//decimal d;
 
-	short index;
-	short valid;
+	//short index;
+	//short valid;
 
 	(void)argc;
 	(void)argv;
 
-	index = 0;
-	valid = 0;
-	str2dec("1.125", &index, &d, &valid);
-	x = dec2num(&d);
+	//index = 0;
+	//valid = 0;
+	//str2dec("1.125", &index, &d, &valid);
+	//x = dec2num(&d);
 
 
+	test_inf();
+	test_nan();
 
 	test_fxc2dec();
 
