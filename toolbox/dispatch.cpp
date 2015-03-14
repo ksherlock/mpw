@@ -98,6 +98,20 @@ namespace {
 		return trap & 0x0600;
 	}
 
+	#if BYTE_ORDER == LITTLE_ENDIAN
+	inline constexpr uint16_t host_to_big_endian_16(uint16_t x)
+	{
+		return __builtin_bswap16(x);
+	}
+	#endif
+
+	#if BYTE_ORDER == BIG_ENDIAN
+	inline constexpr uint16_t host_to_big_endian_16(uint16_t x)
+	{
+		return x;
+	}
+	#endif
+
 }
 
 namespace OS {
@@ -323,6 +337,7 @@ namespace OS {
 
 	}
 
+
 }
 
 namespace ToolBox {
@@ -340,13 +355,13 @@ namespace ToolBox {
 		uint16_t *code = (uint16_t *)memoryPointer(ToolGlue);
 
 		for (unsigned i = 0; i < 1024; ++i) {
-			*code++ = 0xafff;
-			*code++ = 0xa800 | i;
+			*code++ = host_to_big_endian_16(0xafff);
+			*code++ = host_to_big_endian_16(0xa800 | i);
 		}
 
 		for (unsigned i = 0; i < 256; ++i) {
-			*code++ = 0xafff;
-			*code++ = 0xa000 | i;
+			*code++ = host_to_big_endian_16(0xafff);
+			*code++ = host_to_big_endian_16(0xa000 | i);
 		}
 
 		// os return code... pull registers, TST.W d0, etc.
