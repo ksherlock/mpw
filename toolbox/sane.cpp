@@ -288,7 +288,7 @@ using its_complicated::signbit;
 		if (!address) return d;
 
 		d.sgn = memoryReadByte(address + _sgn);
-		d.exp = memoryReadWord(address + _exp);
+		d.exp = (int16_t)memoryReadWord(address + _exp);
 		//unsigned length = memoryReadByte(address + _sig);
 		//length = std::min(length, (unsigned)SIGDIGLEN);
 		d.sig = ToolBox::ReadPString(address + _sig, false);
@@ -1220,6 +1220,160 @@ struct decimal {
 		return 0;
 	}
 
+	uint16_t fdec2str()
+	{
+		// void dec2str(const decform *f,const decimal *d,char *s);
+
+		uint32_t f_adr;
+		uint32_t d_adr;
+		uint32_t s_adr;
+
+		decform df;
+		decimal d;
+
+		StackFrame<12>(f_adr, d_adr, s_adr);
+
+
+		Log("     FDEC2STR(%08x, %08x, %08x)\n", f_adr, d_adr, s_adr);
+
+		df = decform::read(f_adr);
+		d = decimal::read(d_adr);
+
+		if (ToolBox::Trace)
+		{
+			Log("     %d %d %s\n", d.sgn, d.exp, d.sig.c_str());
+			Log("     (style: %d digits: %d)\n", df.style, df.digits);
+		}
+
+		std::string s;
+
+		if (df.digits < 0) df.digits = 0;
+		if (d.sig.empty()) d.sig = "0";
+
+		if (df.style == decform::FLOATDECIMAL)
+		{
+			// [-| m[.nnn]e[+|-]dddd
+
+			// - or space.
+			if (d.sgn) s.push_back('-');
+			else s.push_back(' ');
+
+			if (d.sig[0] == 'I')
+			{
+				s.append("INF");
+				ToolBox::WritePString(s_adr, s);
+				return 0;
+			}
+			if (d.sig[0] == 'N')
+			{
+				// todo -- include actual nan code.
+				s.append("NAN(000)");
+				ToolBox::WritePString(s_adr, s);
+				return 0;	
+			}
+
+			// 1 leading digit.
+			s.push_back(d.sig[0]);
+			if (d.sig.length() > 1)
+			{
+				s.push_back('.');
+				s.append(d.sig.substr(1));
+			}
+			s.push_back('e');
+			if (d.exp < 0)
+			{
+				// to_string() will include the -
+				s.append(std::to_string(d.exp));
+			}
+			else
+			{
+				s.push_back('+');
+				s.append(std::to_string(d.exp));
+			}
+
+
+			ToolBox::WritePString(s_adr, s);
+			return 0;
+		}
+		else
+		{
+			// [-] mmmm [. nnn]
+			if (d.sgn) s.push_back('-');
+
+			std::string mm;
+			std::string nn;
+
+			if (d.sig[0] == 'I')
+			{
+				s.append("INF");
+				ToolBox::WritePString(s_adr, s);
+				return 0;
+			}
+			if (d.sig[0] == 'N')
+			{
+				// todo -- include actual nan code.
+				// check how SANE format it (hex/dec)
+				s.append("NAN(000)");
+				ToolBox::WritePString(s_adr, s);
+				return 0;	
+			}
+
+			//
+			std::string tmp = std::move(d.sig);
+			if (d.exp >= 0)
+			{
+				// 0, 5 == 5
+				// 1, 12 = 120
+
+				mm = std::move(tmp);
+				mm.append(d.exp, '0');
+				tmp.clear();
+			}
+			else
+			{
+				// -1, 12 = 1.2
+				// -2, 12 = 0.12
+				// -3  12 = 0.012
+
+				int m = tmp.length() + d.exp;
+				if (m > 0)
+				{
+					mm = tmp.substr(0, m);
+					tmp.erase(0, m);
+					d.exp = 0;
+				}
+				else
+				{
+					mm = "0";
+				}
+			}
+
+			s.append(mm);
+
+			if (df.digits > 0)
+			{
+				s.push_back('.');
+
+				// if negative exp, need to put in leading 0s. 
+				// for a pathological case like -32768, this would
+				// be silly.
+
+				if (d.exp < 0)
+					nn.append(-d.exp, '0');
+				nn.append(tmp);
+				nn.resize(df.digits, '0'); // todo -- should round...
+				s.append(nn);
+			}
+
+			// if > 80 in length, return '?'
+			if (s.length() > 80) s = "?";
+			ToolBox::WritePString(s_adr, s);
+			return 0;
+		}
+
+
+	}
+
 	uint32_t decstr68k(uint16_t trap)
 	{
 		// this is a strange one since it may be sane or it may be the binary/decimal package.
@@ -1245,6 +1399,10 @@ struct decimal {
 			return fstr2dec('P');
 			break;
 
+		case 0x03:
+			// fdec2str
+			return fdec2str();
+			break;
 
 		case 0x04:
 			// fcstr2dec
