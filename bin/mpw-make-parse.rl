@@ -71,6 +71,18 @@ LinkIIGS TheHeader.aii.obj IRModule.p.obj ?
 		token.append(ts + 1, te - 1);
 	};
 
+	['] [^']* ['] => {
+		// quoted string -- remove quotes.
+		token.append(ts + 1, te - 1);
+	};
+
+	["] [^"]* ["] => {
+		// quoted string -- remove quotes.
+		token.append(ts + 1, te - 1);
+	};
+
+
+
 	any => {
 		token.push_back(*ts);
 	};

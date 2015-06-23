@@ -88,7 +88,10 @@ int launch_command(std::vector<char *> &argv) {
 		argv.push_back(nullptr);
 
 	print_command(argv);
-	if (dry_run) return 0;
+	if (dry_run) {
+		printf("\n");
+		return 0;
+	}
 
 	pid = fork();
 	if (pid < 0) {
