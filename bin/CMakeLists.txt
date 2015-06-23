@@ -60,6 +60,14 @@ add_custom_command(
 	DEPENDS debugger.h template_parser.h
 )
 
+add_custom_command(
+	OUTPUT mpw-make-parse.cpp
+	COMMAND ragel -p -G2 -o mpw-make-parse.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-make-parse.rl"
+	MAIN_DEPENDENCY mpw-make-parse.rl 
+	DEPENDS debugger.h
+)
+
+
 
 set_source_files_properties(
 	loadtrap.cpp lexer.cpp template_loader.cpp
@@ -85,3 +93,7 @@ set_target_properties(mpw PROPERTIES LINK_FLAGS "-ledit")
 add_executable(disasm disasm.cpp)
 target_link_libraries(disasm CPU_LIB)
 target_link_libraries(disasm MACOS_LIB)
+
+
+add_executable(mpw-make mpw-make-parse.cpp mpw-make.cpp)
+
