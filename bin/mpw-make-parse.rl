@@ -31,6 +31,11 @@ LinkIIGS TheHeader.aii.obj IRModule.p.obj ?
 	machine make;
 	alphtype unsigned char;
 
+	comment := |*
+		'\n' => { fhold; fgoto main; };
+		any => {};
+	*|;
+
 	main := |*
 
 	0xb6 '\n' => {
@@ -81,7 +86,10 @@ LinkIIGS TheHeader.aii.obj IRModule.p.obj ?
 		token.append(ts + 1, te - 1);
 	};
 
-
+	'#' => {
+		// comment to eol.
+		fgoto comment;
+	};
 
 	any => {
 		token.push_back(*ts);
