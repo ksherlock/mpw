@@ -5,6 +5,9 @@ by Kelvin W Sherlock, _et alia_
 
 Please check the [wiki](https://github.com/ksherlock/mpw/wiki/_pages) for useful information.
 
+Please check the [releases](https://github.com/ksherlock/mpw/releases) for compiled binaries.
+
+
 ## System compatibility
 
 Currently, only OS X 10.8+ with case-insensitive HFS+ is supported.
