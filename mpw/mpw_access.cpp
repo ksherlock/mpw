@@ -124,7 +124,6 @@ namespace MPW
 
 	uint32_t ftrap_delete(uint32_t name)
 	{
-
 		std::string sname;
 		int rv;
 
@@ -138,6 +137,22 @@ namespace MPW
 		return 0;
 	}
 
+
+	uint32_t ftrap_rename(uint32_t src, uint32_t dest)
+	{
+		std::string sname;
+		std::string dname;
+		int rv;
+
+		sname = ToolBox::ReadCString(src, true);
+		dname = ToolBox::ReadCString(dest, true);
+
+		Log("     rename(%s, %s)\n", sname.c_str(), dname.c_str());
+		rv = rename(sname.c_str(), dname.c_str());
+		if (rv < 0) return 0x40000000 | mpw_errno_from_errno();
+
+		return 0;
+	}
 
 
 	uint32_t ftrap_open(uint32_t name, uint32_t parm)
@@ -250,6 +265,10 @@ namespace MPW
 
 		case kF_DELETE:
 			d0 = ftrap_delete(name);
+			break;
+
+		case kF_RENAME:
+			d0 = ftrap_rename(name, parm);
 			break;
 
 		case kF_GTABINFO:
