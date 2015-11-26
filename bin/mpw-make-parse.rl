@@ -47,10 +47,10 @@ LinkIIGS TheHeader.aii.obj IRModule.p.obj ?
 	'\n' => {
 		// terminate the command.
 		if (!token.empty()) {
-			argv.push_back(strdup(token.c_str()));
+			argv.push_back(std::move(token));
 			token.clear();		
 		}
-		if (argv.size() > 1) {
+		if (!argv.empty()) {
 			int ok = launch_command(argv);
 			if (ok != 0) {
 				fprintf(stderr, "command failed with exit code %d\n", ok);
@@ -58,21 +58,20 @@ LinkIIGS TheHeader.aii.obj IRModule.p.obj ?
 			}
 		}
 
-		for (auto cp : argv) { free(cp); }
 		argv.clear();
-		argv.push_back(strdup("mpw"));
 	};
 
 	[ \t]+ => {
 		// token separator.
 		if (!token.empty()) {
-			argv.push_back(strdup(token.c_str()));
+			argv.push_back(std::move(token));
 			token.clear();
 		}
 	};
 
 	'"{' [A-Za-z][A-Za-z0-9]* '}"' => {
 		// environment variable.  remove quotes.
+		// also expand if possible.
 		token.append(ts + 1, te - 1);
 	};
 
@@ -104,12 +103,13 @@ namespace {
 	
 }
 
-extern int launch_command(std::vector<char *> &argv);
+//extern int launch_command(std::vector<char *> &argv);
+extern int launch_command(const std::vector<std::string> &argv);
 
 int parse_makefile(int fd) {
 	
 	std::string token;
-	std::vector<char *> argv;
+	std::vector<std::string> argv;
 
 	unsigned char buffer[4096];
 
@@ -125,9 +125,6 @@ int parse_makefile(int fd) {
 
 
 	%% write init;
-
-	// strdup so it can be free() later.
-	argv.push_back(strdup("mpw"));
 
 
 	bool done = false;
@@ -174,7 +171,7 @@ int parse_makefile(int fd) {
 
 	}
 	// any remaining argv?
-	if (argv.size() > 1) {
+	if (!argv.empty()) {
 		fprintf(stderr, "warning: unterminated line\n");
 
 		int ok = launch_command(argv);
@@ -183,9 +180,6 @@ int parse_makefile(int fd) {
 			return ok;
 		}
 	}
-
-	for (auto cp : argv) { free(cp); }
-	argv.clear();
 
 	return 0;
 }

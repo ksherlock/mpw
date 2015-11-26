@@ -9,13 +9,18 @@
 #include <cstdio>
 #include <cstring>
 #include <cerrno>
+#include <cctype>
+
 #include <algorithm>
+#include <functional>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 
 #include <unistd.h>
 #include <sysexits.h>
 
-#include <string>
-#include <vector>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -24,7 +29,10 @@
 int parse_makefile(int fd);
 void help(void);
 void launch_make(std::vector<char *> &argv);
-void print_command(const std::vector<char *> &argv);
+void print_command(const std::vector<char *> &argv, bool active);
+void print_command(const std::vector<std::string> &argv, bool active);
+
+int launch_command(const std::vector<std::string> &argv);
 int launch_command(std::vector<char *> &argv);
 
 bool dry_run = false;
@@ -56,6 +64,175 @@ void help(void) {
 }
 
 
+std::string &lowercase(std::string &s) {
+	std::transform(std::begin(s), std::end(s), std::begin(s), std::tolower);
+	return s;
+}
+
+std::unordered_map<std::string, std::string> environment;
+std::unordered_map<std::string, std::function<int(const std::vector<std::string> &)>> builtins;
+
+/*
+ * 0 = active
+ * 1+ = nesting level.
+ */
+unsigned if_status = 0;
+
+/* true/false if true condition encountered at this level */
+
+std::vector<unsigned> if_stack;
+
+int builtin_set(const std::vector<std::string> &argv) {
+	// Set name value
+
+	bool active = if_status == 0;
+	print_command(argv, active);
+
+	if (!active) return 0;
+
+	if (argv.size() != 3) return 1;
+	std::string key = argv[1];
+	std::string value = argv[2];
+
+	// lower-case key...
+	lowercase(key);
+
+	// c++17 has insert_or_assign
+	environment[std::move(key)] = std::move(value);
+
+
+	return 0;
+}
+
+bool evaluate(const std::vector<std::string> &v)
+{
+	return false;
+}
+
+
+
+int builtin_if(const std::vector<std::string> &argv) {
+	/*
+	 * if expression
+	 * ...
+	 * [else if expression]
+	 * [else]
+	 * end
+	 */
+
+	bool active = (if_status == 0);
+
+	print_command(argv, active);
+
+
+	if (if_status) {
+		if_stack.push_back(false);
+		++if_status;
+		return 0;
+	}
+	// todo... actually evaluate expression.
+
+	bool ok = evaluate(argv);
+	if_stack.push_back(ok);
+	if (!ok) ++if_status;
+
+	return 0;
+}
+
+
+int builtin_else(const std::vector<std::string> &argv) {
+
+	// else 
+	// else if ....
+
+	print_command(argv, if_status < 2);
+
+	if (if_stack.empty()) {
+		fprintf(stderr, "ELSE without IF\n");
+		return -1;
+	}
+
+	unsigned &processed = if_stack.back();
+
+
+
+	// best case -- entire if/else/end stmt is inactive.
+
+	if (if_status > 1) {
+		return 0;
+	}
+
+	// second best case -- a true condition has already been found.
+	if (processed) {
+		if_status = 1;
+		return 0;
+	}
+
+	// third case -- evalute a naked else
+	if (argv.size() == 1) {
+		processed = true;
+		if_status = 0;
+		return 0;
+	}
+
+	// fourth case -- evaluate and else if
+	bool ok  = evaluate(argv);
+	if (ok) {
+		processed = true;
+		if_status = 0;
+		return 0;
+	} else {
+		if_status = 1;
+		return 0;
+	}
+
+}
+
+int builtin_end(const std::vector<std::string> &argv) {
+
+	print_command(argv, if_status < 2);
+
+	if (if_stack.empty()) {
+		fprintf(stderr, "END without IF\n");
+		return 1;
+	}
+
+
+	if_stack.pop_back();
+
+	if (if_status) {
+		--if_status;
+	}
+
+	return 0;
+}
+
+int builtin_echo(const std::vector<std::string> &argv) {
+	// echo [-n] ...
+
+	bool active = (if_status == 0);
+
+	print_command(argv, active);
+	if (!active) return 0;
+	if (dry_run) return 0;
+	
+	bool n = false;
+	bool printed = false;
+
+	for (auto iter = argv.begin() + 1; iter != argv.end(); ++iter) {
+		const std::string &s = *iter;
+		if (s.length() == 2 && s == "-n") {
+			n = true;
+			continue;
+		}
+		if (printed) fputs(" ", stdout);
+		fputs(s.c_str(), stdout);
+		printed = true;
+	}
+	if (!n) fputs("\n", stdout);
+	return 0;
+}
+
 void launch_make(std::vector<char *> &argv) {
 	int ok;
 
@@ -67,13 +244,25 @@ void launch_make(std::vector<char *> &argv) {
 	exit(EX_OSERR);
 }
 
-void print_command(const std::vector<char *> &argv) {
+void print_command(const std::vector<char *> &argv, bool active) {
 
+	if (!active) printf("# ");
 	for (auto cp : argv) {
 		if (cp) printf("%s ", cp);
 	}
 	printf("\n");
 }
+
+void print_command(const std::vector<std::string> &argv, bool active) {
+
+	if (!active) printf("# ");
+	for (const auto &cp : argv) {
+		printf("%s ", cp.c_str());
+	}
+	printf("\n");
+}
+
+
 
 int launch_command(std::vector<char *> &argv) {
 
@@ -84,10 +273,11 @@ int launch_command(std::vector<char *> &argv) {
 	// wait for a return status.
 	//puts(cmd.c_str());
 
-	if (argv.empty() || argv.back() != nullptr)
-		argv.push_back(nullptr);
+	bool active = (if_status == 0);
 
-	print_command(argv);
+	print_command(argv, active);
+
+	if (!active) return 0;
 	if (dry_run) {
 		printf("\n");
 		return 0;
@@ -124,7 +314,34 @@ int launch_command(std::vector<char *> &argv) {
 
 }
 
+int launch_command(const std::vector<std::string> &argv) {
 
+
+	if (argv.empty()) return 0;
+
+	std::string cmd = argv[0];
+	lowercase(cmd);
+	auto iter = builtins.find(cmd);
+	if (iter != builtins.end()) return iter->second(argv);
+
+	std::vector<char *> cargv;
+	cargv.reserve(argv.size()+2);
+
+
+	// convert to char * for exec, add "mpw", and remove blanks.
+
+	cargv.push_back(strdup("mpw"));
+	for (const auto &s : argv) {
+		if (!s.empty()) cargv.push_back(strdup(s.c_str()));
+	}
+
+	// and 0-terminate.
+	cargv.push_back(nullptr);
+
+	int rv = launch_command(cargv);
+	std::for_each(cargv.begin(), cargv.end(), free);
+	return rv;
+}
 
 int main(int argc, char **argv) {
 
@@ -132,10 +349,26 @@ int main(int argc, char **argv) {
 	int ok;
 	int child;
 
+#if 0
+	builtins.emplace("if", builtin_if);
+	builtins.emplace("end", builtin_end);
+	builtins.emplace("else", builtin_else);
+	builtins.emplace("set", builtin_set);
+#endif
+	builtins = {
+		{"if", builtin_if},
+		{"end", builtin_end},
+		{"else", builtin_else},
+		{"set", builtin_set},
+		{"echo", builtin_echo},
+	};
 
 	std::vector<char *>new_argv;
 	new_argv.push_back((char *)"mpw");
 	new_argv.push_back((char *)"Make");
+
+
+
 
 	//new_argv.insert(new_argv.end(), argv + 1, argv + argc);
 
