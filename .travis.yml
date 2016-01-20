@@ -1,6 +1,7 @@
 os: osx
 language: cpp
 compiler: clang
+before_script: mkdir build
 script: cmake --build build --target mpw
 before_install:
   - brew update
