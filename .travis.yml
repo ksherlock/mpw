@@ -1,0 +1,8 @@
+os: osx
+language: cpp
+compiler: clang
+script: cmake --build build --target mpw
+before_install:
+  - brew update
+  - brew install lemon
+  - brew install ragel
