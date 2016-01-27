@@ -10,5 +10,5 @@ before_install:
   - brew update
   - brew install lemon
   - brew install ragel
-  - brew install cmake
+#  - brew install cmake # not needed.
 
