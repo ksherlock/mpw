@@ -29,6 +29,7 @@ set(TOOLBOX_SRC
 	realpath.c
 	dispatch.cpp
 	fpinfo.cpp
+	debug.cpp
 )
 
 

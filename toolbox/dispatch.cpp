@@ -48,6 +48,7 @@
 #include "stackframe.h"
 #include "toolbox.h"
 #include "utility.h"
+#include "debug.h"
 
 #include <macos/sysequ.h>
 #include <macos/errors.h>
@@ -1093,6 +1094,11 @@ namespace ToolBox {
 			case 0xa88f:
 				d0 = OS::OSDispatch(trap);
 				break;
+
+			case 0xABFF:
+				d0 = Debug::DebugStr(trap);
+				break;
+
 
 			default:
 				fprintf(stderr, "Unsupported tool trap: %04x (%s)\n",

@@ -51,6 +51,7 @@
 #include "sane.h"
 #include "stackframe.h"
 #include "utility.h"
+#include "debug.h"
 
 
 
@@ -663,6 +664,11 @@ namespace ToolBox {
 
 			case 0xa88f:
 				d0 = OSDispatch(trap);
+				break;
+
+
+			case 0xABFF:
+				d0 = Debug::DebugStr(trap);
 				break;
 
 			default:
