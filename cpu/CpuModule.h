@@ -18,7 +18,7 @@ extern void cpuSetFLineExceptionFunc(cpuLineExceptionFunc func);
 typedef BOOLE (*cpuCheckPendingInterruptsFunc)(void);
 extern void cpuSetCheckPendingInterruptsFunc(cpuCheckPendingInterruptsFunc func);
 extern void cpuCheckPendingInterrupts(void);
-void cpuSetUpInterrupt(ULO new_interrupt_level);
+extern void cpuSetUpInterrupt(ULO new_interrupt_level);
 extern void cpuInitializeFromNewPC(ULO new_pc);
 
 
@@ -77,11 +77,8 @@ extern ULO cpuGetInitialSP(void);
 
 extern ULO cpuGetInstructionTime(void);
 
-extern BOOLE cpuSetIrqLevel(ULO new_interrupt_level);
+extern BOOLE cpuSetIrqLevel(ULO irq_level);
 extern ULO cpuGetIrqLevel(void);
-
-extern void cpuSetIrqAddress(ULO irq_address);
-extern ULO cpuGetIrqAddress(void);
 
 extern ULO cpuExecuteInstruction(void);
 extern ULO cpuDisOpcode(ULO disasm_pc, STR *saddress, STR *sdata, STR *sinstruction, STR *soperands);

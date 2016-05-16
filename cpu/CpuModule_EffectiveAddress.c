@@ -24,8 +24,7 @@
 /*=========================================================================*/
 
 #include "defs.h"
-#include "fellow.h"
-#include "fmem.h"
+#include "CpuModule_Memory.h"
 
 #include "CpuModule.h"
 #include "CpuModule_Internal.h"

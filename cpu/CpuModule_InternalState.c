@@ -23,8 +23,7 @@
 /*=========================================================================*/
 #include "defs.h"
 #include "CpuModule.h"
-#include "fellow.h"
-#include "fmem.h"
+#include "CpuModule_Memory.h"
 #include "CpuModule_Internal.h"
 
 /* M68k registers */

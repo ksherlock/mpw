@@ -24,8 +24,6 @@
 /*=========================================================================*/
 
 #include "defs.h"
-#include "fellow.h"
-
 #include "CpuModule.h"
 
 #ifdef CPU_INSTRUCTION_LOGGING

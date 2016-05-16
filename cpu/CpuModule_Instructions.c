@@ -24,15 +24,9 @@
 /*=========================================================================*/
 
 #include "defs.h"
-#include "fellow.h"
-#include "fmem.h"
+#include "CpuModule_Memory.h"
 #include "CpuModule.h"
 #include "CpuModule_Internal.h"
-
-#ifdef UAE_FILESYS
-#include "uae2fell.h"
-#include "autoconf.h"
-#endif
 
 
 static cpuLineExceptionFunc cpu_a_line_exception_func = NULL;
@@ -168,24 +162,21 @@ static void cpuIllegal(void)
 	}
   else if ((opcode & 0xa000) == 0xa000)
   {
-    
-/*
-#ifdef UAE_FILESYS
+    #if 0
     if ((cpuGetPC() & 0xff0000) == 0xf00000)
     {
       call_calltrap(opcode & 0xfff);
       cpuInitializeFromNewPC(cpuGetPC());
       cpuSetInstructionTime(512);
     }
-    else
-#endif
-*/
+    #else
     if (cpu_a_line_exception_func)
     {
       cpu_a_line_exception_func(opcode);
       cpuInitializeFromNewPC(cpuGetPC());
       cpuSetInstructionTime(512);
     }
+    #endif
     else
     {
       cpuThrowALineException();
@@ -1162,17 +1153,16 @@ static ULO cpuMuluW(UWO src2, UWO src1, ULO eatime)
 /// <summary>
 /// Divsw, src1 / src2
 /// </summary>
-static ULO cpuDivsW(ULO dst, UWO src1)
+static void cpuDivsW(ULO dst, UWO src1, ULO destination_reg, ULO instruction_time)
 {
-  ULO result;
   if (src1 == 0)
   {
     // Alcatraz odyssey assumes that PC in this exception points after the instruction.
-    cpuThrowDivisionByZeroException(TRUE);
-    result = dst;
+    cpuThrowDivisionByZeroException();
   }
   else
   {
+    ULO result;
     LON x = (LON) dst;
     LON y = (LON)(WOR) src1;
     LON res = x / y;
@@ -1187,24 +1177,24 @@ static ULO cpuDivsW(ULO dst, UWO src1)
       result = (rem << 16) | (res & 0xffff);
       cpuSetFlagsNZVC(cpuIsZeroW((UWO) res), cpuMsbW((UWO) res), FALSE, FALSE);
     }
+    cpuSetDReg(destination_reg, result);
+    cpuSetInstructionTime(instruction_time);
   }
-  return result;
 }
 
 /// <summary>
 /// Divuw, src1 / src2
 /// </summary>
-static ULO cpuDivuW(ULO dst, UWO src1)
+static void cpuDivuW(ULO dst, UWO src1, ULO destination_reg, ULO instruction_time)
 {
-  ULO result;
   if (src1 == 0)
   {
     // Alcatraz odyssey assumes that PC in this exception points after the instruction.
-    cpuThrowDivisionByZeroException(TRUE);
-    result = dst;
+    cpuThrowDivisionByZeroException();
   }
   else
   {
+    ULO result;
     ULO x = dst;
     ULO y = (ULO) src1;
     ULO res = x / y;
@@ -1219,11 +1209,12 @@ static ULO cpuDivuW(ULO dst, UWO src1)
       result = (rem << 16) | (res & 0xffff);
       cpuSetFlagsNZVC(cpuIsZeroW((UWO) res), cpuMsbW((UWO) res), FALSE, FALSE);
     }
+    cpuSetDReg(destination_reg, result);
+    cpuSetInstructionTime(instruction_time);
   }
-  return result;
 }
 
-static void cpuDivL(ULO divisor, ULO ext)
+static void cpuDivL(ULO divisor, ULO ext, ULO instruction_time)
 {
   if (divisor != 0)
   {
@@ -1296,10 +1287,11 @@ static void cpuDivL(ULO divisor, ULO ext)
   cpuSetFlagsNZ00NewL((ULO) result);
       }
     }
+    cpuSetInstructionTime(instruction_time);
   }
   else
   {
-    cpuThrowDivisionByZeroException(FALSE);
+    cpuThrowDivisionByZeroException();
   }
 }
 
@@ -2462,7 +2454,7 @@ static void cpuCmpML(ULO regx, ULO regy)
 static void cpuChkW(UWO value, UWO ub)
 {
   cpuSetFlagZ(value == 0);
-  cpuSetFlagsVC(FALSE, FALSE);
+  cpuClearFlagsVC();
   if (((WOR)value) < 0)
   {
     cpuSetFlagN(TRUE);
@@ -2485,7 +2477,7 @@ static void cpuChkW(UWO value, UWO ub)
 static void cpuChkL(ULO value, ULO ub)
 {
   cpuSetFlagZ(value == 0);
-  cpuSetFlagsVC(FALSE, FALSE);
+  cpuClearFlagsVC();
   if (((LON)value) < 0)
   {
     cpuSetFlagN(TRUE);
@@ -2567,39 +2559,35 @@ static ULO cpuSubXL(ULO dst, ULO src)
 /// </summary>
 static UBY cpuAbcdB(UBY dst, UBY src)
 {
-  UBY xflag = (cpuGetFlagX()) ? 1:0;
-  UWO res = dst + src + xflag;
-  UWO res_unadjusted = res;
-  UBY res_bcd;
-  UBY low_nibble = (dst & 0xf) + (src & 0xf) + xflag;
+  UBY xflag = (cpuGetFlagX()) ? 1 : 0;
+  UWO low_nibble = (dst & 0xf) + (src & 0xf) + xflag;
+  UWO high_nibble = ((UWO)(dst & 0xf0)) + ((UWO)(src & 0xf0));
+  UWO result_unadjusted = low_nibble + high_nibble;
+  UWO result_bcd = result_unadjusted;
 
   if (low_nibble > 9)
   {
-    res += 6;
+    result_bcd += 6;
   }
 
-  if (res > 0x99)
+  BOOLE xc_flags = (result_bcd & 0xfff0) > 0x90;
+  cpuSetFlagXC(xc_flags);
+  if (xc_flags)
   {
-    res += 0x60;
-    cpuSetFlagXC(TRUE);
-  }
-  else
-  {
-    cpuSetFlagXC(FALSE);
+    result_bcd += 0x60;
   }
 
-  res_bcd = (UBY) res;
-
-  if (res_bcd != 0)
+  if (result_bcd & 0xff)
   {
     cpuSetFlagZ(FALSE);
   }
-  if (res_bcd & 0x80)
+
+  if (cpuGetModelMajor() < 4)  // 040 apparently does not set these flags
   {
-    cpuSetFlagN(TRUE);
+    cpuSetFlagN(result_bcd & 0x80);
+    cpuSetFlagV(((result_unadjusted & 0x80) == 0) && (result_bcd & 0x80));
   }
-  cpuSetFlagV(((res_unadjusted & 0x80) == 0) && (res_bcd & 0x80));
-  return res_bcd;
+  return (UBY)result_bcd;
 }
 
 /// <summary>
@@ -2612,36 +2600,38 @@ static UBY cpuAbcdB(UBY dst, UBY src)
 /// </summary>
 static UBY cpuSbcdB(UBY dst, UBY src)
 {
-  UBY xflag = (cpuGetFlagX()) ? 1:0;
-  UWO res = dst - src - xflag;
-  UWO res_unadjusted = res;
-  UBY res_bcd;
+  UWO xflag = (cpuGetFlagX()) ? 1:0;
+  UWO result_plain_binary = (UWO)dst - (UWO)src - xflag;
+  UWO low_nibble = (UWO)(dst & 0xf) - (UWO)(src & 0xf) - xflag;
+  UWO high_nibble = ((UWO)(dst & 0xf0)) - ((UWO)(src & 0xf0));
+  UWO result_unadjusted = low_nibble + high_nibble;
+  UWO result_bcd = result_unadjusted;
 
-  if (((src & 0xf) + xflag) > (dst & 0xf))
+  if ((WOR)result_plain_binary < 0)
   {
-    res -= 6;
+    result_bcd -= 0x60;
   }
-  if (res & 0x80)
-  {
-    res -= 0x60;
-    cpuSetFlagXC(TRUE);
-  }
-  else
-  {
-    cpuSetFlagXC(FALSE);
-  }
-  res_bcd = (UBY) res;
 
-  if (res_bcd != 0)
+  if (((WOR)low_nibble) < 0)
+  {
+    result_bcd -= 6;
+    result_plain_binary -= 6;
+  }
+
+  BOOLE borrow = ((WOR)result_plain_binary < 0);
+  cpuSetFlagXC(borrow);
+
+  if (result_bcd & 0xff)
   {
     cpuSetFlagZ(FALSE);
   }
-  if (res_bcd & 0x80)
+
+  if (cpuGetModelMajor() < 4)
   {
-    cpuSetFlagN(TRUE);
+    cpuSetFlagN(result_bcd & 0x80);
+    cpuSetFlagV(((result_unadjusted & 0x80) == 0x80) && !(result_bcd & 0x80));
   }
-  cpuSetFlagV(((res_unadjusted & 0x80) == 0x80) && !(res_bcd & 0x80));
-  return res_bcd;
+  return (UBY) result_bcd;
 }
 
 /// <summary>
@@ -2743,9 +2733,9 @@ void cpuBfDecodeExtWordAndGetField(struct cpuBfData *bf_data, ULO ea_or_reg, boo
     ULO shift = (8 - bf_data->normalized_offset - bf_data->width) & 7;
     for (int i = bf_data->base_address_byte_count - 1; i >= 0; --i)
     {
-      ULL value = (ULL) memoryReadByte(address);
-      field_memory |= (value << (8*i));
-      field |= ((value >> shift) << (8*i));
+      ULL value = ((ULL)memoryReadByte(address)) << (8 * i);
+      field_memory |= value;
+      field |= (value >> shift);
       ++address;
     }
 
@@ -3701,7 +3691,7 @@ static void cpuPtest040(ULO rw, ULO regno)
 
 #include "CpuModule_Decl.h"
 #include "CpuModule_Data.h"
-//#include "CpuModule_Profile.h"
+#include "CpuModule_Profile.h"
 #include "CpuModule_Code.h"
 
 cpuOpcodeData cpu_opcode_data_current[65536];

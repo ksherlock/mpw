@@ -1,8 +1,6 @@
 #ifndef CpuIntegration_H
 #define CpuIntegration_H
 
-#include <setjmp.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +13,8 @@ typedef enum {
   M68EC30 = 4,
   M68EC20 = 9
 } cpu_integration_models;
+
+extern void cpuIntegrationCalculateMultiplier(void);
 
 extern void cpuIntegrationSetUpInterruptEventHandler(void);
 extern void cpuIntegrationExecuteInstructionEventHandler68000Fast(void);

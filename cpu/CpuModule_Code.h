@@ -5590,254 +5590,199 @@ static void DIVS_81C0(ULO*opc_data)
 {
 	UWO src = cpuGetDRegWord(opc_data[0]);
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81D0(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA02(opc_data[0]));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81D8(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA03(opc_data[0],2));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81E0(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA04(opc_data[0],2));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81E8(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA05(opc_data[0]));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81F0(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA06(opc_data[0]));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81F8(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA70());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81F9(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA71());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81FA(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA72());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81FB(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA73());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVS_81FC(ULO*opc_data)
 {
 	UWO src = cpuGetNextWord();
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivsW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivsW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVL_4C40(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = cpuGetDReg(opc_data[0]);
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C50(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA02(opc_data[0]));
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C58(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA03(opc_data[0],4));
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C60(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA04(opc_data[0],4));
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C68(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA05(opc_data[0]));
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C70(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA06(opc_data[0]));
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C78(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA70());
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C79(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA71());
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C7A(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA72());
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C7B(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = memoryReadLong(cpuEA73());
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVL_4C7C(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
 	ULO src = cpuGetNextLong();
-	cpuDivL(src, ext);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivL(src, ext, opc_data[2]);
 }
 static void DIVU_80C0(ULO*opc_data)
 {
 	UWO src = cpuGetDRegWord(opc_data[0]);
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80D0(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA02(opc_data[0]));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80D8(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA03(opc_data[0],2));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80E0(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA04(opc_data[0],2));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80E8(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA05(opc_data[0]));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80F0(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA06(opc_data[0]));
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80F8(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA70());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80F9(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA71());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80FA(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA72());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80FB(ULO*opc_data)
 {
 	UWO src = memoryReadWord(cpuEA73());
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void DIVU_80FC(ULO*opc_data)
 {
 	UWO src = cpuGetNextWord();
 	ULO dst = cpuGetDReg(opc_data[1]);
-	ULO res = cpuDivuW(dst, src);
-	cpuSetDReg(opc_data[1], res);
-	cpuSetInstructionTime(opc_data[2]);
+	cpuDivuW(dst, src, opc_data[1], opc_data[2]);
 }
 static void MOVEM_48A0(ULO*opc_data)
 {
@@ -6483,42 +6428,42 @@ static void BFTST_E8FB(ULO*opc_data)
 static void BFCHG_EAC0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfChgReg(opc_data[1], ext);
+	cpuBfChgReg(opc_data[0], ext);
 }
 static void BFCLR_ECC0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfClrReg(opc_data[1], ext);
+	cpuBfClrReg(opc_data[0], ext);
 }
 static void BFEXTS_EBC0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfExtsReg(opc_data[1], ext);
+	cpuBfExtsReg(opc_data[0], ext);
 }
 static void BFEXTU_E9C0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfExtuReg(opc_data[1], ext);
+	cpuBfExtuReg(opc_data[0], ext);
 }
 static void BFFFO_EDC0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfFfoReg(opc_data[1], ext);
+	cpuBfFfoReg(opc_data[0], ext);
 }
 static void BFINS_EFC0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfInsReg(opc_data[1], ext);
+	cpuBfInsReg(opc_data[0], ext);
 }
 static void BFSET_EEC0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfSetReg(opc_data[1], ext);
+	cpuBfSetReg(opc_data[0], ext);
 }
 static void BFTST_E8C0(ULO*opc_data)
 {
 	UWO ext = cpuGetNextWord();
-	cpuBfTstReg(opc_data[1], ext);
+	cpuBfTstReg(opc_data[0], ext);
 }
 static void MULL_4C00(ULO*opc_data)
 {
@@ -7347,6 +7292,7 @@ static void TAS_4AC0(ULO*opc_data)
 	UBY dst = cpuGetDRegByte(opc_data[0]);
 	dst = cpuTas(dst);
 	cpuSetDRegByte(opc_data[0], dst);
+	cpuSetInstructionTime(4);
 }
 static void TAS_4AD0(ULO*opc_data)
 {
@@ -7354,6 +7300,7 @@ static void TAS_4AD0(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(14);
 }
 static void TAS_4AD8(ULO*opc_data)
 {
@@ -7361,6 +7308,7 @@ static void TAS_4AD8(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(14);
 }
 static void TAS_4AE0(ULO*opc_data)
 {
@@ -7368,6 +7316,7 @@ static void TAS_4AE0(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(16);
 }
 static void TAS_4AE8(ULO*opc_data)
 {
@@ -7375,6 +7324,7 @@ static void TAS_4AE8(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(18);
 }
 static void TAS_4AF0(ULO*opc_data)
 {
@@ -7382,6 +7332,7 @@ static void TAS_4AF0(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(20);
 }
 static void TAS_4AF8(ULO*opc_data)
 {
@@ -7389,6 +7340,7 @@ static void TAS_4AF8(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(18);
 }
 static void TAS_4AF9(ULO*opc_data)
 {
@@ -7396,6 +7348,7 @@ static void TAS_4AF9(ULO*opc_data)
 	UBY dst = memoryReadByte(dstea);
 	dst = cpuTas(dst);
 	memoryWriteByte(dst, dstea);
+	cpuSetInstructionTime(22);
 }
 static void TST_4A00(ULO*opc_data)
 {
@@ -7638,43 +7591,43 @@ static void PEA_4850(ULO*opc_data)
 {
 	ULO dstea = cpuEA02(opc_data[0]);
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(8);
+	cpuSetInstructionTime(12);
 }
 static void PEA_4868(ULO*opc_data)
 {
 	ULO dstea = cpuEA05(opc_data[0]);
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(16);
 }
 static void PEA_4870(ULO*opc_data)
 {
 	ULO dstea = cpuEA06(opc_data[0]);
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(20);
 }
 static void PEA_4878(ULO*opc_data)
 {
 	ULO dstea = cpuEA70();
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(16);
 }
 static void PEA_4879(ULO*opc_data)
 {
 	ULO dstea = cpuEA71();
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(12);
+	cpuSetInstructionTime(20);
 }
 static void PEA_487A(ULO*opc_data)
 {
 	ULO dstea = cpuEA72();
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(16);
 }
 static void PEA_487B(ULO*opc_data)
 {
 	ULO dstea = cpuEA73();
 	cpuPeaL(dstea);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(20);
 }
 static void JMP_4ED0(ULO*opc_data)
 {

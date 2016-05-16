@@ -22,7 +22,6 @@
 /* Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.          */
 /*=========================================================================*/
 #include "defs.h"
-#include "fellow.h"
 #include "CpuModule.h"
 #include "CpuModule_Internal.h"
 
@@ -195,7 +194,7 @@ void cpuSetFlags0100(void)
 /// <summary>
 /// Clear V and C.
 /// </summary>
-static void cpuClearFlagsVC(void)
+void cpuClearFlagsVC(void)
 {
   cpu_sr = cpu_sr & 0xfffc;
 }
