@@ -307,19 +307,17 @@ static int mplite_logarithm(const int iValue)
 }
 
 /*
- ** Return the size of an outstanding allocation, in bytes.  The
- ** size returned omits the 8-byte header overhead.  This only
- ** works for chunks that are currently checked out.
+ ** Return the size of an outstanding allocation, in bytes.
+ ** This only works for chunks that are currently checked out.
  */
 static int mplite_size(const mplite_t *handle, const void *p)
 {
-    int iSize = 0;
-    if (p) {
-        int i = (int)((uint8_t *) p - handle->zPool) / handle->szAtom;
-        assert(i >= 0 && i < handle->nBlock);
-        iSize = handle->szAtom *
-                (1 << (handle->aCtrl[i] & MPLITE_CTRL_LOGSIZE));
-    }
+    int iSize, i;
+    assert( p!=0 );
+    i = (int)((uint8_t *) p - handle->zPool) / handle->szAtom;
+    assert(i >= 0 && i < handle->nBlock);
+    iSize = handle->szAtom * (1 << (handle->aCtrl[i] & MPLITE_CTRL_LOGSIZE));
+
     return iSize;
 }
 
@@ -388,17 +386,13 @@ static void *mplite_malloc_unsafe(mplite_t *handle, const int nByte)
     /* nByte must be a positive */
     assert(nByte > 0);
 
+    /* No more than 1GiB per allocation */
+    if( nByte > MPLITE_MAX_ALLOC_SIZE ) return 0;
+
     /* Keep track of the maximum allocation request.  Even unfulfilled
      ** requests are counted */
     if ((uint32_t) nByte > handle->maxRequest) {
         handle->maxRequest = nByte;
-    }
-
-    /* Abort if the requested allocation size is larger than the largest
-     ** power of two that we can represent using 32-bit signed integers.
-     */
-    if (nByte > MPLITE_MAX_ALLOC_SIZE) {
-        return NULL;
     }
 
     /* Round nByte up to the next valid power of two */
@@ -443,6 +437,12 @@ static void *mplite_malloc_unsafe(mplite_t *handle, const int nByte)
         handle->maxOut = handle->currentOut;
     }
 
+#ifdef MPLITE_DEBUG
+  /* Make sure the allocated memory does not assume that it is set to zero
+  ** or retains a value from a previous allocation */
+  memset(&handle->zPool[i * handle->szAtom], 0xAA, iFullSz);
+#endif
+
     /* Return a pointer to the allocated memory. */
     return (void*) &handle->zPool[i * handle->szAtom];
 }
@@ -483,12 +483,12 @@ static void mplite_free_unsafe(mplite_t *handle, const void *pOld)
         int iBuddy;
         if ((iBlock >> iLogsize) & 1) {
             iBuddy = iBlock - size;
+            assert(iBuddy >= 0);
         }
         else {
             iBuddy = iBlock + size;
+            if (iBuddy >= handle->nBlock) break;
         }
-        assert(iBuddy >= 0);
-        if ((iBuddy + (1 << iLogsize)) > handle->nBlock) break;
         if (handle->aCtrl[iBuddy] != (MPLITE_CTRL_FREE | iLogsize)) break;
         mplite_unlink(handle, iBuddy, iLogsize);
         iLogsize++;
@@ -503,5 +503,12 @@ static void mplite_free_unsafe(mplite_t *handle, const void *pOld)
         }
         size *= 2;
     }
+
+#ifdef MPLITE_DEBUG
+  /* Overwrite freed memory with the 0x55 bit pattern to verify that it is
+  ** not used after being freed */
+  memset(&handle->zPool[iBlock * handle->szAtom], 0x55, size);
+#endif
+
     mplite_link(handle, iBlock, iLogsize);
 }

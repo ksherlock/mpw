@@ -17,7 +17,7 @@
  *
  * This memory allocator uses the following algorithm:
  *
- *   1.  All memory allocations sizes are rounded up to a power of 2.
+ *   1.  All memory allocation sizes are rounded up to a power of 2.
  *
  *   2.  If two adjacent free blocks are the halves of a larger block,
  *       then the two blocks are coalesced into the single larger block.
@@ -40,11 +40,7 @@
 #ifndef MPLITE_H
 #define MPLITE_H
 
-#ifdef _WIN32
-#include "pstdint.h"
-#else
 #include <stdint.h>
-#endif /* #ifdef _WIN32 */
 
 /**
  * @brief The function call returns success
@@ -114,9 +110,12 @@ typedef struct mplite {
     uint32_t maxCount; /**< Maximum instantaneous currentCount */
     uint32_t maxRequest; /**< Largest allocation (exclusive of internal frag) */
 
-    int aiFreelist[MPLITE_LOGMAX + 1]; /**< List of free blocks. aiFreelist[0]
-        is a list of free blocks of size mplite_t.szAtom. aiFreelist[1] holds
-        blocks of size szAtom * 2 and so forth.*/
+  /**
+   * Lists of free blocks.  aiFreelist[0] is a list of free blocks of
+   * size mplite_t.szAtom.  aiFreelist[1] holds blocks of size szAtom*2.
+   * aiFreelist[2] holds free blocks of size szAtom*4.  And so forth.
+   */
+    int aiFreelist[MPLITE_LOGMAX + 1]; 
 
     uint8_t *aCtrl; /**< Space for tracking which blocks are checked out and the
         size of each block.  One byte per block. */
