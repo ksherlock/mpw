@@ -32,6 +32,9 @@
 #include <sys/types.h>
 #include <limits.h>
 
+extern char **environ;
+
+
 namespace _env_rl {
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
     #define _GETDELIM_GROWBY 128 /* amount to grow line buffer by */
@@ -361,6 +364,25 @@ namespace MPW {
 				fprintf(stderr, "Error in variable: %s\n", s.c_str());
 			}
 		}
+	}
+
+	void EnvLoadEnv() {
+		/* load from environ */
+
+		for (unsigned i = 0; environ[i]; ++i) {
+			if (memcmp(environ[i], "mpw$", 4)) continue;
+
+			std::string s(environ[i] + 4);
+			auto pos = s.find('=');
+			if (pos == 0) continue;
+			if (pos == s.npos) {
+				MPW::Environment.emplace(std::move(s), "");
+			} else {
+				MPW::Environment.emplace(s.substr(0, pos), s.substr(pos+1));
+			}
+
+		}
+
 	}
 
 

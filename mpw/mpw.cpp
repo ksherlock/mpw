@@ -181,6 +181,8 @@ namespace MPW
 	{
 		void EnvLoadFile(const std::string &envfile);
 		void EnvLoadArray(const std::vector<std::string> &data);
+		void EnvLoadEnv();
+
 
 		std::string m(RootDir());
 		if (!m.empty())
@@ -190,6 +192,8 @@ namespace MPW
 
 			Environment.emplace(std::string("MPW"), mm);
 		}
+
+		EnvLoadEnv(); // should do this first since it could set MPW??
 
 		if (defines.size())
 			EnvLoadArray(defines);
