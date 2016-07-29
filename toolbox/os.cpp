@@ -157,6 +157,8 @@ namespace OS
 			case 'e':
 				if (ext == "equ") // asm iigs include file.
 					return true;
+				if (ext == "equates") // asm iigs include file.
+					return true;
 				break;
 
 			case 'i':
