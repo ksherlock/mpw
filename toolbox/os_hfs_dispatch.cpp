@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include <strings.h>
 
@@ -123,6 +124,126 @@ namespace OS {
 		return d0;
 	}
 
+	static uint16_t CatInfoByName(std::string &sname, uint32_t parm) {
+
+		enum { // FileParam
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioFRefNum = 24,
+			_ioFVersNum = 26,
+			_filler1 = 27,
+			_ioFDirIndex = 28,
+			_ioFlAttrib = 30,
+			_ioACUser = 31,
+
+			/* HFileInfo */
+			_ioFlFndrInfo = 32,
+			_ioDirID = 48,
+			_ioFlStBlk = 52,
+			_ioFlLgLen = 54,
+			_ioFlPyLen = 58,
+			_ioFlRStBlk = 62,
+			_ioFlRLgLen = 64,
+			_ioFlRPyLen = 68,
+			_ioFlCrDat = 72,
+			_ioFlMdDat = 76,
+			_ioFlBkDat = 80,
+			_ioFlXFndrInfo = 84,
+			_ioFlParID = 100,
+			_ioFlClpSiz = 104,
+
+			/* DirInfo */
+			_ioDrUsrWds = 32,
+			_ioDrDirID = 48,
+			_ioDrNmFls = 52,
+			_filler3 = 54,
+			_ioDrCrDat = 72,
+			_ioDrMdDat = 76,
+			_ioDrBkDat = 80,
+			_ioDrFndrInfo = 84,
+			_ioDrParID = 100,
+		};
+
+		struct stat st;
+
+		if (::stat(sname.c_str(), &st) < 0)
+		{
+			return macos_error_from_errno();
+		}
+
+		if (S_ISDIR(st.st_mode))
+		{
+			// bit 4 - is a directory.
+			memoryWriteByte(1 << 4, parm + _ioFlAttrib);
+			memoryWriteByte(0, parm + _ioACUser);
+
+			std::memset(memoryPointer(parm + _ioDrUsrWds), 0, 16); // DInfo
+
+			// cw68k expects the directory ID to be set.
+
+			uint32_t dirID = FSSpecManager::IDForPath(sname);
+
+			memoryWriteLong(dirID, parm + _ioDrDirID);
+
+			// the links count should be ~= number of dirents ( +2 for . and ..)
+			int links = st.st_nlink - 2;
+			if (links < 0) links = 0;
+			if (links > 65535) links = 65535;
+
+			memoryWriteWord(links, parm + _ioDrNmFls); // ioDrNmFls - # of files in dir
+
+			memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioDrCrDat); // create
+			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrMdDat); // modify
+			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrBkDat); // backup
+
+			std::memset(memoryPointer(parm + _ioDrFndrInfo), 0, 16); // DXInfo
+			memoryWriteLong(0, parm + _ioDrParID);
+		}
+		else
+		{
+			memoryWriteByte(0, parm + _ioFlAttrib);
+
+			memoryWriteByte(0, parm + _ioACUser);
+			Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false); // finder info
+			memoryWriteLong(0, parm + _ioDirID);
+			memoryWriteWord(0, parm + _ioFlStBlk);
+			memoryWriteLong(st.st_size, parm + _ioFlLgLen);
+			memoryWriteLong(st.st_size, parm + _ioFlPyLen);
+
+			// resource info... below
+
+			memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioFlCrDat); // create
+			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlMdDat); // modify
+			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlBkDat); // backup
+
+			std::memset(memoryPointer(parm + _ioFlXFndrInfo), 0, 16); // FXInfo
+
+			memoryWriteWord(0, parm + _ioFlParID);
+			memoryWriteWord(0, parm + _ioFlClpSiz);
+
+			sname.append(_PATH_RSRCFORKSPEC);
+			if (::stat(sname.c_str(), &st) >= 0)
+			{
+				memoryWriteWord(0, parm + _ioFlRStBlk);
+				memoryWriteLong(st.st_size, parm + _ioFlRLgLen);
+				memoryWriteLong(st.st_size, parm + _ioFlRPyLen);
+			}
+			else
+			{
+				memoryWriteWord(0, parm + _ioFlRStBlk);
+				memoryWriteLong(0, parm + _ioFlRLgLen);
+				memoryWriteLong(0, parm + _ioFlRPyLen);
+			}
+		}
+		return 0;
+	}
+
 	uint16_t PBGetCatInfo(uint32_t parm)
 	{
 
@@ -199,96 +320,64 @@ namespace OS {
 			}
 
 			Log("     PBGetCatInfo(%s)\n", sname.c_str());
+			d0 = CatInfoByName(sname, parm);
 
-
-
-
-			struct stat st;
-
-			if (::stat(sname.c_str(), &st) < 0)
-			{
-				d0 = macos_error_from_errno();
-
-				memoryWriteWord(d0, parm + _ioResult);
-				return d0;
-			}
-
-			if (S_ISDIR(st.st_mode))
-			{
-				// bit 4 - is a directory.
-				memoryWriteByte(1 << 4, parm + _ioFlAttrib);
-				memoryWriteByte(0, parm + _ioACUser);
-
-				std::memset(memoryPointer(parm + _ioDrUsrWds), 0, 16); // DInfo
-
-				// cw68k expects the directory ID to be set.
-
-				uint32_t dirID = FSSpecManager::IDForPath(sname);
-
-				memoryWriteLong(dirID, parm + _ioDrDirID);
-
-				// the links count should be ~= number of dirents ( +2 for . and ..)
-				int links = st.st_nlink - 2;
-				if (links < 0) links = 0;
-				if (links > 65535) links = 65535;
-
-				memoryWriteWord(links, parm + _ioDrNmFls); // ioDrNmFls - # of files in dir
-
-				memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioDrCrDat); // create
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrMdDat); // modify
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrBkDat); // backup
-
-				std::memset(memoryPointer(parm + _ioDrFndrInfo), 0, 16); // DXInfo
-				memoryWriteLong(0, parm + _ioDrParID);
-			}
-			else
-			{
-				memoryWriteByte(0, parm + _ioFlAttrib);
-
-				memoryWriteByte(0, parm + _ioACUser);
-				Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false); // finder info
-				memoryWriteLong(0, parm + _ioDirID);
-				memoryWriteWord(0, parm + _ioFlStBlk);
-				memoryWriteLong(st.st_size, parm + _ioFlLgLen);
-				memoryWriteLong(st.st_size, parm + _ioFlPyLen);
-
-				// resource info... below
-
-				memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioFlCrDat); // create
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlMdDat); // modify
-				memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlBkDat); // backup
-
-				std::memset(memoryPointer(parm + _ioFlXFndrInfo), 0, 16); // FXInfo
-
-				memoryWriteWord(0, parm + _ioFlParID);
-				memoryWriteWord(0, parm + _ioFlClpSiz);
-
-				sname.append(_PATH_RSRCFORKSPEC);
-				if (::stat(sname.c_str(), &st) >= 0)
-				{
-					memoryWriteWord(0, parm + _ioFlRStBlk);
-					memoryWriteLong(st.st_size, parm + _ioFlRLgLen);
-					memoryWriteLong(st.st_size, parm + _ioFlRPyLen);
-				}
-				else
-				{
-					memoryWriteWord(0, parm + _ioFlRStBlk);
-					memoryWriteLong(0, parm + _ioFlRLgLen);
-					memoryWriteLong(0, parm + _ioFlRPyLen);
-				}
-
-
-			}
-
-			// no error.
-			memoryWriteWord(0, parm + _ioResult);
-			return 0;
+			memoryWriteWord(d0, parm + _ioResult);
+			return d0;
 		}
 
 		else
 		{
-			fprintf(stderr, "GetFileInfo -- ioFDirIndex not yet supported\n");
-			exit(1);
+			// dirent ish.  ioFDirIndex is the 1-based entry.
+			uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+
+			Log("     PBGetCatInfo(%04x, %04x)\n", ioDirID, ioFDirIndex);
+
+
+			std::string sname = FSSpecManager::PathForID(ioDirID);
+			if (sname.empty()) sname = ".";
+			sname = OS::realpath(sname);
+
+			// if sname == "", error...
+			DIR *dp;
+			struct dirent *dir;
+
+			dp = opendir(sname.c_str());
+			if (!dp) {
+				d0 = macos_error_from_errno();
+				memoryWriteWord(d0, parm + _ioResult);
+				return d0;
+			}
+
+			while ((dir = readdir(dp))) {
+				if (dir->d_name[0] == '.') {
+					if (!strcmp(dir->d_name, ".")) continue;
+					if (!strcmp(dir->d_name, "..")) continue;
+				}
+				if (dir->d_namlen > 255) continue;  // too long!
+				if (--ioFDirIndex == 0) break;
+			}
+
+			if (!dir) {
+				closedir(dp);
+				d0 = MacOS::fnfErr;
+				memoryWriteWord(d0, parm + _ioResult);
+				return d0;
+			}
+
+			if (ioNamePtr) {
+				ToolBox::WritePString(ioNamePtr, dir->d_name);
+			}
+
+			sname.push_back('/');
+			sname.append(dir->d_name);
+			closedir(dp);
+
+	
+			d0 = CatInfoByName(sname, parm);
+
+			memoryWriteWord(d0, parm + _ioResult);
+			return d0;
 		}
 
 		return 0;
