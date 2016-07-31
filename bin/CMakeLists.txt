@@ -79,6 +79,7 @@ target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
 target_link_libraries(mpw MPW_LIB)
 target_link_libraries(mpw MPLITE_LIB)
+target_link_libraries(mpw NATIVE_LIB)
 target_link_libraries(mpw MACOS_LIB)
 set_target_properties(mpw PROPERTIES LINK_FLAGS "-ledit")
 
