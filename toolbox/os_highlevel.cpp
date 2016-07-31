@@ -58,6 +58,8 @@
 #include "stackframe.h"
 #include "fs_spec.h"
 
+#include <native/native.h>
+
 using ToolBox::Log;
 using MacOS::macos_error_from_errno;
 
@@ -239,7 +241,8 @@ namespace OS {
 		Log("     FSpGetFInfo(%s, %08x)\n",  path.c_str(), finderInfo);
 
 
-		d0 = Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
+		d0 = native::get_finder_info(path, memoryPointer(finderInfo), false);
+		//d0 = Internal::GetFinderInfo(path, memoryPointer(finderInfo), false);
 		return d0;
 	}
 
@@ -263,8 +266,8 @@ namespace OS {
 		Log("     FSpSetFInfo(%s, %08x)\n",  path.c_str(), finderInfo);
 
 
-		d0 = Internal::SetFinderInfo(path, memoryPointer(finderInfo), false);
-
+		//d0 = Internal::SetFinderInfo(path, memoryPointer(finderInfo), false);
+		d0 = native::set_finder_info(path, memoryPointer(finderInfo), false);
 		return d0;
 	}
 
@@ -314,8 +317,8 @@ namespace OS {
 			::close(fd);
 		}
 
-		d0 = OS::Internal::SetFinderInfo(sname, fileType, creator);
-
+		//d0 = OS::Internal::SetFinderInfo(sname, fileType, creator);
+		d0 = native::set_finder_info(sname, fileType, creator);
 		return d0;
 	}
 

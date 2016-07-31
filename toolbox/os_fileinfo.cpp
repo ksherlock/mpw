@@ -292,26 +292,14 @@ namespace OS {
 		Log("     SetFileInfo(%s)\n", sname.c_str());
 
 
+		native::file_info fi;
+		fi.create_date = memoryReadLong(parm + _ioFlCrDat);
+		fi.modify_date = memoryReadLong(parm + _ioFlMdDat);
+		native::get_finder_info(sname, fi.finder_info); // get extended bits.
+		std::memcpy(fi.finder_info, memoryPointer(parm + _ioFlFndrInfo), 16);
 
+		d0 = native::set_file_info(sname, fi);
 
-		// check if the file actually exists
-		{
-			struct stat st;
-			int ok;
-
-			ok = ::stat(sname.c_str(), &st);
-			if (ok < 0)
-			{
-				d0 = macos_error_from_errno();
-				memoryWriteWord(d0, parm + _ioResult);
-				return d0;
-			}
-
-
-		}
-
-		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + 32), false);
-		if (d0 == 0) d0 = Internal::SetFileDates(sname, memoryReadLong(parm + _ioFlCrDat), memoryReadLong(parm + _ioFlMdDat), 0);
 		memoryWriteWord(d0, parm + _ioResult);
 		return d0;
 	}

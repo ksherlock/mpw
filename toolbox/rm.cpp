@@ -49,6 +49,9 @@
 
 #include "stackframe.h"
 #include "fs_spec.h"
+
+#include <native/native.h>
+
 using ToolBox::Log;
 
 using namespace OS::Internal;
@@ -495,7 +498,8 @@ namespace RM
 		else
 		{
 			if (creator || fileType)
-				OS::Internal::SetFinderInfo(path, fileType, creator);
+				native::set_finder_info(path, fileType, creator);
+				//OS::Internal::SetFinderInfo(path, fileType, creator);
 
 			close(fd);
 		}

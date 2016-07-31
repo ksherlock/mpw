@@ -51,171 +51,6 @@ namespace OS { namespace Internal {
 
 
 
-
-	/*
-
-     tech note PT515
-     ProDOS -> Macintosh conversion
-
-     ProDOS             Macintosh
-     Filetype    Auxtype    Creator    Filetype
-     $00          $0000     'pdos'     'BINA'
-     $B0 (SRC)    (any)     'pdos'     'TEXT'
-     $04 (TXT)    $0000     'pdos'     'TEXT'
-     $FF (SYS)    (any)     'pdos'     'PSYS'
-     $B3 (S16)    (any)     'pdos'     'PS16'
-     $uv          $wxyz     'pdos'     'p' $uv $wx $yz
-
-     Programmer's Reference for System 6.0:
-
-     ProDOS Macintosh
-     File Type Auxiliary Type Creator Type File Type
-     $00        $0000           “pdos”  “BINA”
-     $04 (TXT)  $0000           “pdos”  “TEXT”
-     $FF (SYS)  (any)           “pdos”  “PSYS”
-     $B3 (S16)  $DByz           “pdos”  “p” $B3 $DB $yz
-     $B3 (S16)  (any)           “pdos”  “PS16”
-     $D7        $0000           “pdos”  “MIDI”
-     $D8        $0000           “pdos”  “AIFF”
-     $D8        $0001           “pdos”  “AIFC”
-     $E0        $0005           “dCpy”  “dImg”
-     $FF (SYS)  (any)           “pdos”  “PSYS”
-     $uv        $wxyz           “pdos”  “p” $uv $wx $yz
-
-
-	  mpw standard:
-     $uv        (any)          "pdos"  printf("%02x  ",$uv)
-
-     */
-
-	uint16_t GetFinderInfo(const std::string &pathName, void *info, bool extended)
-	{
-		// todo -- move to separate function? used in multiple places.
-		uint8_t buffer[32];
-		std::memset(buffer, 0, sizeof(buffer));
-		int rv;
-
-		rv = ::getxattr(pathName.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-		if (rv < 0)
-		{
-			switch (errno)
-			{
-				case ENOENT:
-				case EACCES:
-					return macos_error_from_errno();
-			}
-
-			// check for prodos ftype/auxtype
-			uint8_t ftype;
-			uint16_t atype;
-
-			int rv1, rv2;
-
-			rv1 = ::getxattr(pathName.c_str(), "prodos.FileType", &ftype, 1, 0, 0);
-			rv2 = ::getxattr(pathName.c_str(), "prodos.AuxType", &atype, 2, 0, 0);
-
-			if (rv1 == 1 && rv2 == 2)
-			{
-				#if BYTE_ORDER == BIG_ENDIAN
-				ftype = (ftype >> 8) | (ftype << 8);
-				#endif
-
-				char tmp[8] = {
-					'p', ' ', ' ', ' ',
-					'p', 'd', 'o', 's'
-				};
-				tmp[1] = (char)ftype;
-				tmp[2] = (char)((atype >> 8) & 0xff);
-				tmp[3] = (char)(atype & 0xff);
-
-				switch (atype)
-				{
-					case 0x00:
-						std::memcpy(tmp, "BINA", 4);
-						break;
-
-					case 0x04:
-					case 0xb0:
-						std::memcpy(tmp, "TEXT", 4);
-						break;
-
-					case 0xff:
-						std::memcpy(tmp, "PSYS", 4);
-						break;
-
-					case 0xd7:
-						std::memcpy(tmp, "MIDI", 4);
-						break;
-
-					case 0xd8:
-						switch (atype)
-						{
-							case 0x0000:
-								std::memcpy(tmp, "AIFF", 4);
-								break;
-							case 0x0001:
-								std::memcpy(tmp, "AIFC", 4);
-								break;
-						}
-						break;
-
-					case 0xe0:
-						switch (atype)
-						{
-							case 0x0005:
-								std::memcpy(tmp, "dImgdCpy", 8);
-								break;
-
-						}
-
-					case 0xb3:
-						if (atype == 0)
-						{
-							std::memcpy(tmp, "PS16", 4); // verify dumpobj.
-							break;
-						}
-
-				}
-				std::memcpy(buffer, tmp, 8);
-			}
-		}
-
-		// override for source files.
-		// TODO -- only override if missing?
-		if (IsTextFile(pathName))
-		{
-			std::memcpy(buffer, "TEXTMPS ", 8);
-		}
-
-
-		// convert pdos types...
-		if (std::memcmp(buffer + 4, "pdos", 4) == 0)
-		{
-			// mpw expects 'xx  ' where
-			// xx are the ascii-encode hex value of the file type.
-			// the hfs fst uses 'p' ftype8 auxtype16
-
-			// todo -- but only if auxtype is $0000 ??
-			if (buffer[0] == 'p')
-			{
-				static char Hex[] = "0123456789ABCDEF";
-
-				uint8_t ftype = buffer[1];
-				buffer[0] = Hex[ftype >> 4];
-				buffer[1] = Hex[ftype & 0x0f];
-				buffer[2] = ' ';
-				buffer[3] = ' ';
-			}
-		}
-
-		if (extended)
-			std::memcpy(info, buffer, 32);
-		else
-			std::memcpy(info, buffer, 16);
-		return 0;
-	}
-
 	unsigned tox(unsigned x)
 	{
 		if (x >= '0' && x <= '9') return x - '0';
@@ -224,6 +59,7 @@ namespace OS { namespace Internal {
 		return 0;
 	}
 
+#if 0
 	uint16_t SetFinderInfo(const std::string &pathName, uint32_t fileType, uint32_t creator)
 	{
 		uint8_t buffer[32];
@@ -290,8 +126,9 @@ namespace OS { namespace Internal {
 
 		return 0;
 	}
+#endif
 
-
+#if 0
 	uint16_t SetFileDates(const std::string &pathname, uint32_t createDate, uint32_t modificationDate, uint32_t backupDate)
 	{
 		// utimes(2) sets the access and mod times.
@@ -354,7 +191,7 @@ namespace OS { namespace Internal {
 
 		return 0;
 	}
-
+#endif
 
 	int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset)
 	{

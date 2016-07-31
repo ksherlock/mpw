@@ -59,11 +59,6 @@
 
 #include <native/native.h>
 
-
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
-#define st_birthtime st_mtime
-#endif
-
 using ToolBox::Log;
 
 using MacOS::macos_error_from_errno;
@@ -487,44 +482,17 @@ namespace OS {
 
 		Log("     PBSetCatInfo(%s)\n", sname.c_str());
 
+		native::file_info fi;
 
-		// check if the file actually exists
-		{
-			struct stat st;
-			int ok;
-
-			ok = ::stat(sname.c_str(), &st);
-			if (ok < 0)
-			{
-				d0 = macos_error_from_errno();
-				memoryWriteWord(d0, parm + _ioResult);
-				return d0;
-			}
-
-			// just nop if it's a directory.
-			if (S_ISDIR(st.st_mode))
-			{
-				d0 = 0;
-
-				d0 = Internal::SetFileDates(sname,
-					memoryReadLong(parm + _ioDrCrDat),
-					memoryReadLong(parm + _ioDrMdDat),
-					memoryReadLong(parm + _ioDrBkDat));
-
-				memoryWriteWord(d0, parm + _ioResult);
-				return d0;
-			}
-		}
+		fi.create_date = memoryReadLong(parm + _ioFlCrDat);
+		fi.modify_date = memoryReadLong(parm + _ioFlMdDat);
+		fi.backup_date = memoryReadLong(parm + _ioFlBkDat);
 
 
-		// set the finder info.  could also call utimes or setattrlist, I suppose.
-		d0 = Internal::SetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false);
+		memcpy(fi.finder_info, memoryPointer(parm + _ioFlFndrInfo), 16);
+		memcpy(fi.finder_info+16, memoryPointer(parm + _ioFlXFndrInfo), 16);		
 
-		if (d0 == 0) d0 = Internal::SetFileDates(sname,
-			memoryReadLong(parm + _ioFlCrDat),
-			memoryReadLong(parm + _ioFlMdDat),
-			memoryReadLong(parm + _ioFlBkDat));
-
+		d0 = native::set_file_info(sname, fi);
 
 		memoryWriteWord(d0, parm + _ioResult);
 		return d0;

@@ -11,15 +11,17 @@ namespace OS {
 
 namespace Internal {
 
+#if 0
 	uint16_t GetFinderInfo(const std::string &pathname, void *info, bool extended);
 	uint16_t SetFinderInfo(const std::string &pathname, void *info, bool extended);
 
 	uint16_t SetFinderInfo(const std::string &pathName, uint32_t fileType, uint32_t creator);
 
-	uint16_t SetFileDates(const std::string &pathname, uint32_t createDate, uint32_t modificationDate, uint32_t backupDate);
 
 	uint16_t GetFileType(const std::string &pathname, uint16_t *fileType, uint32_t *auxType);
-
+	uint16_t SetFileDates(const std::string &pathname, uint32_t createDate, uint32_t modificationDate, uint32_t backupDate);
+#endif
+	
 	int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset);
 
 
