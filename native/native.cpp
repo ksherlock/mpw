@@ -27,6 +27,7 @@
 
 #include "native_internal.h"
 
+#include <cctype>
 
 using namespace MacOS;
 
@@ -63,18 +64,30 @@ namespace {
 		return s.substr(pos + 1);
 	}
 
+	unsigned tox(unsigned x)
+	{
+		if (x >= '0' && x <= '9') return x - '0';
+		if (x >= 'a' && x <= 'f') return x - 'a' + 10;
+		if (x >= 'A' && x <= 'F') return x - 'A' + 10;
+		return 0;
+	}
+
 }
 
 namespace native {
 
 
-	time_t unix_to_mac(time_t t) {
+	uint32_t unix_to_mac(time_t t) {
 		if (!t) return 0;
 		return t + epoch_adjust;
-
 	}
 
-	void fixup_prodos_ftype(uint8_t *buffer) {
+	time_t mac_to_unix(uint32_t t) {
+		if (!t) return 0;
+		return t - epoch_adjust;
+	}
+
+	void prodos_ftype_out(uint8_t *buffer) {
 		if (memcmp(buffer + 4, "pdos", 4) == 0) {
 			// mpw expects 'xx  ' where
 			// xx are the ascii-encode hex value of the file type.
@@ -94,6 +107,22 @@ namespace native {
 		}
 	}
 
+	void prodos_ftype_in(uint8_t *buffer) {
+		if (::memcmp(buffer + 2, "  pdos", 6) == 0)
+		{
+			unsigned a = buffer[0];
+			unsigned b = buffer[1];
+
+			if (isxdigit(a) && isxdigit(b))
+			{
+				buffer[0] = 'p';
+				buffer[1] = (tox(a) << 4) | tox(b);
+				buffer[2] = 0;
+				buffer[3] = 0;
+			}
+		}
+	}
+
 
 	macos_error get_finder_info(const std::string &path_name, uint32_t &ftype, uint32_t &ctype) {
 
@@ -108,6 +137,24 @@ namespace native {
 
 	}
 
+
+	macos_error set_finder_info(const std::string &path_name, uint32_t ftype, uint32_t ctype) {
+
+		uint8_t buffer[32];
+		std::memset(buffer, 0, sizeof(buffer));
+
+		buffer[0] = ftype >> 24;
+		buffer[1] = ftype >> 16;
+		buffer[2] = ftype >> 8;
+		buffer[3] = ftype >> 0;
+
+		buffer[4] = ctype >> 24;
+		buffer[5] = ctype >> 16;
+		buffer[6] = ctype >> 8;
+		buffer[7] = ctype >> 0;
+
+		return set_finder_info(path_name, buffer, true);
+	}
 
 
 	bool is_text_file_internal(const std::string &path_name) {

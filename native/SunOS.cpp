@@ -76,7 +76,7 @@ namespace native {
 			ssize_t x = read(fd, buffer, 32);
 			close(fd);
 			if (x == 32 || x == 16){
-				fixup_prodos_ftype(buffer);
+				prodos_ftype_out(buffer);
 				memcpy(info, buffer, extended ? 32 : 16);
 				return 0;
 			}
@@ -105,7 +105,7 @@ namespace native {
 
 		if (S_ISDIR(st.st_mode)) {
 			fi.type = file_info::directory;
-
+			fi.attributes = 1 << 4;
 
 			int links = st.st_nlink - 2;
 			if (links < 0) links = 0;

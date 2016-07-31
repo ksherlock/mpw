@@ -28,6 +28,7 @@
 #include <sys/attr.h>
 #include <sys/xattr.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 //using MacOS::macos_error_from_errno;
 //using MacOS::macos_error;
@@ -113,7 +114,7 @@ namespace native {
 
 		rv = getxattr(path_name.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
 		if (rv == 16 || rv == 32) {
-			fixup_prodos_ftype(buffer);
+			prodos_ftype_out(buffer);
 			memcpy(info, buffer, extended ? 32 : 16);
 			return noErr;
 		}
@@ -196,7 +197,7 @@ namespace native {
 					}
 
 			}
-			fixup_prodos_ftype(buffer);
+			prodos_ftype_out(buffer);
 			memcpy(info, buffer, extended ? 32 : 16);
 			return noErr;
 		}
@@ -211,6 +212,28 @@ namespace native {
 
 	}
 
+	macos_error set_finder_info(const std::string &path_name, const void *info, bool extended) {
+
+		uint8_t buffer[32];
+		ssize_t rv;
+
+		std::memset(buffer, 0, sizeof(buffer));
+
+		if (extended) {
+			std::memcpy(buffer, info, 32);
+		} else {
+			get_finder_info(path_name, buffer, true);
+			std::memcpy(buffer, info, 16);
+		}
+
+		prodos_ftype_in(buffer);
+		rv = setxattr(path_name.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
+		if ( rv < 0) return macos_error_from_errno();
+
+		return noErr;
+	}
+
+
 	macos_error get_file_info(const std::string &path_name, file_info &fi)
 	{
 		struct stat st;
@@ -222,9 +245,11 @@ namespace native {
 		fi.modify_date = unix_to_mac(st.st_mtime);
 		fi.backup_date = 0;
 
+		fi.attributes = 0;
+
 		if (S_ISDIR(st.st_mode)) {
 			fi.type = file_info::directory;
-
+			fi.attributes = 1 << 4;
 
 			int links = st.st_nlink - 2;
 			if (links < 0) links = 0;
@@ -253,6 +278,79 @@ namespace native {
 		return noErr;
 	}
 
+	macos_error set_file_info(const std::string &path_name, const file_info &fi) {
+
+		struct stat st;
+
+		if (stat(path_name.c_str(), &st) < 0) return macos_error_from_errno();
+
+		if (S_ISREG(st.st_mode)) {
+			auto rv = set_finder_info(path_name, fi.finder_info);
+			if (rv) return rv;
+		}
+
+		time_t create_date = fi.create_date ? mac_to_unix(fi.create_date) : 0;
+		time_t modify_date = fi.modify_date ? mac_to_unix(fi.modify_date) : 0;
+		time_t backup_date = fi.backup_date ? mac_to_unix(fi.backup_date) : 0;
+
+		// todo -- value of 0 == set to current date/time?
+
+		if (create_date == st.st_birthtime) create_date = 0;
+		if (modify_date == st.st_mtime) modify_date = 0;
+
+		// try setattr list.
+		int rv;
+		struct attrlist list;
+		unsigned i = 0;
+		timespec dates[3];
+
+		memset(&list, 0, sizeof(list));
+		memset(dates, 0, sizeof(dates));
+
+		list.bitmapcount = ATTR_BIT_MAP_COUNT;
+		list.commonattr  = 0;
+
+		if (create_date)
+		{
+			dates[i++].tv_sec = create_date;
+			list.commonattr |= ATTR_CMN_CRTIME;
+		}
+
+		if (fi.modify_date)
+		{
+			dates[i++].tv_sec = modify_date;
+			list.commonattr |= ATTR_CMN_MODTIME;
+		}
+
+		if (backup_date)
+		{
+			dates[i++].tv_sec = backup_date;
+			list.commonattr |= ATTR_CMN_BKUPTIME;
+		}
+
+		if (!i) return noErr;
+
+		rv = setattrlist(path_name.c_str(), &list, dates, i * sizeof(timespec), 0);
+
+
+		if (rv < 0 && errno == ENOTSUP)
+		{
+			// try utimes.
+
+			struct timeval tv[2];
+			memset(tv, 0, sizeof(tv));
+
+			rv = 0;
+			if (modify_date) {
+				tv[1].tv_sec = modify_date;
+				rv = utimes(path_name.c_str(), tv);
+			}
+
+		}
+
+		if (rv < 0) return macos_error_from_errno();
+		return noErr;
+	}
 
 
 }

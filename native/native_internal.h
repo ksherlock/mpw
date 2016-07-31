@@ -12,7 +12,8 @@ namespace native {
 	bool is_text_file_internal(const std::string &path_name);
 	bool is_binary_file_internal(const std::string &path_name);
 
-	void fixup_prodos_ftype(uint8_t *buffer);
+	void prodos_ftype_in(uint8_t *buffer);
+	void prodos_ftype_out(uint8_t *buffer);
 }
 
 #endif

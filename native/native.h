@@ -15,6 +15,7 @@ namespace native {
 
 		enum { none, file, directory } type = none;
 
+		uint16_t attributes = 0;
 		uint32_t create_date = 0;
 		uint32_t modify_date = 0;
 		uint32_t backup_date = 0;
@@ -31,11 +32,16 @@ namespace native {
 	};
 
 	macos_error get_file_info(const std::string &path_name, file_info &fi);
+	macos_error set_file_info(const std::string &path_name, const file_info &fi);
+
 	macos_error get_finder_info(const std::string &path_name, void *buffer, bool extended = true);
 	macos_error get_finder_info(const std::string &path_name, uint32_t &ftype, uint32_t &ctype);
 
+	macos_error set_finder_info(const std::string &path_name, const void *buffer, bool extended = true);
+	macos_error set_finder_info(const std::string &path_name, uint32_t ftype, uint32_t ctype);
 
-	time_t unix_to_mac(time_t t);
+	uint32_t unix_to_mac(time_t t);
+	time_t mac_to_unix(uint32_t t);
 
 
 	bool is_text_file(const std::string &path_name);
