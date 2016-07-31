@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2016, Kelvin W Sherlock
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 #include "native_internal.h"
 #include <sys/attr.h>
@@ -9,7 +34,7 @@
 using namespace MacOS;
 
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
-#define st_birthtime st_mtime
+#define st_birthtime st_ctime
 #endif
 
 namespace {
@@ -24,6 +49,7 @@ namespace {
 		return rv;
 	}
 
+/*
 	uint32_t rforksize(int fd)
 	{
 		ssize_t rv;
@@ -33,26 +59,8 @@ namespace {
 		return rv;
 
 	}
+*/
 
-	void fixup_prodos(uint8_t *buffer) {
-		if (memcmp(buffer + 4, "pdos", 4) == 0) {
-			// mpw expects 'xx  ' where
-			// xx are the ascii-encode hex value of the file type.
-			// the hfs fst uses 'p' ftype8 auxtype16
-
-			// todo -- but only if auxtype is $0000 ??
-			if (buffer[0] == 'p' && buffer[2] == 0 && buffer[3] == 0)
-			{
-				static char Hex[] = "0123456789ABCDEF";
-
-				uint8_t ftype = buffer[1];
-				buffer[0] = Hex[ftype >> 4];
-				buffer[1] = Hex[ftype & 0x0f];
-				buffer[2] = ' ';
-				buffer[3] = ' ';
-			}
-		}
-	}
 
 }
 
@@ -105,7 +113,7 @@ namespace native {
 
 		rv = getxattr(path_name.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
 		if (rv == 16 || rv == 32) {
-			fixup_prodos(buffer);
+			fixup_prodos_ftype(buffer);
 			memcpy(info, buffer, extended ? 32 : 16);
 			return noErr;
 		}
@@ -188,7 +196,7 @@ namespace native {
 					}
 
 			}
-			fixup_prodos(buffer);
+			fixup_prodos_ftype(buffer);
 			memcpy(info, buffer, extended ? 32 : 16);
 			return noErr;
 		}
@@ -196,7 +204,6 @@ namespace native {
 		/* if it's a text file, call it a text file */
 		if (is_text_file_internal(path_name)) {
 			memcpy(buffer, "TEXTMPS ", 8);
-			memcpy(info, buffer, extended ? 32 : 16);
 		}
 
 		memcpy(info, buffer, extended ? 32 : 16);
@@ -213,7 +220,7 @@ namespace native {
 
 		fi.create_date = unix_to_mac(st.st_birthtime);
 		fi.modify_date = unix_to_mac(st.st_mtime);
-		fi.backup_date = unix_to_mac(st.st_mtime);
+		fi.backup_date = 0;
 
 		if (S_ISDIR(st.st_mode)) {
 			fi.type = file_info::directory;
