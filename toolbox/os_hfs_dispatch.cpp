@@ -56,6 +56,9 @@
 #include "stackframe.h"
 #include "fs_spec.h"
 
+#include <native/native.h>
+
+
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
 #define st_birthtime st_mtime
 #endif
@@ -170,6 +173,64 @@ namespace OS {
 			_ioDrParID = 100,
 		};
 
+
+		using namespace native;
+
+		file_info fi;
+		auto rv = get_file_info(sname, fi);
+		if (rv) return rv;
+
+
+		memoryWriteByte(0, parm + _ioACUser);
+
+		if (fi.type == file_info::directory) {
+
+			// bit 4 - is a directory.
+			memoryWriteByte(1 << 4, parm + _ioFlAttrib);
+
+			std::memset(memoryPointer(parm + _ioDrUsrWds), 0, 16); // DInfo
+
+			uint32_t dirID = FSSpecManager::IDForPath(sname);
+
+			memoryWriteLong(dirID, parm + _ioDrDirID);
+
+			memoryWriteWord(fi.entry_count, parm + _ioDrNmFls); // ioDrNmFls - # of files in dir
+
+			memoryWriteLong(fi.create_date, parm + _ioDrCrDat); // create
+			memoryWriteLong(fi.modify_date, parm + _ioDrMdDat); // modify
+			memoryWriteLong(fi.backup_date, parm + _ioDrBkDat); // backup		
+
+			std::memset(memoryPointer(parm + _ioDrFndrInfo), 0, 16); // DXInfo
+			memoryWriteLong(0, parm + _ioDrParID);
+
+		} else {
+
+			memoryWriteByte(0, parm + _ioFlAttrib);
+
+
+			std::memcpy(memoryPointer(parm + _ioFlFndrInfo), fi.finder_info , 16); // finder info
+			std::memcpy(memoryPointer(parm + _ioFlXFndrInfo), fi.finder_info + 16, 16); // FXInfo
+
+			memoryWriteLong(0, parm + _ioDirID);
+			memoryWriteWord(0, parm + _ioFlStBlk);
+			memoryWriteWord(0, parm + _ioFlRStBlk);
+
+			memoryWriteLong(fi.create_date, parm + _ioFlCrDat); // create
+			memoryWriteLong(fi.modify_date, parm + _ioFlMdDat); // modify
+			memoryWriteLong(fi.backup_date, parm + _ioFlBkDat); // backup
+
+			memoryWriteLong(fi.data_logical_size, parm + _ioFlLgLen);
+			memoryWriteLong(fi.data_physical_size, parm + _ioFlPyLen);
+			memoryWriteLong(fi.resource_logical_size, parm + _ioFlRLgLen);
+			memoryWriteLong(fi.resource_physical_size, parm + _ioFlRPyLen);
+
+			memoryWriteWord(0, parm + _ioFlParID);
+			memoryWriteWord(0, parm + _ioFlClpSiz);
+
+		}
+		return 0;
+
+#if 0
 		struct stat st;
 
 		if (::stat(sname.c_str(), &st) < 0)
@@ -207,14 +268,19 @@ namespace OS {
 		}
 		else
 		{
+			// st_blksize is the optimal block read size.  st_blocks is the number of 512-byte blocks.  I think.
+			// st_blocks seems to include both data and resource blocks.  grrr....
+
 			memoryWriteByte(0, parm + _ioFlAttrib);
 
 			memoryWriteByte(0, parm + _ioACUser);
 			Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false); // finder info
 			memoryWriteLong(0, parm + _ioDirID);
 			memoryWriteWord(0, parm + _ioFlStBlk);
+			memoryWriteWord(0, parm + _ioFlRStBlk);
+
 			memoryWriteLong(st.st_size, parm + _ioFlLgLen);
-			memoryWriteLong(st.st_size, parm + _ioFlPyLen);
+			memoryWriteLong(st.st_blocks * 512, parm + _ioFlPyLen);
 
 			// resource info... below
 
@@ -227,21 +293,54 @@ namespace OS {
 			memoryWriteWord(0, parm + _ioFlParID);
 			memoryWriteWord(0, parm + _ioFlClpSiz);
 
-			sname.append(_PATH_RSRCFORKSPEC);
-			if (::stat(sname.c_str(), &st) >= 0)
-			{
-				memoryWriteWord(0, parm + _ioFlRStBlk);
-				memoryWriteLong(st.st_size, parm + _ioFlRLgLen);
-				memoryWriteLong(st.st_size, parm + _ioFlRPyLen);
+			struct {
+				uint32_t length;
+				off_t data_logical_size;
+				off_t data_physical_size;
+				off_t resource_logical_size;
+				off_t resource_physical_size;
+			} __attribute__((aligned(4), packed)) buffer;
+
+			struct attrlist at;
+			memset(&buffer, 0, sizeof(buffer));
+			memset(&at, 0, sizeof(at));
+
+			at.bitmapcount = ATTR_BIT_MAP_COUNT;
+			at.commonattr = 0 ;
+			at.fileattr = ATTR_FILE_DATALENGTH | ATTR_FILE_DATAALLOCSIZE | ATTR_FILE_RSRCLENGTH | ATTR_FILE_RSRCALLOCSIZE;
+
+			int ok = getattrlist(sname.c_str(), &at, &buffer, sizeof(buffer), 0);
+			if (ok == 0 && buffer.length == sizeof(buffer)) {
+
+
+				memoryWriteLong(buffer.data_logical_size, parm + _ioFlLgLen);
+				memoryWriteLong(buffer.data_physical_size, parm + _ioFlPyLen);
+
+				memoryWriteLong(buffer.resource_logical_size, parm + _ioFlRLgLen);
+				memoryWriteLong(buffer.resource_physical_size, parm + _ioFlRPyLen);
+
+			} else {
+
+				sname.append(_PATH_RSRCFORKSPEC);
+				if (::stat(sname.c_str(), &st) >= 0)
+				{
+					memoryWriteWord(0, parm + _ioFlRStBlk);
+					memoryWriteLong(st.st_size, parm + _ioFlRLgLen);
+					memoryWriteLong(0/* st.st_blocks * 512*/, parm + _ioFlRPyLen);
+				}
+				else
+				{
+					memoryWriteLong(0, parm + _ioFlRLgLen);
+					memoryWriteLong(0, parm + _ioFlRPyLen);
+				}
+
 			}
-			else
-			{
-				memoryWriteWord(0, parm + _ioFlRStBlk);
-				memoryWriteLong(0, parm + _ioFlRLgLen);
-				memoryWriteLong(0, parm + _ioFlRPyLen);
-			}
+
+
+
 		}
 		return 0;
+		#endif
 	}
 
 	uint16_t PBGetCatInfo(uint32_t parm)
