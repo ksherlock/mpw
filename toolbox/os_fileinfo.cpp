@@ -54,41 +54,91 @@
 #include "stackframe.h"
 #include "fs_spec.h"
 
+#include <native/native.h>
 
 using ToolBox::Log;
 
 using MacOS::macos_error_from_errno;
 
+
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
 #define st_birthtime st_mtime
 #endif
 
-namespace {
-
-
-	uint32_t rforksize(const std::string &path)
-	{
-		ssize_t rv;
-
-		rv = getxattr(path.c_str(), XATTR_RESOURCEFORK_NAME, nullptr, 0, 0, 0);
-		if (rv < 0) return 0;
-		return rv;
-	}
-
-	uint32_t rforksize(int fd)
-	{
-		ssize_t rv;
-
-		rv = fgetxattr(fd, XATTR_RESOURCEFORK_NAME, nullptr, 0, 0, 0);
-		if (rv < 0) return 0;
-		return rv;
-
-	}
-
-}
 
 namespace OS {
 
+
+	static uint16_t FileInfoByName(const std::string &sname, uint32_t parm) {
+
+		enum { // FileParam
+			_qLink = 0,
+			_qType = 4,
+			_ioTrap = 6,
+			_ioCmdAddr = 8,
+			_ioCompletion = 12,
+			_ioResult = 16,
+			_ioNamePtr = 18,
+			_ioVRefNum = 22,
+			_ioFRefNum = 24,
+			_ioFVersNum = 26,
+			_filler1 = 27,
+			_ioFDirIndex = 28,
+			_ioFlAttrib = 30,
+			_ioFlVersNum = 31,
+			_ioFlFndrInfo = 32,
+			_ioFlNum = 48, // ioDirID in other
+			_ioFlStBlk = 52,
+			_ioFlLgLen = 54,
+			_ioFlPyLen = 58,
+			_ioFlRStBlk = 62,
+			_ioFlRLgLen = 64,
+			_ioFlRPyLen = 68,
+			_ioFlCrDat = 72,
+			_ioFlMdDat = 76,
+
+			_ioDirID = 48,
+		};
+
+		using namespace native;
+
+		file_info fi;
+		auto err = native::get_file_info(sname, fi);
+		if (err) return err;
+
+
+		// if this is not a file, error out?
+
+		std::memcpy(memoryPointer(parm + _ioFlFndrInfo), fi.finder_info, 16);
+
+
+		// file reference number
+		memoryWriteWord(0, parm + _ioFRefNum);
+		// file attributes
+		memoryWriteByte(0, parm + _ioFlAttrib);
+		// version (unused)
+		memoryWriteByte(0, parm + _ioFlVersNum);
+
+		// file id
+		memoryWriteLong(0, parm + _ioFlNum);
+
+
+		// file size
+		memoryWriteWord(0, parm + _ioFlStBlk);
+		memoryWriteLong(fi.data_logical_size, parm + _ioFlLgLen);
+		memoryWriteLong(fi.data_physical_size, parm + _ioFlPyLen);
+
+		// create date.
+		memoryWriteLong(fi.create_date, parm + _ioFlCrDat);
+		memoryWriteLong(fi.modify_date, parm + _ioFlMdDat);
+
+		// res fork...
+		memoryWriteWord(0, parm + _ioFlRStBlk);
+		memoryWriteLong(fi.resource_logical_size, parm + _ioFlRLgLen);
+		memoryWriteLong(fi.resource_physical_size, parm + _ioFlRPyLen);
+
+		return 0;
+	}
 
 	uint16_t GetFileInfo(uint16_t trap)
 	{
@@ -159,52 +209,10 @@ namespace OS {
 
 			Log("     GetFileInfo(%s)\n", sname.c_str());
 
+			d0 = FileInfoByName(sname, parm);
+			memoryWriteWord(d0, parm + _ioResult);
+			return d0;
 
-			struct stat st;
-
-			if (::stat(sname.c_str(), &st) < 0)
-			{
-				d0 = macos_error_from_errno();
-
-				memoryWriteWord(d0, parm + _ioResult);
-				return d0;
-			}
-
-
-			Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false);
-
-
-			// file reference number
-			memoryWriteWord(0, parm + _ioFRefNum);
-			// file attributes
-			memoryWriteByte(0, parm + _ioFlAttrib);
-			// version (unused)
-			memoryWriteByte(0, parm + _ioFlVersNum);
-
-			// file id
-			memoryWriteLong(0, parm + _ioFlNum);
-
-
-			// file size
-			memoryWriteWord(0, parm + _ioFlStBlk);
-			memoryWriteLong(st.st_size, parm + _ioFlLgLen);
-			memoryWriteLong(st.st_size, parm + _ioFlPyLen);
-
-			// create date.
-			memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioFlCrDat);
-			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlMdDat);
-
-			// res fork...
-
-			uint32_t rf = rforksize(sname);
-
-			memoryWriteWord(0, parm + _ioFlRStBlk);
-			memoryWriteLong(rf, parm + _ioFlRLgLen);
-			memoryWriteLong(rf, parm + _ioFlRPyLen);
-
-
-			// no error.
-			memoryWriteWord(0, parm + _ioResult);
 		}
 		else
 		{

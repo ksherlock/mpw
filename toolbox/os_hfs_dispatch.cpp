@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <sys/param.h>
 
 #include <strings.h>
 
@@ -230,117 +231,6 @@ namespace OS {
 		}
 		return 0;
 
-#if 0
-		struct stat st;
-
-		if (::stat(sname.c_str(), &st) < 0)
-		{
-			return macos_error_from_errno();
-		}
-
-		if (S_ISDIR(st.st_mode))
-		{
-			// bit 4 - is a directory.
-			memoryWriteByte(1 << 4, parm + _ioFlAttrib);
-			memoryWriteByte(0, parm + _ioACUser);
-
-			std::memset(memoryPointer(parm + _ioDrUsrWds), 0, 16); // DInfo
-
-			// cw68k expects the directory ID to be set.
-
-			uint32_t dirID = FSSpecManager::IDForPath(sname);
-
-			memoryWriteLong(dirID, parm + _ioDrDirID);
-
-			// the links count should be ~= number of dirents ( +2 for . and ..)
-			int links = st.st_nlink - 2;
-			if (links < 0) links = 0;
-			if (links > 65535) links = 65535;
-
-			memoryWriteWord(links, parm + _ioDrNmFls); // ioDrNmFls - # of files in dir
-
-			memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioDrCrDat); // create
-			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrMdDat); // modify
-			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioDrBkDat); // backup
-
-			std::memset(memoryPointer(parm + _ioDrFndrInfo), 0, 16); // DXInfo
-			memoryWriteLong(0, parm + _ioDrParID);
-		}
-		else
-		{
-			// st_blksize is the optimal block read size.  st_blocks is the number of 512-byte blocks.  I think.
-			// st_blocks seems to include both data and resource blocks.  grrr....
-
-			memoryWriteByte(0, parm + _ioFlAttrib);
-
-			memoryWriteByte(0, parm + _ioACUser);
-			Internal::GetFinderInfo(sname, memoryPointer(parm + _ioFlFndrInfo), false); // finder info
-			memoryWriteLong(0, parm + _ioDirID);
-			memoryWriteWord(0, parm + _ioFlStBlk);
-			memoryWriteWord(0, parm + _ioFlRStBlk);
-
-			memoryWriteLong(st.st_size, parm + _ioFlLgLen);
-			memoryWriteLong(st.st_blocks * 512, parm + _ioFlPyLen);
-
-			// resource info... below
-
-			memoryWriteLong(UnixToMac(st.st_birthtime), parm + _ioFlCrDat); // create
-			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlMdDat); // modify
-			memoryWriteLong(UnixToMac(st.st_mtime), parm + _ioFlBkDat); // backup
-
-			std::memset(memoryPointer(parm + _ioFlXFndrInfo), 0, 16); // FXInfo
-
-			memoryWriteWord(0, parm + _ioFlParID);
-			memoryWriteWord(0, parm + _ioFlClpSiz);
-
-			struct {
-				uint32_t length;
-				off_t data_logical_size;
-				off_t data_physical_size;
-				off_t resource_logical_size;
-				off_t resource_physical_size;
-			} __attribute__((aligned(4), packed)) buffer;
-
-			struct attrlist at;
-			memset(&buffer, 0, sizeof(buffer));
-			memset(&at, 0, sizeof(at));
-
-			at.bitmapcount = ATTR_BIT_MAP_COUNT;
-			at.commonattr = 0 ;
-			at.fileattr = ATTR_FILE_DATALENGTH | ATTR_FILE_DATAALLOCSIZE | ATTR_FILE_RSRCLENGTH | ATTR_FILE_RSRCALLOCSIZE;
-
-			int ok = getattrlist(sname.c_str(), &at, &buffer, sizeof(buffer), 0);
-			if (ok == 0 && buffer.length == sizeof(buffer)) {
-
-
-				memoryWriteLong(buffer.data_logical_size, parm + _ioFlLgLen);
-				memoryWriteLong(buffer.data_physical_size, parm + _ioFlPyLen);
-
-				memoryWriteLong(buffer.resource_logical_size, parm + _ioFlRLgLen);
-				memoryWriteLong(buffer.resource_physical_size, parm + _ioFlRPyLen);
-
-			} else {
-
-				sname.append(_PATH_RSRCFORKSPEC);
-				if (::stat(sname.c_str(), &st) >= 0)
-				{
-					memoryWriteWord(0, parm + _ioFlRStBlk);
-					memoryWriteLong(st.st_size, parm + _ioFlRLgLen);
-					memoryWriteLong(0/* st.st_blocks * 512*/, parm + _ioFlRPyLen);
-				}
-				else
-				{
-					memoryWriteLong(0, parm + _ioFlRLgLen);
-					memoryWriteLong(0, parm + _ioFlRPyLen);
-				}
-
-			}
-
-
-
-		}
-		return 0;
-		#endif
 	}
 
 	uint16_t PBGetCatInfo(uint32_t parm)
