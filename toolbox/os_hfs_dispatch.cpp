@@ -400,11 +400,18 @@ namespace OS {
 		//uint16_t ioVRefNum = memoryReadWord(parm + _ioVRefNum);
 		//uint8_t ioFVersNum = memoryReadByte(parm + _ioFVersNum);
 		int16_t ioFDirIndex = memoryReadWord(parm + _ioFDirIndex);
+		uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
 
-		if (ioFDirIndex <= 0)
+		if (ioFDirIndex == 0)
 		{
-			// based name
-			std::string sname;
+			/*
+			 * If this field contains 0, PBGetCatInfo returns
+			 * information about the file or directory whose name is
+			 * specified in the ioNamePtr field and that is located in the
+			 * directory specified by the ioVRefNum field. (Once again, if
+			 * ioVRefNum contains a volume reference number, the specified
+			 * directory is that volume's root directory.)
+			 */
 
 			if (!ioNamePtr)
 			{
@@ -412,23 +419,59 @@ namespace OS {
 				return MacOS::bdNamErr;
 			}
 
-			sname = ToolBox::ReadPString(ioNamePtr, true);
-			{
-				uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
-				sname = FSSpecManager::ExpandPath(sname, ioDirID);
-			}
+			std::string sname = ToolBox::ReadPString(ioNamePtr, true);
+			sname = FSSpecManager::ExpandPath(sname, ioDirID);
 
 			Log("     PBGetCatInfo(%s)\n", sname.c_str());
 			d0 = CatInfoByName(sname, parm);
 
-			memoryWriteWord(d0, parm + _ioResult);
-			return d0;
+
+		}
+
+		else if (ioFDirIndex < 0) {
+
+			/*
+			 * If this field contains a negative number, PBGetCatInfo ignores the
+			 * ioNamePtr field and returns information about the directory specified
+			 * in the ioDirID field. If both ioDirID and ioVRefNum are set to 0,
+			 * PBGetCatInfo returns information about the current default directory.
+			 */
+
+
+			Log("     PBGetCatInfo(%04x)\n", ioDirID);
+
+			std::string sname = FSSpecManager::PathForID(ioDirID);
+			if (sname.empty()) {
+
+				char buffer[MAXPATHLEN];
+				char *cp;
+
+				cp = getcwd(buffer, sizeof(buffer));
+				sname = cp ? cp : ".";				
+			}
+			d0 = CatInfoByName(sname, parm);
+
+			if (ioNamePtr) {
+				std::string basename;
+				auto pos = sname.rfind('/');
+				if (pos == sname.npos) basename = std::move(sname);
+				else basename = sname.substr(pos+1);
+				ToolBox::WritePString(ioNamePtr, basename);
+			}
+
 		}
 
 		else
 		{
-			// dirent ish.  ioFDirIndex is the 1-based entry.
-			uint32_t ioDirID = memoryReadLong(parm + _ioDirID);
+
+			/*
+			 * If this field contains a positive number, PBGetCatInfo returns
+			 * information about the file or directory having that directory index in
+			 * the directory specified by the ioVRefNum field. (If ioVRefNum contains a
+			 * volume reference number, the specified directory is that volume's root
+			 * directory.)
+			 */
+
 
 			Log("     PBGetCatInfo(%04x, %04x)\n", ioDirID, ioFDirIndex);
 
@@ -474,10 +517,10 @@ namespace OS {
 
 	
 			d0 = CatInfoByName(sname, parm);
-
-			memoryWriteWord(d0, parm + _ioResult);
-			return d0;
 		}
+
+		memoryWriteWord(d0, parm + _ioResult);
+		return d0;
 
 		return 0;
 	}
