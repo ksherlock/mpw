@@ -49,6 +49,9 @@ namespace native {
 
 
 
+	int open_fork(const std::string &path_name, int fork, int oflag, int perm = 0666);
+	int open_resource_fork(const std::string &path_name, int oflag);
+
 }
 
 #endif

@@ -42,6 +42,8 @@
 #include <sys/attr.h>
 #include <sys/paths.h>
 
+#include <native/native.h>
+
 #include <machine/endian.h>
 
 using ToolBox::Log;
@@ -50,148 +52,6 @@ using MacOS::macos_error_from_errno;
 namespace OS { namespace Internal {
 
 
-
-	unsigned tox(unsigned x)
-	{
-		if (x >= '0' && x <= '9') return x - '0';
-		if (x >= 'a' && x <= 'f') return x - 'a' + 10;
-		if (x >= 'A' && x <= 'F') return x - 'A' + 10;
-		return 0;
-	}
-
-#if 0
-	uint16_t SetFinderInfo(const std::string &pathName, uint32_t fileType, uint32_t creator)
-	{
-		uint8_t buffer[32];
-		std::memset(buffer, 0, sizeof(buffer));
-
-		buffer[0] = fileType >> 24;
-		buffer[1] = fileType >> 16;
-		buffer[2] = fileType >> 8;
-		buffer[3] = fileType >> 0;
-
-		buffer[4] = creator >> 24;
-		buffer[5] = creator >> 16;
-		buffer[6] = creator >> 8;
-		buffer[7] = creator >> 0;
-
-		return SetFinderInfo(pathName, buffer, true);
-	}
-
-	uint16_t SetFinderInfo(const std::string &pathName, void *info, bool extended)
-	{
-		uint8_t buffer[32];
-		std::memset(buffer, 0, sizeof(buffer));
-		int rv;
-
-		if (extended)
-		{
-			std::memmove(buffer, info, 32);
-
-		}
-		else
-		{
-			rv = ::getxattr(pathName.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-			if (rv < 0)
-			{
-				switch (errno)
-				{
-					case ENOENT:
-					case EACCES:
-						return macos_error_from_errno();
-				}
-			}
-			std::memmove(buffer, info, 16);
-
-		}
-
-		// convert pdos types.
-		if (::memcmp(buffer + 2, "  pdos", 6) == 0)
-		{
-			unsigned a = buffer[0];
-			unsigned b = buffer[1];
-
-			if (isxdigit(a) && isxdigit(b))
-			{
-				buffer[0] = 'p';
-				buffer[1] = (tox(a) << 4) | tox(b);
-				buffer[2] = 0;
-				buffer[3] = 0;
-			}
-		}
-
-		rv = ::setxattr(pathName.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-		if (rv < 0) return macos_error_from_errno();
-
-		return 0;
-	}
-#endif
-
-#if 0
-	uint16_t SetFileDates(const std::string &pathname, uint32_t createDate, uint32_t modificationDate, uint32_t backupDate)
-	{
-		// utimes(2) sets the access and mod times.
-		// setattrlist sets the create and mod times (among other things)
-
-		// this is kind of unfortunate in that a roundtrip will strip any nanoseconds, etc from the date/time.
-
-		int rv;
-		struct attrlist list;
-		unsigned i = 0;
-
-		timespec dates[3];
-
-
-		memset(&list, 0, sizeof(list));
-		memset(dates, 0, sizeof(dates));
-
-		list.bitmapcount = ATTR_BIT_MAP_COUNT;
-		list.commonattr  = 0;
-
-		if (createDate)
-		{
-			dates[i++].tv_sec = MacToUnix(createDate);
-			list.commonattr |= ATTR_CMN_CRTIME;
-		}
-
-		if (modificationDate)
-		{
-			dates[i++].tv_sec = MacToUnix(modificationDate);
-			list.commonattr |= ATTR_CMN_MODTIME;
-		}
-
-		if (backupDate)
-		{
-			dates[i++].tv_sec = MacToUnix(backupDate);
-			list.commonattr |= ATTR_CMN_BKUPTIME;
-		}
-
-
-
-		if (!i) return 0;
-
-		rv = setattrlist(pathname.c_str(), &list, dates, i * sizeof(timespec), 0);
-
-		if (rv < 0 && errno == ENOTSUP)
-		{
-			// try utimes.
-
-			struct timeval tv[2];
-			memset(tv, 0, sizeof(tv));
-
-			if (modificationDate) {
-				tv[1].tv_sec = MacToUnix(modificationDate);
-				rv = utimes(pathname.c_str(), tv);
-			}
-
-		}
-
-		if (rv < 0) return macos_error_from_errno();
-
-		return 0;
-	}
-#endif
 
 	int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset)
 	{
@@ -385,21 +245,22 @@ namespace OS { namespace Internal {
 		}
 
 		std::string xname = filename;
+
+/*
 		if (fork)
 			xname.append(_PATH_RSRCFORKSPEC);
+*/
 
-		Log("     open(%s, %04x)\n", xname.c_str(), access);
+		Log("     open(%s, %04x, %04x)\n", xname.c_str(), access, fork);
 
-		fd = ::open(xname.c_str(), access);
+
+		fd = native::open_fork(xname, fork, access);
+
 		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
-		{
-			fd = ::open(xname.c_str(), O_RDONLY);
-		}
+			fd = native::open_fork(xname, fork, O_RDONLY);
 
 		if (fd < 0)
-		{
 			return macos_error_from_errno();
-		}
 
 		// allocate the fd entry
 

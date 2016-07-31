@@ -28,6 +28,8 @@
 #include "native_internal.h"
 
 #include <cctype>
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace MacOS;
 
@@ -321,6 +323,22 @@ namespace native {
 
 		return is_text_file_internal(path_name);
 
+	}
+
+	int open_fork(const std::string &path_name, int fork, int oflag, int perm) {
+
+		if (!fork) return ::open(path_name.c_str(), oflag, perm);
+
+		// if O_CREAT or E_EXCL, may need to create the file
+
+		int tmp = oflag & (O_CREAT | O_EXCL);
+		if (tmp) {
+			int fd = ::open(path_name.c_str(), (oflag & O_ACCMODE) | tmp, perm);
+			if (fd < 0) return fd;
+			::close(fd);
+			oflag &= ~ (O_CREAT | O_EXCL);
+		}
+		return open_resource_fork(path_name, oflag);
 	}
 
 

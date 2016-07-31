@@ -51,12 +51,20 @@
 #include <toolbox/os_internal.h>
 
 #include <macos/errors.h>
+#include <native/native.h>
 
 /*
  * access return errors are |= 0x40000000.  Not entirely sure why...
  * may return an errno or an oserr, too, apparently.
  */
 
+/* 2016 update -- faccess chedks if the error (16-bit) is negative (tool error)
+ * or positive (errno) and calls _uerror(errno, toolerr).  toolerr is stored into
+ * the MacOSErr variable and remapped to an errno. if toolerr == 0, errno is stored in
+ * errno.
+*/
+
+using MacOS::macos_error_from_errno;
 
 namespace MPW
 {
@@ -196,19 +204,15 @@ namespace MPW
 
 		// TODO -- can you create a resource file like this?
 
-		if (f.flags & kO_RSRC)
-			sname.append(_PATH_RSRCFORKSPEC);
-
-		if (f.flags & kO_CREAT)
-			fd = ::open(sname.c_str(), nativeFlags, 0666);
-		else
-			fd = ::open(sname.c_str(), nativeFlags);
+		fd = native::open_fork(sname, f.flags & kO_RSRC, nativeFlags);
 
 		if (fd < 0)
 		{
-			// return an errno.
-			d0 = 0x40000000 | mpw_errno_from_errno();
-			f.error = MacOS::ioErr;
+			// return a tool error.
+			auto e = macos_error_from_errno();
+
+			d0 = 0x40000000  | (uint16_t)e; /* | mpw_errno_from_errno(); */
+			f.error = (uint16_t)e;
 			f.cookie = 0;
 		}
 		else

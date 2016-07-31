@@ -28,7 +28,10 @@
 #include <sys/attr.h>
 #include <sys/xattr.h>
 #include <sys/stat.h>
+#include <sys/paths.h>
 #include <unistd.h>
+#include <fcntl.h>
+
 
 //using MacOS::macos_error_from_errno;
 //using MacOS::macos_error;
@@ -350,6 +353,16 @@ namespace native {
 
 		if (rv < 0) return macos_error_from_errno();
 		return noErr;
+	}
+
+
+	int open_resource_fork(const std::string &path_name, int oflag) {
+
+		std::string rname = path_name + _PATH_RSRCFORKSPEC;
+
+		// todo -- verify behavior on non-hfs volume.
+		//if ((oflag & O_ACCMODE) & O_WRONLY) oflag |= O_CREAT;
+		return open(rname.c_str(), oflag, 0666);
 	}
 
 

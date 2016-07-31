@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 
 #define XATTR_FINDERINFO_NAME	"com.apple.FinderInfo"
@@ -134,6 +135,12 @@ namespace native {
 		return noErr;
 	}
 
+	int open_resource_fork(const std::string &path_name, int oflag) {
+
+		// should create if it doesn't exist...
+		if ((oflag & O_ACCMODE) & O_WRONLY) oflag |= O_CREAT;
+		return attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, oflag, 0666);
+	}
 
 
 }
