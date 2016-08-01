@@ -43,6 +43,7 @@
 #include <dirent.h>
 
 #include <strings.h>
+#include <sys/param.h>
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
