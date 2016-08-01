@@ -350,7 +350,8 @@ namespace ToolBox {
 
 
 		// alternate entry code
-		MM::Native::NewPtr(1024 * 4 + 256 * 4, false, ToolGlue);
+		auto tmp = MM::Native::NewPtr(1024 * 4 + 256 * 4, false);
+		ToolGlue = tmp.value();
 		OSGlue = ToolGlue + 1024 * 4;
 
 		uint16_t *code = (uint16_t *)memoryPointer(ToolGlue);

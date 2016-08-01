@@ -49,10 +49,8 @@ namespace Utility {
 		 */
 
 		uint32_t theString;
-		uint32_t theHandle;
 		uint32_t sp;
 		uint32_t length = 0;
-		uint32_t d0;
 
 		std::string s;
 
@@ -64,19 +62,12 @@ namespace Utility {
 
 		length = s.length() + 1;
 
-		// if (length) // always true...
-		{
-			uint32_t ptr;
-			d0 = MM::Native::NewHandle(s.length(), false, theHandle, ptr);
 
-			if (!d0)
-			{
-				ToolBox::WritePString(ptr, s);
-			}
-		}
+		auto rv = MM::Native::NewHandle(s.length(), false);
+		if (!rv.error()) ToolBox::WritePString(rv.value().pointer, s);
 
-		ToolReturn<4>(sp, theHandle);
-		return d0;
+		ToolReturn<4>(sp, rv.value().handle);
+		return rv.error();
 	}
 
 	// FUNCTION GetString (stringID: Integer): StringHandle;
@@ -91,17 +82,15 @@ namespace Utility {
 
 		uint16_t stringID;
 		uint32_t sp;
-		uint32_t d0;
-		uint32_t theHandle;
 
 		sp = StackFrame<2>(stringID);
 
 		Log("%04x GetString($%04x)\n", trap, stringID);
 
-		d0 = RM::Native::GetResource(0x53545220, stringID, theHandle);
+		auto rv = RM::Native::GetResource(0x53545220, stringID);
 
-		ToolReturn<4>(sp, theHandle);
-		return d0;
+		ToolReturn<4>(sp, rv.value());
+		return rv.error();
 	}
 
 	// FUNCTION BitTst (bytePtr: Ptr; bitNum: LONGINT) : BOOLEAN;

@@ -263,8 +263,6 @@ namespace MPW
 		uint32_t devptr = 0;
 		uint32_t fptr = 0;
 
-		uint16_t error;
-
 		// create the argv-data.
 		{
 			uint32_t size = 0;
@@ -278,8 +276,9 @@ namespace MPW
 				size += l;
 			}
 
-			error = MM::Native::NewPtr(size, true, argvptr);
-			if (error) return error;
+			auto tmp = MM::Native::NewPtr(size, true);
+			if (tmp.error()) return tmp.error();
+			argvptr = tmp.value();
 
 
 			uint8_t *xptr = memoryPointer(argvptr);
@@ -331,9 +330,9 @@ namespace MPW
 
 			size += 4; // space for null terminator.
 
-			error = MM::Native::NewPtr(size, true, envptr);
-			if (error) return error;
-
+			auto tmp = MM::Native::NewPtr(size, true);
+			if (tmp.error()) return tmp.error();
+			envptr = tmp.value();
 
 			uint8_t *xptr = memoryPointer(envptr);
 			uint32_t offset = 0;
@@ -364,9 +363,9 @@ namespace MPW
 			// these are ftraps for emulated/native function ptrs.
 			uint32_t size = 6 * 4;
 
-			error = MM::Native::NewPtr(size, true, fptr);
-
-			if (error) return error;
+			auto tmp = MM::Native::NewPtr(size, true);
+			if (tmp.error()) return tmp.error();
+			fptr = tmp.value();
 
 			memoryWriteWord(fQuit, fptr + 0);
 			memoryWriteWord(0x4E75, fptr + 2); // rts
@@ -393,9 +392,9 @@ namespace MPW
 		{
 			uint32_t size = 0x78;
 
-			error = MM::Native::NewPtr(size, true, devptr);
-
-			if (error) return error;
+			auto tmp = MM::Native::NewPtr(size, true);
+			if (tmp.error()) return tmp.error();
+			devptr = tmp.value();
 
 			memoryWriteLong(0x46535953, devptr + 0); // 'FSYS'
 			memoryWriteLong(fptr + 4, devptr + 4);
@@ -415,9 +414,9 @@ namespace MPW
 			uint32_t size = 0x3c;
 			uint32_t ptr;
 
-			error = MM::Native::NewPtr(size, true, ioptr);
-
-			if (error) return error;
+			auto tmp = MM::Native::NewPtr(size, true);
+			if (tmp.error()) return tmp.error();
+			ioptr = tmp.value();
 
 			ptr = ioptr;
 			// stdin
@@ -450,10 +449,9 @@ namespace MPW
 
 
 
-		uint32_t mpi = 0;
-
-		error = MM::Native::NewPtr(8 + 0x30, true, mpi);
-		if (error) return error;
+		auto tmp = MM::Native::NewPtr(8 + 0x30, true);
+		if (tmp.error()) return tmp.error();
+		uint32_t mpi = tmp.value();
 
 		MacProgramInfo = mpi + 8;
 

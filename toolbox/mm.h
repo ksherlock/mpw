@@ -5,37 +5,9 @@
 
 #include <macos/tool_return.h>
 
+
 namespace MM
 {
-	// native functions.
-	namespace Native
-	{
-
-		void MemoryInfo(uint32_t address);
-		void PrintMemoryStats();
-
-		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle);
-		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle, uint32_t &ptr);
-
-		uint16_t NewPtr(uint32_t size, bool clear, uint32_t &pointer);
-
-		uint16_t DisposeHandle(uint32_t handle);
-		uint16_t DisposePtr(uint32_t pointer);
-
-		uint16_t GetHandleSize(uint32_t handle, uint32_t &handleSize);
-
-		uint16_t SetHandleSize(uint32_t handle, uint32_t newSize);
-		uint16_t ReallocHandle(uint32_t handle, uint32_t newSize);
-
-		uint16_t HSetRBit(uint32_t handle);
-		uint16_t HClrRBit(uint32_t handle);
-
-		uint16_t HLock(uint32_t handle);
-		uint16_t HUnlock(uint32_t handle);
-	}
-
-	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t globals, uint32_t stack);
-
 
 	struct HandleInfo
 	{
@@ -50,11 +22,54 @@ namespace MM
 		{}
 	};
 
+
+	// native functions.
+	namespace Native
+	{
+
+		using MacOS::tool_return;
+
+		struct hp {
+			uint32_t handle = 0;
+			uint32_t pointer = 0; 
+			hp() = default;
+			hp(uint32_t a, uint32_t b) : handle(a), pointer(b) {};
+		};
+
+		void MemoryInfo(uint32_t address);
+		void PrintMemoryStats();
+
+		tool_return<hp> NewHandle(uint32_t size, bool clear);
+
+		tool_return<uint32_t> NewPtr(uint32_t size, bool clear);
+
+		tool_return<void> DisposeHandle(uint32_t handle);
+		tool_return<void> DisposePtr(uint32_t pointer);
+
+		tool_return<uint32_t> GetHandleSize(uint32_t handle);
+
+		tool_return<void> SetHandleSize(uint32_t handle, uint32_t newSize);
+		tool_return<void> ReallocHandle(uint32_t handle, uint32_t newSize);
+
+		tool_return<void> HSetRBit(uint32_t handle);
+		tool_return<void> HClrRBit(uint32_t handle);
+
+		tool_return<void> HLock(uint32_t handle);
+		tool_return<void> HUnlock(uint32_t handle);
+
+
+		tool_return<HandleInfo> GetHandleInfo(uint32_t handle);
+
+		tool_return<uint32_t> GetHandleSize(uint32_t handle);
+	}
+
+	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t globals, uint32_t stack);
+
+
+
 	using MacOS::tool_return;
 
-	tool_return<HandleInfo> GetHandleInfo(uint32_t handle);
 
-	tool_return<uint32_t> GetHandleSize(uint32_t handle);
 
 
 	uint16_t BlockMove(uint16_t trap);

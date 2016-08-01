@@ -26,6 +26,7 @@ namespace Loader {
 
 	}
 
+	uint16_t LoadSeg(uint16_t trap);
 	uint16_t UnloadSeg(uint16_t trap);
 
 }

@@ -112,10 +112,10 @@ namespace
 	std::map<uint32_t, Handle> rhandle_map;
 
 
-	inline uint16_t SetResError(uint16_t error)
+	inline macos_error SetResError(uint16_t error)
 	{
 		memoryWriteWord(error, MacOS::ResErr);
-		return error;
+		return (macos_error)error;
 	}
 
 	bool LoadResType(uint32_t type)
@@ -165,10 +165,9 @@ namespace RM
 		// not to be confused with MacOS LoadResource(theHandle)
 
 		template<class FX>
-		uint16_t LoadResource(uint32_t type, uint32_t &theHandle, FX fx)
+		macos_error LoadResource(uint32_t type, uint32_t &theHandle, FX fx)
 		{
 			uint32_t ptr;
-			uint16_t error;
 
 			Handle nativeHandle;
 			uint32_t size;
@@ -190,14 +189,18 @@ namespace RM
 			if (ResLoad) ::LoadResource(nativeHandle);
 
 			size = ::GetHandleSize(nativeHandle);
-			error = MM::Native::NewHandle(size, false, theHandle, ptr);
+			{
+				auto tmp = MM::Native::NewHandle(size, false);
+				if (tmp.error()) {
+					::ReleaseResource(nativeHandle);
+					return SetResError(tmp.error());
+				}
+				theHandle = tmp.value().handle;
+				ptr = tmp.value().pointer;
+			}
 			// TODO -- need to lock if native handle locked.
 
-			if (!theHandle)
-			{
-				::ReleaseResource(nativeHandle);
-				return SetResError(error);
-			}
+
 			MM::Native::HSetRBit(theHandle);
 
 			if (size)
@@ -213,15 +216,19 @@ namespace RM
 
 		// used by GetString (utility.h)
 		// used by Loader.
-		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle)
+		tool_return<uint32_t> GetResource(uint32_t type, uint16_t id)
 		{
-			return LoadResource(type, theHandle,
+			uint32_t theHandle;
+			auto err = LoadResource(type, theHandle,
 				[type, id](){
 					return ::GetResource(type, id);
 				});
+
+			if (!err) return theHandle;
+			return err;
 		}
 
-		uint16_t SetResLoad(bool load)
+		tool_return<void> SetResLoad(bool load)
 		{
 
 			ResLoad = load;
@@ -231,6 +238,19 @@ namespace RM
 			return SetResError(0);
 		}
 
+
+
+		tool_return<void> CloseResFile(uint16_t refNum)
+		{
+			// If the value of the refNum parameter is 0, it represents the System file and is ignored.
+
+			if (refNum != 0)
+			{
+				::CloseResFile(refNum);
+				return SetResError(::ResError());
+			}
+			return SetResError(0);
+		}
 
 	}
 
@@ -844,7 +864,7 @@ namespace RM
 
 		// check if handle size changed, resync data
 
-		auto info = MM::GetHandleInfo(theResource);
+		auto info = MM::Native::GetHandleInfo(theResource);
 		if (!info.error()) return SetResError(info.error());
 
 
@@ -928,7 +948,7 @@ namespace RM
 
 		Handle nativeHandle = NULL;
 
-		auto info = MM::GetHandleInfo(theData);
+		auto info = MM::Native::GetHandleInfo(theData);
 		if (info.error()) return SetResError(MacOS::addResFailed);
 
 
@@ -1179,7 +1199,7 @@ namespace RM
 
 
 		// if it has a size, it's loaded...
-		auto info = MM::GetHandleInfo(theResource);
+		auto info = MM::Native::GetHandleInfo(theResource);
 		if (info.error()) return SetResError(resNotFound);
 		if (info->size) return SetResError(0);
 
@@ -1198,14 +1218,14 @@ namespace RM
 
 		size = ::GetHandleSize(nativeHandle);
 
-		err = MM::Native::ReallocHandle(theResource, size);
-		if (err) return SetResError(err);
+		auto tmp = MM::Native::ReallocHandle(theResource, size);
+		if (tmp.error()) return SetResError(tmp.error());
 
 		// todo -- need to lock if resource locked.
 
 		if (size)
 		{
-			info = MM::GetHandleInfo(theResource);
+			info = MM::Native::GetHandleInfo(theResource);
 
 			std::memcpy(memoryPointer(info->address), *(void **)nativeHandle, size);
 		}

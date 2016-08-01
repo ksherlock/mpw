@@ -148,21 +148,24 @@ namespace Loader {
 		// load code seg 0.
 		uint16_t LoadCode0(Segment0Info &rv)
 		{
-			uint16_t err;
 			uint32_t rHandle;
 			uint32_t size;
 			uint32_t address;
 
 			SegmentInfo si;
 
-			err = RM::Native::GetResource(kCODE, 0, rHandle);
-			if (err) return err;
-
+			{
+				auto tmp = RM::Native::GetResource(kCODE, 0);
+				if (tmp.error()) return tmp.error();
+				rHandle = tmp.value();
+			}
 
 			MM::Native::HLock(rHandle);
-			MM::Native::GetHandleSize(rHandle, size);
-
-			address = memoryReadLong(rHandle);
+			{
+				auto tmp = MM::Native::GetHandleInfo(rHandle);
+				address = tmp.value().address;
+				size = tmp.value().size;
+			}
 
 			uint32_t above = memoryReadLong(address);
 			uint32_t below = memoryReadLong(address + 4);
@@ -173,8 +176,12 @@ namespace Loader {
 
 
 			// create a new handle for the a5 segment.
-			err = MM::Native::NewHandle(si.size, true, si.handle, si.address);
-			if (err) return err;
+			{
+				auto tmp = MM::Native::NewHandle(si.size, true);
+				if (tmp.error()) return tmp.error();
+				si.handle = tmp.value().handle;
+				si.address = tmp.value().pointer;
+			}
 
 			MM::Native::HLock(si.handle);
 
@@ -198,17 +205,21 @@ namespace Loader {
 		// load a standard code segment.
 		uint16_t LoadCode(uint16_t segment)
 		{
-			uint16_t err;
 
 			SegmentInfo si;
 
-			err = RM::Native::GetResource(kCODE, segment, si.handle);
-			if (err) return err;
-
+			{
+				auto tmp = RM::Native::GetResource(kCODE, segment);
+				if (tmp.error()) return tmp.error();
+				si.handle = tmp.value();
+			}
 			MM::Native::HLock(si.handle);
-			MM::Native::GetHandleSize(si.handle, si.size);
 
-			si.address = memoryReadLong(si.handle);
+			{
+				auto tmp = MM::Native::GetHandleInfo(si.handle);
+				si.size = tmp.value().size;
+				si.address = tmp.value().address;
+			}
 
 			if (memoryReadWord(si.address) == 0xffff)
 				si.farModel = true;
@@ -343,7 +354,7 @@ namespace Loader {
 			{
 				std::string s;
 
-				auto ix = path.rfind('/');
+				auto ix = path.find_last_of("/:", 0, 2);
 				if (ix == path.npos)
 				{
 					s = path.substr(0, 31);
@@ -551,6 +562,36 @@ namespace Loader {
 		return 0;
 	}
 
+
+	uint16_t LoadSeg(uint16_t trap) {
+
+
+		/*
+		 * Jump Table Entry:
+		 *
+		 * Unloaded:
+		 * +0 offset
+		 * +2 instruction that pushes segment number onto stack
+		 * +6 LoadSeg trap
+		 *
+		 * Loaded:
+		 * +0 offset
+		 * +2 jump instruction.
+		 *
+		 */
+
+
+
+		uint32_t sp;
+		uint16_t segment;
+
+		sp = StackFrame<2>(segment);
+
+		Log("%04x LoadSeg(%04x)\n", trap, segment);
+
+		return 0;
+
+	}
 
 
 }

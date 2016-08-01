@@ -45,6 +45,9 @@
 
 using ToolBox::Log;
 
+using MacOS::tool_return;
+using MacOS::macos_error_from_errno;
+using MacOS::macos_error;
 
 namespace
 {
@@ -65,15 +68,15 @@ namespace
 	// map of handle -> size [? just use Ptr map?]
 	std::map<uint32_t, MM::HandleInfo> HandleMap;
 
-	inline MacOS::macos_error SetMemError(MacOS::macos_error error)
+	inline macos_error SetMemError(macos_error error)
 	{
 		memoryWriteWord(error, MacOS::MemErr);
 		return error;
 	}
 
-	inline MacOS::macos_error SetMemError(int16_t error)
+	inline macos_error SetMemError(int16_t error)
 	{
-		return SetMemError((MacOS::macos_error)error);
+		return SetMemError((macos_error)error);
 	}
 
 
@@ -98,13 +101,6 @@ namespace
 	}
 
 
-	template<class Fx>
-	int16_t with_handle(uint32_t handle, Fx fx)
-	{
-		auto iter = HandleMap.find(handle);
-		if (iter == HandleMap.end()) return MacOS::memWZErr;
-		return fx(iter->second);
-	}
 }
 
 namespace MM
@@ -137,6 +133,46 @@ namespace MM
 	}
 
 	namespace Native {
+
+
+		template<class T>
+		struct tool_return_base { typedef T type; };
+
+		template<class T>
+		struct tool_return_base<tool_return<T>> { typedef T type; };
+
+
+		template<class T, class F>
+		tool_return<T> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<!std::is_void<T>::value>::type* = 0) {
+			tool_return<T> rv = f(info);
+			return rv;
+		}
+
+		template<class T, class F>
+		tool_return<void> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<std::is_void<T>::value>::type* = 0) {
+			f(info);
+			return tool_return<void>();
+		}
+
+
+
+		template<class F, typename T = typename tool_return_base<typename std::result_of<F(HandleInfo &)>::type>::type>
+		tool_return<T>
+		__with_handle(uint32_t handle, F &&f)
+		{
+			const auto iter = HandleMap.find(handle);
+
+			if (iter == HandleMap.end()) {
+				tool_return<T> rv = SetMemError(MacOS::memWZErr);
+				return rv;
+			}
+
+			auto &info = iter->second;
+			//tool_return<T> rv = f(info);
+			tool_return<T> rv = with_handle_helper<T>(std::forward<F>(f), info);
+			SetMemError(rv.error());
+			return rv;	
+		}
 
 
 		// debugger support.
@@ -233,11 +269,11 @@ namespace MM
 		}
 
 
-		uint16_t NewPtr(uint32_t size, bool clear, uint32_t &mcptr)
+		tool_return<uint32_t> NewPtr(uint32_t size, bool clear)
 		{
 			// native pointers.
 
-			mcptr = 0;
+			uint32_t mcptr = 0;
 			//if (size == 0) return 0;
 
 			uint8_t *ptr = nullptr;
@@ -253,10 +289,11 @@ namespace MM
 			mcptr = ptr - Memory;
 			PtrMap.emplace(std::make_pair(mcptr, size));
 
-			return SetMemError(0);
+			SetMemError(0);
+			return mcptr;
 		}
 
-		uint16_t DisposePtr(uint32_t mcptr)
+		tool_return<void> DisposePtr(uint32_t mcptr)
 		{
 
 			auto iter = PtrMap.find(mcptr);
@@ -271,13 +308,13 @@ namespace MM
 			return SetMemError(0);
 		}
 
-		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle, uint32_t &mcptr)
+		tool_return<hp> NewHandle(uint32_t size, bool clear)
 		{
 			uint8_t *ptr;
 			uint32_t hh;
 
-			handle = 0;
-			mcptr = 0;
+			uint32_t handle = 0;
+			uint32_t mcptr = 0;
 
 			if (!HandleQueue.size())
 			{
@@ -316,18 +353,12 @@ namespace MM
 
 			memoryWriteLong(mcptr, hh);
 			handle = hh;
-			return SetMemError(0);
-		}
-
-		uint16_t NewHandle(uint32_t size, bool clear, uint32_t &handle)
-		{
-			uint32_t ptr;
-			return NewHandle(size, clear, handle, ptr);
+			SetMemError(0);
+			return hp{handle, mcptr};
 		}
 
 
-
-		uint16_t DisposeHandle(uint32_t handle)
+		tool_return<void> DisposeHandle(uint32_t handle)
 		{
 			auto iter = HandleMap.find(handle);
 
@@ -349,19 +380,9 @@ namespace MM
 		}
 
 
-		uint16_t GetHandleSize(uint32_t handle, uint32_t &handleSize)
-		{
-			handleSize = 0;
-
-			const auto iter = HandleMap.find(handle);
-
-			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-			handleSize = iter->second.size;
-			return SetMemError(0);
-		}
 
 
-		uint16_t ReallocHandle(uint32_t handle, uint32_t logicalSize)
+		tool_return<void> ReallocHandle(uint32_t handle, uint32_t logicalSize)
 		{
 
 			auto iter = HandleMap.find(handle);
@@ -400,12 +421,12 @@ namespace MM
 
 			// lock?  clear purged flag?
 
-			return 0;
+			return MacOS::noErr;
 
 		}
 
 
-		uint16_t SetHandleSize(uint32_t handle, uint32_t newSize)
+		tool_return<void> SetHandleSize(uint32_t handle, uint32_t newSize)
 		{
 			if (handle == 0) return SetMemError(MacOS::nilHandleErr);
 
@@ -519,61 +540,35 @@ namespace MM
 
 		}
 
-		// template class to validate handle and work on it.
-		template<class FX>
-		uint16_t HandleIt(uint32_t handle, FX fx)
+
+		tool_return<void> HSetRBit(uint32_t handle)
 		{
-			const auto iter = HandleMap.find(handle);
-
-			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-			auto &info = iter->second;
-			fx(info);
-			return SetMemError(0);
+			return __with_handle(handle, [](HandleInfo &info) { info.resource = true; });
 		}
 
-		uint16_t HSetRBit(uint32_t handle)
+		tool_return<void> HClrRBit(uint32_t handle)
 		{
-			const auto iter = HandleMap.find(handle);
-
-			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-			auto &info = iter->second;
-			info.resource = true;
-			return SetMemError(0);
+			return __with_handle(handle, [](HandleInfo &info) { info.resource = false; });
 		}
 
-		uint16_t HClrRBit(uint32_t handle)
+		tool_return<void> HLock(uint32_t handle)
 		{
-			const auto iter = HandleMap.find(handle);
-
-			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-			auto &info = iter->second;
-			info.resource = false;
-			return SetMemError(0);
+			return __with_handle(handle, [](HandleInfo &info) { info.locked = true; });
 		}
 
-		uint16_t HLock(uint32_t handle)
+		tool_return<void> HUnlock(uint32_t handle)
 		{
-			const auto iter = HandleMap.find(handle);
-
-			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-			auto &info = iter->second;
-			info.locked = true;
-			return SetMemError(0);
+			return __with_handle(handle, [](HandleInfo &info) { info.locked = false; });
 		}
 
-		uint16_t HUnlock(uint32_t handle)
+		tool_return<uint32_t> GetHandleSize(uint32_t handle)
 		{
-			const auto iter = HandleMap.find(handle);
+			return __with_handle(handle, [](const HandleInfo &info){ return info.size; });
+		}
 
-			if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-			auto &info = iter->second;
-			info.locked = false;
-			return SetMemError(0);
+		tool_return<HandleInfo> GetHandleInfo(uint32_t handle)
+		{
+			return __with_handle(handle, [](const HandleInfo &info){ return info; });
 		}
 
 
@@ -583,25 +578,7 @@ namespace MM
 
 	#pragma mark --
 
-	tool_return<uint32_t> GetHandleSize(uint32_t handle)
-	{
 
-		const auto iter = HandleMap.find(handle);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		SetMemError(0);
-		return iter->second.size;
-	}
-
-	tool_return<HandleInfo> GetHandleInfo(uint32_t handle)
-	{
-		const auto iter = HandleMap.find(handle);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-		SetMemError(0);
-		return iter->second;
-	}
 
 
 	#pragma mark --
@@ -828,12 +805,10 @@ namespace MM
 		// todo -- separate pools for sys vs non-sys?
 		// todo -- NewPtr(0) -- null or empty ptr?
 
-		uint32_t mcptr;
-		uint16_t error;
-		error = Native::NewPtr(size, clear, mcptr);
+		auto rv = Native::NewPtr(size, clear);
 
-		cpuSetAReg(0, mcptr);
-		return error; //SetMemError(error);
+		cpuSetAReg(0, rv.value());
+		return rv.error(); //SetMemError(error);
 	}
 
 	uint16_t DisposePtr(uint16_t trap)
@@ -852,10 +827,9 @@ namespace MM
 		Log("%04x DisposePtr(%08x)\n", trap, mcptr);
 
 
-		uint16_t error;
-		error = Native::DisposePtr(mcptr);
+		auto rv = Native::DisposePtr(mcptr);
 
-		return error; //SetMemError(error);
+		return rv.error(); //SetMemError(error);
 	}
 
 	uint32_t GetPtrSize(uint16_t trap)
@@ -928,8 +902,6 @@ namespace MM
 		 *
 		 */
 
-		uint32_t hh = 0;
-		uint16_t error;
 
 		bool clear = trap & (1 << 9);
 		//bool sys = trap & (1 << 10);
@@ -938,10 +910,10 @@ namespace MM
 
 		Log("%04x NewHandle(%08x)\n", trap, size);
 
-		error = Native::NewHandle(size, clear, hh);
+		auto rv = Native::NewHandle(size, clear);
 
-		cpuSetAReg(0, hh);
-		return error;
+		cpuSetAReg(0, rv.value().handle);
+		return rv.error();
 	}
 
 	uint16_t DisposeHandle(uint16_t trap)
@@ -959,7 +931,7 @@ namespace MM
 
 		Log("%04x DisposeHandle(%08x)\n", trap, hh);
 
-		return Native::DisposeHandle(hh);
+		return Native::DisposeHandle(hh).error();
 	}
 
 	uint16_t EmptyHandle(uint16_t trap)
@@ -1026,7 +998,7 @@ namespace MM
 
 		Log("%04x ReallocHandle(%08x, %08x)\n", trap, hh, logicalSize);
 
-		return Native::ReallocHandle(hh, logicalSize);
+		return Native::ReallocHandle(hh, logicalSize).error();
 
 #if 0
 		auto iter = HandleMap.find(hh);
@@ -1121,7 +1093,7 @@ namespace MM
 
 		Log("%04x SetHandleSize(%08x, %08x)\n", trap, hh, newSize);
 
-		return Native::SetHandleSize(hh, newSize);
+		return Native::SetHandleSize(hh, newSize).error();
 	}
 
 	uint32_t RecoverHandle(uint16_t trap)
@@ -1368,16 +1340,15 @@ namespace MM
 		auto const info = iter->second;
 
 
-		uint32_t destHandle;
-		uint32_t destPtr;
-		uint32_t d0 = Native::NewHandle(info.size, false, destHandle, destPtr);
-		if (d0 == 0)
+		auto rv = Native::NewHandle(info.size, false);
+
+		if (!rv.error())
 		{
-			std::memmove(memoryPointer(destPtr), memoryPointer(info.address), info.size);
+			std::memmove(memoryPointer(rv.value().pointer), memoryPointer(info.address), info.size);
 		}
 
-		cpuSetAReg(0, destHandle);
-		return d0; // SetMemError called by Native::NewHandle.
+		cpuSetAReg(0, rv.value().handle);
+		return rv.error(); // SetMemError called by Native::NewHandle.
 	}
 
 
@@ -1399,16 +1370,14 @@ namespace MM
 
 		Log("%04x PtrToHand(%08x, %08x)\n", trap, mcptr, size);
 
-		uint32_t destHandle;
-		uint32_t destPtr;
-		uint32_t d0 = Native::NewHandle(size, false, destHandle, destPtr);
-		if (d0 == 0)
+		auto rv = Native::NewHandle(size, false);
+		if (!rv.error())
 		{
-			std::memmove(memoryPointer(destPtr), memoryPointer(mcptr), size);
+			std::memmove(memoryPointer(rv.value().pointer), memoryPointer(mcptr), size);
 		}
 
-		cpuSetAReg(0, destHandle);
-		return d0; // SetMemError called by Native::NewHandle.
+		cpuSetAReg(0, rv.value().handle);
+		return rv.error(); // SetMemError called by Native::NewHandle.
 	}
 
 	uint16_t PtrAndHand(uint16_t trap)
@@ -1435,18 +1404,16 @@ namespace MM
 
 		cpuSetAReg(0, handle);
 
-		uint32_t oldSize = 0;
-		uint32_t d0;
-
-		d0 = Native::GetHandleSize(handle, oldSize);
-		if (d0) return d0;
+		auto tmp = Native::GetHandleSize(handle);
+		if (tmp.error()) return tmp.error();
+		uint32_t oldSize = tmp.value();
 
 		if ((uint64_t)oldSize + (uint64_t)size > UINT32_MAX)
 			return SetMemError(MacOS::memFullErr);
 
 
-		d0 = Native::SetHandleSize(handle, oldSize + size);
-		if (d0) return d0;
+		auto err = Native::SetHandleSize(handle, oldSize + size);
+		if (err.error()) return err.error();
 
 		auto iter = HandleMap.find(handle);
 		if (iter == HandleMap.end())
@@ -1637,20 +1604,18 @@ namespace MM
 	{
 		// FUNCTION TempNewHandle (logicalSize: Size;
 		//                         VAR resultCode: OSErr): Handle;
-		uint16_t rv;
 		uint32_t logicalSize;
 		uint32_t resultCode;
-		uint32_t theHandle;
 
 		uint32_t sp = StackFrame<8>(logicalSize, resultCode);
 
 		Log("     TempNewHandle(%08x, %08x)\n", logicalSize, resultCode);
 
-		rv = Native::NewHandle(logicalSize, true, theHandle);
+		auto rv = Native::NewHandle(logicalSize, true);
 
-		if (resultCode) memoryWriteWord(rv, resultCode);
-		ToolReturn<4>(sp, theHandle);
-		return rv;
+		if (resultCode) memoryWriteWord(rv.error(), resultCode);
+		ToolReturn<4>(sp, rv.value().handle);
+		return rv.error();
 	}
 
 	uint16_t TempHLock(void)
@@ -1663,10 +1628,10 @@ namespace MM
 
 		Log("     TempHLock(%08x, %08x)\n", theHandle, resultCode);
 
-		uint16_t rv = Native::HLock(theHandle);
+		auto rv = Native::HLock(theHandle);
 
-		if (resultCode) memoryWriteWord(rv, resultCode);
-		return rv;
+		if (resultCode) memoryWriteWord(rv.error(), resultCode);
+		return rv.error();
 	}
 
 	uint16_t TempHUnlock(void)
@@ -1679,10 +1644,10 @@ namespace MM
 
 		Log("     TempHUnlock(%08x, %08x)\n", theHandle, resultCode);
 
-		uint16_t rv = Native::HUnlock(theHandle);
+		auto rv = Native::HUnlock(theHandle);
 
-		if (resultCode) memoryWriteWord(rv, resultCode);
-		return rv;
+		if (resultCode) memoryWriteWord(rv.error(), resultCode);
+		return rv.error();
 	}
 
 
@@ -1696,9 +1661,9 @@ namespace MM
 
 		Log("     TempDisposeHandle(%08x, %08x)\n", theHandle, resultCode);
 
-		uint16_t rv = Native::DisposeHandle(theHandle);
+		auto rv = Native::DisposeHandle(theHandle);
 
-		if (resultCode) memoryWriteWord(rv, resultCode);
-		return rv;
+		if (resultCode) memoryWriteWord(rv.error(), resultCode);
+		return rv.error();
 	}
 }

@@ -3,13 +3,19 @@
 
 #include <cstdint>
 
+#include <macos/tool_return.h>
+
 namespace RM
 {
 
 	namespace Native
 	{
-		uint16_t SetResLoad(bool tf);
-		uint16_t GetResource(uint32_t type, uint16_t id, uint32_t &theHandle);
+		using MacOS::tool_return;
+		
+		tool_return<void> SetResLoad(bool tf);
+		tool_return<uint32_t> GetResource(uint32_t type, uint16_t id);
+		tool_return<void> OpenResFile(const std::string &path_name, uint16_t permissions = 0);
+		tool_return<void> CloseResFile(uint16_t refNum);
 	}
 
 	uint16_t CloseResFile(uint16_t trap);
