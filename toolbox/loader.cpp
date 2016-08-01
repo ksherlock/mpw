@@ -26,11 +26,12 @@
 
 #include <string>
 #include <cstring>
+#include <cassert>
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
 
-#include <CoreServices/CoreServices.h>
+//#include <CoreServices/CoreServices.h>
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -44,6 +45,16 @@
 #include "MM.h"
 
 #include <macos/sysequ.h>
+
+enum {
+  fsCurPerm                     = 0x00, /* open access permissions in ioPermssn */
+  fsRdPerm                      = 0x01,
+  fsWrPerm                      = 0x02,
+  fsRdWrPerm                    = 0x03,
+  fsRdWrShPerm                  = 0x04,
+  fsRdDenyPerm                  = 0x10, /* for use with OpenDeny and OpenRFDeny */
+  fsWrDenyPerm                  = 0x20  /* for use with OpenDeny and OpenRFDeny */
+};
 
 using ToolBox::Log;
 
@@ -241,14 +252,12 @@ namespace Loader {
 		uint16_t LoadFile(const std::string &path)
 		{
 
+			uint16_t err;
+#if 0
 			HFSUniStr255 fork = {0,{0}};
 			ResFileRefNum refNum;
 			FSRef ref;
-			OSErr err;
 
-			// open the file
-			// load code seg 0
-			// iterate and load other segments
 
 
 			// TODO -- call RM::Native::OpenResourceFile(...);
@@ -266,7 +275,14 @@ namespace Loader {
 				&refNum);
 
 			if (err) return err;
+#endif
 
+			// open the file
+			// load code seg 0
+			// iterate and load other segments
+
+			auto tmp = RM::Native::OpenResFile(path, fsRdPerm);
+			if (tmp.error()) return tmp.error();
 
 			// in case of restart?
 			Segments.clear();

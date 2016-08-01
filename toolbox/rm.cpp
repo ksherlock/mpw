@@ -252,6 +252,32 @@ namespace RM
 			return SetResError(0);
 		}
 
+		tool_return<int16_t> OpenResFile(const std::string &path, uint16_t permission)
+		{
+			OSErr error;
+			FSRef ref;
+			ResFileRefNum refNum;
+
+			error = ::FSPathMakeRef( (const UInt8 *)path.c_str(), &ref, NULL);
+			if (error != noErr)
+				return (MacOS::macos_error)error;
+
+			HFSUniStr255 fork = {0,{0}};
+			::FSGetResourceForkName(&fork);
+
+			refNum = -1;
+			error = ::FSOpenResourceFile(&ref,
+				fork.length,
+				fork.unicode,
+				permission,
+				&refNum);
+
+			if (error != noErr)
+				return (MacOS::macos_error)error;
+
+			return refNum;
+		}
+
 	}
 
 	uint16_t CloseResFile(uint16_t trap)
@@ -642,31 +668,7 @@ namespace RM
 
 
 
-	tool_return<int16_t> OpenResCommon(const std::string &path, uint16_t permission = 0)
-	{
-		OSErr error;
-		FSRef ref;
-		ResFileRefNum refNum;
 
-		error = ::FSPathMakeRef( (const UInt8 *)path.c_str(), &ref, NULL);
-		if (error != noErr)
-			return (MacOS::macos_error)error;
-
-		HFSUniStr255 fork = {0,{0}};
-		::FSGetResourceForkName(&fork);
-
-		refNum = -1;
-		error = ::FSOpenResourceFile(&ref,
-			fork.length,
-			fork.unicode,
-			permission,
-			&refNum);
-
-		if (error != noErr)
-			return (MacOS::macos_error)error;
-
-		return refNum;
-	}
 
 	uint16_t OpenResFile(uint16_t trap)
 	{
@@ -681,7 +683,7 @@ namespace RM
 
 		Log("%04x OpenResFile(%s)\n", trap, sname.c_str());
 
-		auto rv = OpenResCommon(sname);
+		auto rv = Native::OpenResFile(sname);
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
@@ -719,7 +721,7 @@ namespace RM
 			return SetResError(MacOS::dirNFErr);
 		}
 
-		auto rv = OpenResCommon(sname, permission);
+		auto rv = Native::OpenResFile(sname, permission);
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
@@ -751,7 +753,7 @@ namespace RM
 			return SetResError(MacOS::dirNFErr);
 		}
 
-		auto rv = OpenResCommon(sname, permission);
+		auto rv = Native::OpenResFile(sname, permission);
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
@@ -764,14 +766,10 @@ namespace RM
 	{
 		// FUNCTION OpenRFPerm (fileName: Str255; vRefNum: Integer;
         //           permission: SignedByte): Integer;
-		ResFileRefNum refNum;
-		FSRef ref;
-
 		uint32_t sp;
 		uint32_t fileName;
 		uint16_t vRefNum;
 		uint16_t permission;
-		OSErr error;
 
 		sp = StackFrame<8>(fileName, vRefNum, permission);
 
@@ -779,26 +777,11 @@ namespace RM
 		Log("%04x OpenRFPerm(%s, %04x, %04x)\n",
 			trap, sname.c_str(), vRefNum, permission);
 
-		error = ::FSPathMakeRef( (const UInt8 *)sname.c_str(), &ref, NULL);
-		if (error != noErr)
-		{
-			ToolReturn<2>(sp, (uint16_t)-1);
-			return SetResError(error);
-		}
+		auto rv = Native::OpenResFile(sname, permission);
 
-        HFSUniStr255 fork = {0,{0}};
-        ::FSGetResourceForkName(&fork);
+		ToolReturn<2>(sp, rv.value_or(-1));
 
-        refNum = -1;
-    	error = ::FSOpenResourceFile(&ref,
-    		fork.length,
-    		fork.unicode,
-    		permission,
-    		&refNum);
-
-		ToolReturn<2>(sp, (uint16_t)refNum);
-
-		return SetResError(error);
+		return SetResError(rv.error());
 	}
 
 	uint16_t Count1Resources(uint16_t trap)
