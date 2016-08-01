@@ -36,9 +36,11 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <unistd.h>
+#include <stdlib.h>
+
 #include <sys/stat.h>
 
-#include <CoreServices/CoreServices.h>
+#include <cxx/string_splitter.h>
 
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
@@ -59,10 +61,7 @@
 #include "main.h"
 #include "debugger.h"
 
-#include <cxx/string_splitter.h>
 
-
-#define LOADER_LOAD
 
 Settings Flags;
 
@@ -114,268 +113,7 @@ void WriteLong(void *data, uint32_t offset, uint32_t value)
 	((uint8_t *)data)[offset++] = value;
 }
 
-#ifndef LOADER_LOAD
-void reloc1(const uint8_t *r, uint32_t address, uint32_t offset)
-{
-	// %00000000 00000000 -> break
-	// %0xxxxxxx -> 7-bit value
-	// %1xxxxxxx xxxxxxxx -> 15-bit value
-	// %00000000 1xxxxxxx x{8} x{8} x{8} -> 31 bit value
-	// ^ that's what the documentation says..
-	// that's how the 32-bit bootstrap works
-	// DumpCode ignores the high 2 bytes.
-	for(;;)
-	{
-		uint32_t x;
-		uint32_t value;
 
-		x = *r++;
-
-		if (x == 0x00)
-		{
-			x = *r++;
-			if (x == 0x00) break;
-
-			x = (x << 8) | *r++;
-			x = (x << 8) | *r++;
-			x = (x << 8) | *r++;
-		}
-		else if (x & 0x80)
-		{
-			x &= 0x7f;
-			x = (x << 8) | *r++;
-		}
-
-		x <<= 1; // * 2
-
-		address += x;
-
-		value = memoryReadLong(address);
-		memoryWriteLong(value + offset, address);
-	}
-
-}
-
-// relocate a far model segment.
-void relocate(uint32_t address, uint32_t size, uint32_t a5)
-{
-	// see MacOS RT Architecture, 10-23 .. 10-26
-	uint32_t offset;
-
-	offset = memoryReadLong(address + 0x14);
-	if (memoryReadLong(address + 0x18) != a5 && offset != 0)
-	{
-		memoryWriteLong(a5, address + 0x18); // current value of A5
-		reloc1(memoryPointer(address + offset), address, a5);
-	}
-
-	offset = memoryReadLong(address + 0x1c);
-	if (memoryReadLong(address + 0x20) != address && offset != 0)
-	{
-		memoryWriteLong(address, address + 0x20); // segment load address.
-		reloc1(memoryPointer(address + offset), address, address + 0x28);
-	}
-}
-
-uint32_t load(const char *file)
-{
-
-	ResFileRefNum refNum;
-	FSRef ref;
-
-	uint32_t returnAddress = 0;
-
-	struct SegInfo {
-	public:
-
-		SegInfo()
-		{}
-
-		SegInfo(uint32_t a, uint32_t s, bool f) :
-			address(a), size(s), farModel(f)
-		{}
-
-		uint32_t address = 0;
-		uint32_t size = 0;
-		bool farModel = 0;
-
-	};
-	std::vector< SegInfo> segments;
-
-
-	uint32_t a5 = 0;
-
-	uint32_t jtStart = 0;
-	uint32_t jtEnd = 0;
-
-	// todo -- call RM::Native to open and load the Resource File.
-
-	assert(FSPathMakeRef( (const UInt8 *)file, &ref, NULL) == noErr);
-	// todo -- if it wasn't a resource file, this will fail
-	// should provide a nicer error message.
-    refNum = FSOpenResFile(&ref, fsRdPerm);
-    assert(refNum != -1 );
-
-	int l = Count1Resources('CODE');
-	segments.reserve(l);
-
-	assert(l > 0);
-
-    for (int i = 0; i < l; ++i)
-    {
-		ResAttributes attr;
-		ResID resID;
-		ResType resType;
-		Str255 name;
-		uint32_t size;
-		uint32_t address;
-		Handle h;
-		const uint8_t *data;
-
-		uint16_t error;
-
-
-		h = Get1IndResource('CODE', i + 1);
-		if (!h) continue;
-		HLock(h);
-		data = *(const uint8_t **)h;
-
-		attr = GetResAttrs(h);
-		GetResInfo(h, &resID, &resType, name);
-
-		size = GetHandleSize(h);
-
-		if (segments.size() <= resID) segments.resize(resID + 1);
-		// can't have duplicate resIDs, so no need to check that...
-
-		if (resID == 0)
-		{
-			// jump table/a5
-			uint32_t above = ReadLong(data, 0);
-			uint32_t below = ReadLong(data, 4);
-			uint32_t jtSize = ReadLong(data, 8);
-			uint32_t jtOffset = ReadLong(data, 12);
-
-			uint32_t a5size = above + below;
-
-			// TODO -- verify numbers are on word boundary?
-
-
-			error = MM::Native::NewPtr(a5size, true, address);
-			if (error)
-			{
-				fprintf(stderr, "Memory allocation error.\n");
-				return 0;
-			}
-
-			a5 = address + below;
-			std::memcpy(memoryPointer(a5 + jtOffset), data + 16 , jtSize);
-
-			segments[resID] = SegInfo(address, a5size, false);
-
-			jtStart = a5 + jtOffset;
-			jtEnd = jtStart + jtSize;
-
-
-			// 0x0934 - CurJTOffset (16-bit)
-			memoryWriteWord(jtOffset, MacOS::CurJTOffset);
-
-			// 0x0904 -- CurrentA5 (32-bit)
-			memoryWriteLong(a5, MacOS::CurrentA5);
-			cpuSetAReg(5, a5);
-		}
-		else
-		{
-			bool farModel = false;
-			if (data[0] == 0xff && data[1] == 0xff) farModel = true;
-
-			error = MM::Native::NewPtr(size, false, address);
-			if (error)
-			{
-				fprintf(stderr, "Memory allocation error.\n");
-				return 0;
-			}
-
-			std::memcpy(memoryPointer(address), data, size);
-
-			segments[resID] = SegInfo(address, size, farModel);
-		}
-
-		ReleaseResource(h);
-    }
-
-    // now link the segment 0 jump table...
-    assert(a5);
-
-    bool first = true;
-    bool farModel = false;
-    for (; jtStart < jtEnd; jtStart += 8)
-    {
-    	uint16_t seg;
-    	uint32_t offset;
-    	if (farModel)
-    	{
-    		seg = memoryReadWord(jtStart + 0);
-    		offset = memoryReadLong(jtStart + 4);
-
-    		assert(memoryReadWord(jtStart + 2) == 0xA9F0);
-    	}
-    	else
-    	{
-    		uint16_t farModelCheck;
-    		offset = memoryReadWord(jtStart);
-    		farModelCheck = memoryReadWord(jtStart + 2);
-    		seg = memoryReadWord(jtStart + 4);
-
-    		if (farModelCheck == 0xffff)
-    		{
-    			farModel = true;
-    			continue;
-    		}
-
-	    	assert(memoryReadWord(jtStart + 2) == 0x3F3C);
-	    	assert(memoryReadWord(jtStart + 6) == 0xA9F0);
-	    }
-
-		assert(seg < segments.size());
-
-    	auto p = segments[seg];
-    	//assert(p.first); // missing segment?!
-    	//assert(offset < p.second);
-
-    	assert(p.address); // missing segment?!
-    	assert(offset < p.size);
-
-    	// +$4/$28 for the jump table info header.
-    	uint32_t address = p.address + offset + (p.farModel ? 0x00 : 0x04); // was 0x28
-
-    	// JMP absolute long
-    	memoryWriteWord(0x4EF9, jtStart + 2);
-    	memoryWriteLong(address, jtStart + 4);
-
-    	if (first)
-    	{
-	    	//cpuSetPC(address);
-	    	returnAddress = address;
-    		first = false;
-    	}
-    }
-
-    // far-model relocation.  This happens here, after a5 is loaded.
-
-    for (const auto &seg : segments)
-    {
-		if (seg.farModel)
-		{
-			relocate(seg.address, seg.size, a5);
-		}
-	}
-
-
-    // set pc to jump table entry 0.
-    return returnAddress;
-}
-#endif
 
 
 void GlobalInit()
@@ -411,20 +149,9 @@ void CreateStack()
 	uint32_t address;
 	//uint16_t error;
 
-#if 0
-	Flags.stackSize = (Flags.stackSize + 3) & ~0x03;
-
-	error = MM::Native::NewPtr(Flags.stackSize, true, address);
-	if (error)
-	{
-		fprintf(stderr, "Unable to allocate stack (%08x bytes)\n", Flags.stackSize);
-		exit(EX_CONFIG);
-	}
-#else
-
+	// stack is at top of memory because some apps assume stack overflow if elsewhere.
+	
 	address = Flags.memorySize - Flags.stackSize;
-
-#endif
 
 	Flags.stackRange.first = address;
 	Flags.stackRange.second = address + Flags.stackSize;
@@ -955,13 +682,9 @@ int main(int argc, char **argv)
 
 	CreateStack();
 
-#ifdef LOADER_LOAD
 	uint16_t err = Loader::Native::LoadFile(command);
 	if (err) exit(EX_CONFIG);
-#else
-	uint32_t address = load(command.c_str());
-	if (!address) exit(EX_CONFIG);
-#endif
+
 	GlobalInit();
 
 
@@ -985,10 +708,6 @@ int main(int argc, char **argv)
 		#endif
 		// else do it manually below.
 	}
-
-#ifndef LOADER_LOAD
-	cpuInitializeFromNewPC(address);
-#endif
 
 	if (Flags.debugger) Debug::Shell();
 	else MainLoop();
