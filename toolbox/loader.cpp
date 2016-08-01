@@ -31,8 +31,6 @@
 #include <algorithm>
 #include <unordered_map>
 
-//#include <CoreServices/CoreServices.h>
-
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
@@ -253,29 +251,6 @@ namespace Loader {
 		{
 
 			uint16_t err;
-#if 0
-			HFSUniStr255 fork = {0,{0}};
-			ResFileRefNum refNum;
-			FSRef ref;
-
-
-
-			// TODO -- call RM::Native::OpenResourceFile(...);
-
-			err = FSPathMakeRef( (const UInt8 *)path.c_str(), &ref, NULL);
-			if (err) return err;
-
-
-			::FSGetResourceForkName(&fork);
-
-			err = ::FSOpenResourceFile(&ref,
-				fork.length,
-				fork.unicode,
-				fsRdPerm,
-				&refNum);
-
-			if (err) return err;
-#endif
 
 			// open the file
 			// load code seg 0

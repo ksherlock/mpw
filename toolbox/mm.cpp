@@ -106,6 +106,48 @@ namespace
 namespace MM
 {
 
+
+	template<class T>
+	struct tool_return_base { typedef T type; };
+
+	template<class T>
+	struct tool_return_base<tool_return<T>> { typedef T type; };
+
+
+	template<class T, class F>
+	tool_return<T> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<!std::is_void<T>::value>::type* = 0) {
+		tool_return<T> rv = f(info);
+		return rv;
+	}
+
+	template<class T, class F>
+	tool_return<void> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<std::is_void<T>::value>::type* = 0) {
+		f(info);
+		return tool_return<void>();
+	}
+
+
+
+	template<class F, typename T = typename tool_return_base<typename std::result_of<F(HandleInfo &)>::type>::type>
+	tool_return<T>
+	__with_handle(uint32_t handle, F &&f)
+	{
+		const auto iter = HandleMap.find(handle);
+
+		if (iter == HandleMap.end()) {
+			tool_return<T> rv = SetMemError(MacOS::memWZErr);
+			return rv;
+		}
+
+		auto &info = iter->second;
+		//tool_return<T> rv = f(info);
+		tool_return<T> rv = with_handle_helper<T>(std::forward<F>(f), info);
+		SetMemError(rv.error());
+		return rv;	
+	}
+
+
+
 	bool Init(uint8_t *memory, uint32_t memorySize, uint32_t globals, uint32_t stack)
 	{
 		int ok;
@@ -135,44 +177,6 @@ namespace MM
 	namespace Native {
 
 
-		template<class T>
-		struct tool_return_base { typedef T type; };
-
-		template<class T>
-		struct tool_return_base<tool_return<T>> { typedef T type; };
-
-
-		template<class T, class F>
-		tool_return<T> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<!std::is_void<T>::value>::type* = 0) {
-			tool_return<T> rv = f(info);
-			return rv;
-		}
-
-		template<class T, class F>
-		tool_return<void> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<std::is_void<T>::value>::type* = 0) {
-			f(info);
-			return tool_return<void>();
-		}
-
-
-
-		template<class F, typename T = typename tool_return_base<typename std::result_of<F(HandleInfo &)>::type>::type>
-		tool_return<T>
-		__with_handle(uint32_t handle, F &&f)
-		{
-			const auto iter = HandleMap.find(handle);
-
-			if (iter == HandleMap.end()) {
-				tool_return<T> rv = SetMemError(MacOS::memWZErr);
-				return rv;
-			}
-
-			auto &info = iter->second;
-			//tool_return<T> rv = f(info);
-			tool_return<T> rv = with_handle_helper<T>(std::forward<F>(f), info);
-			SetMemError(rv.error());
-			return rv;	
-		}
 
 
 		// debugger support.
@@ -334,19 +338,17 @@ namespace MM
 
 			// PPCLink calls NewHandle(0) but expects a valid pointer
 			// Assertion failed: *fHandle != NULL
-			//if (size)
-			//{
-				ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
-				if (!ptr)
-				{
-					HandleQueue.push_back(hh);
-					return SetMemError(MacOS::memFullErr);
-				}
-				mcptr = ptr - Memory;
 
-				if (clear)
-					std::memset(ptr, 0, size);
-			//}
+			ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
+			if (!ptr)
+			{
+				HandleQueue.push_back(hh);
+				return SetMemError(MacOS::memFullErr);
+			}
+			mcptr = ptr - Memory;
+
+			if (clear)
+				std::memset(ptr, 0, size);
 
 			// need a handle -> ptr map?
 			HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
@@ -1000,43 +1002,6 @@ namespace MM
 
 		return Native::ReallocHandle(hh, logicalSize).error();
 
-#if 0
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		auto& info = iter->second;
-
-		if (info.locked) return SetMemError(MacOS::memLockedErr);
-
-		if (info.address)
-		{
-			void *address = Memory + info.address;
-
-			mplite_free(&pool, address);
-
-			info.address = 0;
-			info.size = 0;
-			memoryWriteLong(0, hh);
-		}
-
-		// allocate a new block...
-		if (logicalSize == 0) return SetMemError(0);
-
-		void *address = mplite_malloc(&pool, logicalSize);
-		if (!address) return SetMemError(MacOS::memFullErr);
-
-		uint32_t mcptr = (uint8_t *)address - Memory;
-
-		info.size = logicalSize;
-		info.address = mcptr;
-
-		memoryWriteLong(mcptr, hh);
-
-		// lock?  clear purged flag?
-
-		return 0;
-#endif
 	}
 
 
@@ -1234,12 +1199,7 @@ namespace MM
 
 		Log("%04x HPurge(%08x)\n", trap, hh);
 
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-		iter->second.purgeable = true;
-
-		return SetMemError(0);
+		return __with_handle(hh, [](HandleInfo &info){ info.purgeable = true; }).error();
 	}
 
 
@@ -1259,12 +1219,8 @@ namespace MM
 
 		Log("%04x HNoPurge(%08x)\n", trap, hh);
 
-		auto iter = HandleMap.find(hh);
+		return __with_handle(hh, [](HandleInfo &info){ info.purgeable = false; }).error();
 
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-		iter->second.purgeable = false;
-
-		return SetMemError(0);
 	}
 
 	uint16_t HLock(uint16_t trap)
@@ -1282,12 +1238,7 @@ namespace MM
 
 		Log("%04x HLock(%08x)\n", trap, hh);
 
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		iter->second.locked = true;
-		return SetMemError(0);
+		return __with_handle(hh, [](HandleInfo &info){ info.locked = true; }).error();
 	}
 
 	uint16_t HUnlock(uint16_t trap)
@@ -1305,12 +1256,8 @@ namespace MM
 
 		Log("%04x HUnlock(%08x)\n", trap, hh);
 
-		auto iter = HandleMap.find(hh);
+		return __with_handle(hh, [](HandleInfo &info){ info.locked = false; }).error();
 
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		iter->second.locked = false;
-		return SetMemError(0);
 	}
 
 	#pragma mark - OS Utility Routines
