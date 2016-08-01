@@ -29,9 +29,10 @@ namespace OS
 
 	bool Init();
 
+/*
 	bool IsTextFile(const std::string &s);
 	bool IsBinaryFile(const std::string &s);
-
+*/
 	time_t UnixToMac(time_t);
 	time_t MacToUnix(time_t);
 

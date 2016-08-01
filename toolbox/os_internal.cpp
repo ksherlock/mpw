@@ -246,11 +246,6 @@ namespace OS { namespace Internal {
 
 		std::string xname = filename;
 
-/*
-		if (fork)
-			xname.append(_PATH_RSRCFORKSPEC);
-*/
-
 		Log("     open(%s, %04x, %04x)\n", xname.c_str(), access, fork);
 
 
@@ -266,7 +261,7 @@ namespace OS { namespace Internal {
 
 		auto &e = OS::Internal::FDEntry::allocate(fd, filename);
 		e.resource = fork;
-		e.text = fork ? false : IsTextFile(filename);
+		e.text = fork ? false : native::is_text_file(filename);
 
 		return fd;
 	}

@@ -227,8 +227,8 @@ namespace MPW
 			// dumpobj, makelib, linkiigs don't set O_BINARY (but should)
 			// MPW Assembler sets O_BINARY (but shouldn't)
 
-			if (OS::IsTextFile(sname)) f.flags &= ~kO_BINARY;
-			if (OS::IsBinaryFile(sname)) f.flags |= kO_BINARY;
+			if (native::is_text_file(sname)) f.flags &= ~kO_BINARY;
+			if (native::is_binary_file(sname)) f.flags |= kO_BINARY;
 
 			if (f.flags & kO_RSRC) f.flags |= kO_BINARY;
 

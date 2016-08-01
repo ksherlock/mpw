@@ -69,7 +69,7 @@ namespace {
 
 
 
-
+#if 0
 	std::string extension(const std::string &s)
 	{
 		std::string tmp;
@@ -97,7 +97,7 @@ namespace {
 
 		return s.substr(pos + 1);
 	}
-
+#endif
 
 
 }
@@ -119,7 +119,7 @@ namespace OS
 		return true;
 	}
 
-
+#if 0
 	// known text file extensions
 	bool IsTextFile(const std::string &s)
 	{
@@ -292,6 +292,7 @@ namespace OS
 
 		return false;
 	}
+#endif
 
 	uint16_t Close(uint16_t trap)
 	{
