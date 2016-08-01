@@ -69,7 +69,7 @@ set_source_files_properties(
 	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
 )
 
-add_executable(mpw loader.cpp debugger.cpp debugger_internal.cpp 
+add_executable(mpw main.cpp debugger.cpp debugger_internal.cpp 
 	address_map.cpp lexer.cpp parser.cpp loadtrap.cpp 
 	commands.cpp
 	template_loader.cpp template_parser.cpp intern.cpp template.cpp)

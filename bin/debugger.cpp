@@ -45,7 +45,7 @@
 #include <readline/readline.h>
 
 
-#include "loader.h"
+#include "main.h"
 #include "address_map.h"
 
 #include "debugger.h"

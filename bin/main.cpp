@@ -56,7 +56,7 @@
 #include <macos/sysequ.h>
 #include <macos/traps.h>
 
-#include "loader.h"
+#include "main.h"
 #include "debugger.h"
 
 #include <cxx/string_splitter.h>

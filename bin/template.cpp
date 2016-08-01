@@ -1,7 +1,7 @@
 #include "template.h"
 #include "debugger.h"
 #include "debugger_internal.h"
-#include "loader.h" // Flags.
+#include "main.h" // Flags.
 
 #include <algorithm>
 
