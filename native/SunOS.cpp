@@ -51,8 +51,8 @@ namespace {
 		uint32_t rv = 0;
 		struct stat st;
 
-			fd = attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, O_RDONLY);
-			if (fd >= 0) {
+		fd = attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, O_RDONLY);
+		if (fd >= 0) {
 
 			if (fstat(fd, &st) == 0) rv = st.st_size;
 
@@ -108,7 +108,7 @@ namespace native {
 		prodos_ftype_in(buffer);
 
 
-		fd = attropen(path_name.c_str(), XATTR_FINDERINFO_NAME, O_WRONLY | O_CREAT);
+		int fd = attropen(path_name.c_str(), XATTR_FINDERINFO_NAME, O_WRONLY | O_CREAT);
 		if (fd < 0) return macos_error_from_errno();
 
 		rv = write(fd, info, extended ? 32 : 16);
@@ -188,7 +188,7 @@ namespace native {
 		struct timeval tv[2];
 		memset(tv, 0, sizeof(tv));
 
-		rv = 0;
+		int rv = 0;
 		if (modify_date) {
 			tv[0].tv_sec = st.st_atime;
 			tv[1].tv_sec = modify_date;
