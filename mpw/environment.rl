@@ -27,6 +27,7 @@
 #include <string>
 #include <unordered_map>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 #include <sys/types.h>

@@ -46,7 +46,7 @@
 
 #include <cpu/defs.h>
 #include <cpu/fmem.h>
-#include <cpu/cpuModule.h>
+#include <cpu/CpuModule.h>
 
 #include <toolbox/toolbox.h>
 #include <toolbox/mm.h>

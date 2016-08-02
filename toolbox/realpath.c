@@ -29,8 +29,8 @@
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)realpath.c	8.1 (Berkeley) 2/16/94";
 #endif /* LIBC_SCCS and not lint */
-#include <sys/cdefs.h>
-
+//#include <sys/cdefs.h>
+#include <limits.h>
 //#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -42,6 +42,9 @@ static char sccsid[] = "@(#)realpath.c	8.1 (Berkeley) 2/16/94";
 //#include "un-namespace.h"
 
 #define FS_SPEC
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
 
 /*
  * Find the real name of path, by removing all ".", ".." and symlink
