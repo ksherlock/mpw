@@ -15,7 +15,6 @@
 #ifdef __sun__
 #include <endian.h>
 
-
 #endif
 
 

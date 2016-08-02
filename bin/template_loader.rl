@@ -15,6 +15,10 @@
 #include "template.h"
 #include "intern.h"
 
+#ifndef MAP_FILE
+#define MAP_FILE 0
+#endif
+
 namespace {
 
 	int tox(char c)
