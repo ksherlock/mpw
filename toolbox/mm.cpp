@@ -312,6 +312,27 @@ namespace MM
 			return SetMemError(0);
 		}
 
+		/* create a NULL handle (for resource manager) */
+		tool_return<uint32_t> NewHandle()
+		{
+			uint32_t hh;
+
+			if (!HandleQueue.size())
+			{
+				if (!alloc_handle_block())
+				{
+					return SetMemError(MacOS::memFullErr);
+				}
+			}
+
+			hh = HandleQueue.front();
+			HandleQueue.pop_front();
+			HandleMap.emplace(std::make_pair(hh, HandleInfo(0, 0)));
+			memoryWriteLong(0, hh);
+
+			return hh;
+		}
+
 		tool_return<hp> NewHandle(uint32_t size, bool clear)
 		{
 			uint8_t *ptr;

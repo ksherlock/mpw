@@ -40,6 +40,7 @@ namespace MM
 		void PrintMemoryStats();
 
 		tool_return<hp> NewHandle(uint32_t size, bool clear);
+		tool_return<uint32-t> NewHandle();
 
 		tool_return<uint32_t> NewPtr(uint32_t size, bool clear);
 
