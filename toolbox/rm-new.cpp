@@ -152,6 +152,13 @@ enum {
 	resChanged = 2,
 };
 
+enum {
+	mapReadOnly = 128,
+	mapCompact = 64,
+	mapChanged = 32
+};
+
+
 struct resource {
 	uint32_t type = 0;
 	uint16_t id = 0;
@@ -168,7 +175,6 @@ struct resource_file {
 	resource_file *next = nullptr;
 	int fd = -1;
 	int refnum = -1;
-	bool readonly = true;
 
 
 	// header
@@ -232,11 +238,11 @@ namespace {
 		if (ok != rf.length_rmap) return mapReadErr;
 
 		rf.attr = read_16(rmap, 22, std::nothrow);
-		uint16_t offset_type_list = read_16(rmap, 24, std::nothrow) + 2;
+		uint16_t offset_type_list = read_16(rmap, 24, std::nothrow);
 		uint16_t offset_name_list = read_16(rmap, 26, std::nothrow);
-		int16_t count = read_16(rmap, 28, std::nothrow);
+		int count = (read_16(rmap, 28, std::nothrow) + 1) & 0xffff;
 
-		if (offset_type_list < 30) return mapReadErr;
+		if (offset_type_list < 30-2) return mapReadErr;
 		if (offset_name_list < 30) return mapReadErr;
 		if (offset_type_list > rf.length_rmap) return mapReadErr;
 		if (offset_name_list > rf.length_rmap) return mapReadErr;
@@ -244,20 +250,20 @@ namespace {
 
 		try {
 
-			unsigned tl_offset = offset_type_list;
+			unsigned tl_offset = offset_type_list + 2;
 			check_size(rmap, tl_offset + (count + 1) * 8);
 
-			while (count-- >= 0) {
+			while (count--) {
 
 				struct resource r;
 
 				r.type = read_32(rmap, tl_offset + 0, std::nothrow);
-				int16_t count = read_16(rmap, tl_offset + 4, std::nothrow);
+				int count = (read_16(rmap, tl_offset + 4, std::nothrow) + 1) & 0xffff;
 				unsigned rl_offset = offset_type_list + read_16(rmap, tl_offset + 6, std::nothrow);
 
 				check_size(rmap, rl_offset + (count + 1) * 12);
 
-				while (count-- >= 0) {
+				while (count--) {
 
 					r.id = read_16(rmap, rl_offset + 0, std::nothrow);
 
@@ -359,7 +365,7 @@ namespace Native {
 		auto rf = std::make_unique<resource_file>();
 
 		rf->fd = fd;
-		rf->readonly = true;
+		rf->attr |= mapReadOnly;
 		auto rv = read_resource_map(*rf);
 		if (rv.error()) return rv.error();
 
@@ -497,6 +503,18 @@ namespace Native {
 	}
 
 
+
+
+	tool_return<void> CreateResFile(const std::string &path, uint32_t creator, uint32_t fileType)
+	{
+		if (path.empty()) return MacOS::paramErr;
+
+		fprintf(stderr, "%s : not yet implemented!\n", __func__);
+		exit(1);
+		return noErr;
+	}
+
+
 } // Native
 
 
@@ -592,6 +610,79 @@ namespace Native {
 		}
 		return SetResError(resNotFound);
 	}
+
+
+	uint16_t SetResAttrs(uint16_t trap)
+	{
+		// PROCEDURE SetResAttrs (theResource: Handle; attrs: Integer);
+
+		uint32_t theResource;
+		uint16_t attrs;
+
+		StackFrame<6>(theResource, attrs);
+
+		Log("%04x SetResAttrs(%08x, %04x)\n", trap, theResource, attrs);
+
+		if (!theResource) return SetResError(resNotFound);
+
+		for (resource_file *rf = head; rf; rf = rf->next) {
+			for (auto &r : rf->resources) {
+
+				if (r.handle == theResource) {
+					if (r.attr & resChanged) attrs |= resChanged;
+					r.attr = attrs;
+					return SetResError(noErr);
+				}
+
+			}
+		}
+		return SetResError(resNotFound);
+	}
+
+
+	uint16_t GetResFileAttrs(uint16_t trap)
+	{
+		// FUNCTION GetResFileAttrs (refNum: Integer): Integer;
+		uint32_t sp;
+		uint16_t refNum;
+
+		sp = StackFrame<2>(refNum);
+		Log("%04x GetResFileAttrs(%04x)\n", trap, refNum);
+
+		for (auto rf = head ; rf; rf = rf->next) {
+			if (rf->refnum == refNum) {
+				ToolReturn<2>(sp, rf->attr);
+				return SetResError(noErr);
+			}
+		}
+
+		return SetResError(resFNotFound);
+	}
+
+
+	uint16_t SetResFileAttrs(uint16_t trap)
+	{
+		// PROCEDURE SetResFileAttrs  (refNum: Integer; attrs: Integer);
+		uint32_t sp;
+		uint16_t attrs;
+		uint16_t refNum;
+
+		sp = StackFrame<4>(refNum, attrs);
+		Log("%04x GetResFileAttrs(%04x, %04x)\n", trap, refNum, attrs);
+
+
+		for (auto rf = head ; rf; rf = rf->next) {
+			if (rf->refnum == refNum) {
+				// don't clear the read-only flag [???]
+				if (rf->attr & mapReadOnly) attrs |= mapReadOnly;
+				rf->attr = attrs;
+				return SetResError(noErr);
+			}
+		}
+
+		return SetResError(resFNotFound);
+	}
+
 
 
 
@@ -981,6 +1072,312 @@ namespace Native {
 
 		ToolReturn<4>(sp, rv.value());
 		return SetResError(rv.error());
+	}
+
+
+	uint16_t ChangedResource(uint16_t trap)
+	{
+		// PROCEDURE ChangedResource (theResource: Handle);
+
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x ChangedResource(%08x)\n", trap, theResource);
+
+
+		if (!theResource) return SetResError(resNotFound);
+
+		for (auto rf = head; rf; rf = rf->next) {
+			for (auto &r : rf->resources) {
+				if (r.handle == theResource) {
+					if (rf->attr & mapReadOnly) return wPrErr; // ?
+					if (r.attr & resProtected) return noErr;
+					r.attr |= resChanged;
+					rf->attr |= mapChanged;
+
+					// inside macintosh says it also extends the file size.
+					return noErr;
+				}
+			}
+		}
+		return SetResError(resNotFound);
+	}
+
+
+
+#pragma mark - Create Resource Files.
+
+
+	uint16_t CreateResFile(uint16_t trap)
+	{
+		// PROCEDURE CreateResFile (fileName: Str255);
+
+		/*
+		 * CreateResFile creates a resource file containing no resource
+		 * data. If there's no file at all with the given name, it also
+		 * creates an empty data fork for the file. If there's already a
+		 * resource file with the given name (that is, a resource fork
+		 * that isn't empty), CreateResFile will do nothing and the
+		 * ResError function will return an appropriate Operating System
+		 * result code.
+		 */
+
+		uint32_t fileName;
+
+		StackFrame<4>(fileName);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+		Log("%04x CreateResFile(%s)\n", trap, sname.c_str());
+
+		if (!sname.length()) return SetResError(MacOS::paramErr);
+
+
+		auto rv = Native::CreateResFile(sname);
+
+		return SetResError(rv.error());
+	}
+
+	uint16_t HCreateResFile(uint16_t trap)
+	{
+		// PROCEDURE HCreateResFile (vRefNum: Integer; dirID: LongInt;
+		//                           fileName: Str255);
+
+		uint16_t vRefNum;
+		uint32_t dirID;
+		uint32_t fileName;
+
+		StackFrame<10>(vRefNum, dirID, fileName);
+
+		std::string sname = ToolBox::ReadPString(fileName, true);
+
+		Log("%04x HCreateResFile(%04x, %08x, %s)\n",
+			trap, vRefNum, dirID, sname.c_str());
+
+
+		sname = OS::FSSpecManager::ExpandPath(sname, dirID);
+		if (sname.empty())
+		{
+			return SetResError(MacOS::dirNFErr);
+		}
+
+		auto rv = Native::CreateResFile(sname);
+
+		return SetResError(rv.error() == MacOS::dupFNErr ? 0 : rv.error());
+	}
+
+
+	uint16_t FSpCreateResFile(void)
+	{
+
+		// PROCEDURE FSpCreateResFile (spec: FSSpec; creator, fileType: OSType; scriptTag: ScriptCode);
+
+		// creates the file, if necessary.
+
+		uint32_t sp;
+		uint32_t spec;
+		uint32_t creator;
+		uint32_t fileType;
+		uint16_t scriptTag;
+
+		sp = StackFrame<14>(spec, creator, fileType, scriptTag);
+
+
+		int parentID = memoryReadLong(spec + 2);
+		std::string sname = ToolBox::ReadPString(spec + 6, false);
+
+		Log("     FSpCreateResFile(%s, %08x ('%s'), %08x ('%s'), %02x)\n",
+			sname.c_str(),
+			creator, ToolBox::TypeToString(creator).c_str(),
+			fileType, ToolBox::TypeToString(fileType).c_str(),
+			scriptTag);
+
+
+		sname = OS::FSSpecManager::ExpandPath(sname, parentID);
+		if (sname.empty())
+		{
+			return SetResError(MacOS::dirNFErr);
+		}
+
+		auto rv = Native::CreateResFile(sname, creator, fileType);
+
+		return SetResError(rv.error() == MacOS::dupFNErr ? 0 : rv.error());
+	}
+
+#pragma mark - Not Yet Implemented.
+
+
+	uint16_t AddResource(uint16_t trap)
+	{
+		// PROCEDURE AddResource (theData: Handle; theType: ResType;
+		// theID: Integer; name: Str255);
+
+		uint32_t theData;
+		uint32_t theType;
+		uint16_t theID;
+		uint32_t namePtr;
+
+
+		StackFrame<14>(theData, theType, theID, namePtr);
+
+		std::string sname = ToolBox::ReadPString(namePtr, false);
+
+		Log("%04x AddResource(%08x, %08x ('%s'), %04x, %s)\n",
+			trap, theData, theType, TypeToString(theType).c_str(), theID, sname.c_str()
+		);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+
+	uint16_t LoadResource(uint16_t trap)
+	{
+		// PROCEDURE LoadResource (theResource: Handle);
+
+		// this loads the resource from disk, if not already
+		// loaded. (if purgeable or SetResLoad(false))
+
+		// this needs cooperation with MM to check if
+		// handle was purged.
+
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x LoadResource(%08x)\n", trap, theResource);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+	uint16_t UpdateResFile(uint16_t trap)
+	{
+		// PROCEDURE UpdateResFile (refNum: Integer);
+
+		uint16_t refNum;
+
+		StackFrame<2>(refNum);
+
+		Log("%04x UpdateResFile(%04x)\n", trap, refNum);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+	uint16_t WriteResource(uint16_t trap)
+	{
+		// PROCEDURE WriteResource (theResource: Handle);
+
+		uint32_t theResource;
+		StackFrame<4>(theResource);
+
+		Log("%04x WriteResource(%08x)\n", trap, theResource);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+	uint16_t RemoveResource(uint16_t trap)
+	{
+		// PROCEDURE RemoveResource (theResource: Handle);
+
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x RemoveResource(%08x)\n", trap, theResource);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+	uint16_t GetResourceSizeOnDisk(uint16_t trap)
+	{
+		// FUNCTION GetResourceSizeOnDisk (theResource: Handle): LongInt;
+
+		uint32_t sp;
+		uint32_t theResource;
+
+		sp = StackFrame<4>(theResource);
+
+		Log("%04x GetResourceSizeOnDisk(%08x)\n", trap, theResource);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+
+	uint16_t Count1Resources(uint16_t trap)
+	{
+		// FUNCTION Count1Resources (theType: ResType): Integer;
+
+		uint32_t sp;
+		uint32_t theType;
+		uint16_t count;
+
+		sp = StackFrame<4>(theType);
+
+		Log("%04x Count1Resources(%08x ('%s'))\n",
+			trap, theType, TypeToString(theType).c_str());
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+	uint16_t Get1IndResource(uint16_t trap)
+	{
+		// FUNCTION Get1IndResource (theType: ResType; index: Integer): Handle;
+
+		uint32_t sp;
+		uint32_t theType;
+		uint16_t index;
+
+		sp = StackFrame<6>(theType, index);
+		Log("%04x Get1IndResource(%08x ('%s'), %04x)\n",
+			trap, theType, TypeToString(theType).c_str(), index);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+
+	uint16_t Count1Types(uint16_t trap)
+	{
+		// FUNCTION Count1Types: Integer;
+
+		uint16_t count;
+
+		Log("%04x Count1Types\n", trap);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+	}
+
+
+	uint16_t Get1IndType(uint16_t trap)
+	{
+		// PROCEDURE Get1IndType (VAR theType: ResType; index: Integer);
+
+		uint32_t theType;
+		uint16_t index;
+
+		StackFrame<6>(theType, index);
+
+		Log("%04x Get1IndType(%08x, %04x)\n", trap, theType, index);
+
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
 	}
 
 } // RM

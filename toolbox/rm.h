@@ -16,6 +16,9 @@ namespace RM
 		tool_return<uint32_t> GetResource(uint32_t type, uint16_t id);
 		tool_return<int16_t> OpenResFile(const std::string &path_name, uint16_t permissions = 0);
 		tool_return<void> CloseResFile(uint16_t refNum);
+
+		tool_return<void> CreateResFile(const std::string &path, uint32_t creator = 0, uint32_t fileType = 0);
+
 	}
 
 	uint16_t CloseResFile(uint16_t trap);
