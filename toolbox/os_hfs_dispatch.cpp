@@ -34,9 +34,7 @@
 #include <string>
 #include <cstring>
 
-#include <sys/xattr.h>
 #include <sys/stat.h>
-#include <sys/paths.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -381,7 +379,9 @@ namespace OS {
 					if (!strcmp(dir->d_name, ".")) continue;
 					if (!strcmp(dir->d_name, "..")) continue;
 				}
+#ifdef HAVE_DIRENT_D_NAMLEN
 				if (dir->d_namlen > 255) continue;  // too long!
+#endif
 				if (--ioFDirIndex == 0) break;
 			}
 

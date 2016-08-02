@@ -38,13 +38,11 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/xattr.h>
 #include <sys/attr.h>
-#include <sys/paths.h>
 
 #include <native/native.h>
 
-#include <machine/endian.h>
+//#include <machine/endian.h>
 
 using ToolBox::Log;
 using MacOS::macos_error_from_errno;

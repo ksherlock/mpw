@@ -1,10 +1,36 @@
-set(CMAKE_C_COMPILER "clang")
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall  -g")
-set(CMAKE_C_FLAGS " -Wall  -g")
-
-project(mpw)
 cmake_minimum_required(VERSION 2.6)
+project(mpw)
+set (PROJECT_TYPE "CXX")
+set (PROJECT_NAME "mpw")
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS FALSE)
+
+if (APPLE)
+	set(CMAKE_C_COMPILER "clang")
+	set(CMAKE_CXX_COMPILER "clang++")
+	set(CMAKE_CXX_FLAGS "-stdlib=libc++ -Wall -g")
+	set(CMAKE_C_FLAGS " -Wall  -g")
+elseif("${CMAKE_SYSTEM_NAME}" MATCHES "SunOS")
+	set(CMAKE_C_COMPILER "gcc")
+	set(CMAKE_CXX_COMPILER "g++")
+	set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -g")
+	set(CMAKE_C_FLAGS "-std=c99 -Wall  -g")
+elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
+	set(CMAKE_C_COMPILER "gcc")
+	set(CMAKE_CXX_COMPILER "g++")
+	set(CMAKE_CXX_FLAGS "-std=c++14 -Wall  -g")
+	set(CMAKE_C_FLAGS "-std=c99 -Wall  -g")
+elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Windows")
+
+endif()
+
+
+#set_property (TARGET mpw PROPERTY CXX_STANDARD 14)
+#set_property (TARGET mpw PROPERTY CXX_STANDARD_REQUIRED TRUE)
+#set_property (TARGET mpw PROPERTY CXX_EXTENSIONS FALSE)
+
 
 add_subdirectory(bin)
 add_subdirectory(cpu)

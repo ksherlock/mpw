@@ -34,9 +34,7 @@
 #include <map>
 #include <type_traits>
 
-#include <sys/xattr.h>
 #include <sys/stat.h>
-#include <sys/paths.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>

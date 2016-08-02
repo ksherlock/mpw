@@ -1,7 +1,3 @@
-#set(CMAKE_C_COMPILER "clang")
-#set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wno-deprecated-declarations -g")
-SET(CMAKE_EXE_LINKER_FLAGS "-framework Carbon")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
@@ -84,9 +80,9 @@ target_link_libraries(mpw MACOS_LIB)
 set_target_properties(mpw PROPERTIES LINK_FLAGS "-ledit")
 
 
-add_executable(disasm disasm.cpp)
-target_link_libraries(disasm CPU_LIB)
-target_link_libraries(disasm MACOS_LIB)
+#add_executable(disasm disasm.cpp)
+#target_link_libraries(disasm CPU_LIB)
+#target_link_libraries(disasm MACOS_LIB)
 
 install(
   PROGRAMS

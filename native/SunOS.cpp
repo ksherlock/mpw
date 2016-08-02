@@ -79,7 +79,7 @@ namespace native {
 			if (x == 32 || x == 16){
 				prodos_ftype_out(buffer);
 				memcpy(info, buffer, extended ? 32 : 16);
-				return 0;
+				return noErr;
 			}
 		}
 

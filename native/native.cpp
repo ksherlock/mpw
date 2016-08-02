@@ -26,10 +26,13 @@
 
 
 #include "native_internal.h"
+#include <string>
+#include <algorithm>
 
 #include <cctype>
 #include <fcntl.h>
 #include <unistd.h>
+#include <strings.h>
 
 using namespace MacOS;
 

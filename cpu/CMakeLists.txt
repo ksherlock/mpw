@@ -1,6 +1,6 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_C_FLAGS " -Wall -Wno-unused-function -g")
+set(CMAKE_C_FLAGS "-std=c99 -Wall -Wno-unused-function -g")
 
 set(CPU_SRC 
 	CpuModule.c 
