@@ -1,6 +1,6 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wno-deprecated-declarations -g")
+set(CMAKE_CXX_FLAGS "-std=c++14 -stdlib=libc++ -Wall -Wno-deprecated-declarations -g")
 
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 
@@ -8,7 +8,8 @@ set(TOOLBOX_SRC
 	toolbox.cpp
 	mm.cpp
 	loader.cpp
-	rm.cpp
+#	rm.cpp
+	rm-new.cpp
 	os.cpp
 	os_alias.cpp
 	os_fileinfo.cpp
