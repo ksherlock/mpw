@@ -93,6 +93,34 @@ namespace native {
 
 	}
 
+
+	macos_error set_finder_info(const std::string &path_name, const void *info, bool extended) {
+
+		uint8_t buffer[32];
+		ssize_t rv;
+
+		std::memset(buffer, 0, sizeof(buffer));
+		if (extended) {
+			std::memcpy(buffer, info, 32);
+		} else {
+			std::memcpy(buffer, info, 16);
+		}
+		prodos_ftype_in(buffer);
+
+
+		fd = attropen(path_name.c_str(), XATTR_FINDERINFO_NAME, O_WRONLY | O_CREAT);
+		if (fd < 0) return macos_error_from_errno();
+
+		rv = write(fd, info, extended ? 32 : 16);
+		close(fd);
+
+		if ( rv < 0) return macos_error_from_errno();
+
+		return noErr;
+	}
+
+
+
 	macos_error get_file_info(const std::string &path_name, file_info &fi)
 	{
 		struct stat st;
@@ -134,6 +162,43 @@ namespace native {
 
 		return noErr;
 	}
+
+
+	macos_error set_file_info(const std::string &path_name, const file_info &fi) {
+
+		struct stat st;
+
+		if (stat(path_name.c_str(), &st) < 0) return macos_error_from_errno();
+
+		if (S_ISREG(st.st_mode)) {
+			auto rv = set_finder_info(path_name, fi.finder_info);
+			if (rv) return rv;
+		}
+
+		time_t create_date = fi.create_date ? mac_to_unix(fi.create_date) : 0;
+		time_t modify_date = fi.modify_date ? mac_to_unix(fi.modify_date) : 0;
+		time_t backup_date = fi.backup_date ? mac_to_unix(fi.backup_date) : 0;
+
+		// todo -- value of 0 == set to current date/time?
+
+		if (modify_date == st.st_mtime) modify_date = 0;
+
+		// try utimes.
+
+		struct timeval tv[2];
+		memset(tv, 0, sizeof(tv));
+
+		rv = 0;
+		if (modify_date) {
+			tv[0].tv_sec = st.st_atime;
+			tv[1].tv_sec = modify_date;
+			rv = utimes(path_name.c_str(), tv);
+		}
+
+		if (rv < 0) return macos_error_from_errno();
+		return noErr;
+	}
+
 
 	int open_resource_fork(const std::string &path_name, int oflag) {
 

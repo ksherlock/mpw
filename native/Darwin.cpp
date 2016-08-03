@@ -345,6 +345,7 @@ namespace native {
 
 			rv = 0;
 			if (modify_date) {
+				tv[0].tv_sec = st.st_atime;
 				tv[1].tv_sec = modify_date;
 				rv = utimes(path_name.c_str(), tv);
 			}
