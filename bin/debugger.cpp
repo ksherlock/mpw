@@ -146,7 +146,7 @@ namespace {
 			printf("            %s\n\n", s.c_str());
 
 			// word-align
-			pc = pc + 1 & ~0x01;
+			pc = (pc + 1) & ~0x01;
 
 			// and possibly a zero-word after it.
 			if (Debug::ReadWord(pc) == 0x0000) pc += 2;
@@ -1225,7 +1225,13 @@ namespace {
 	{
 		rl_readline_name = (char *)"mpw";
 		rl_attempted_completion_function = mpw_attempted_completion_function;
+		#if RL_READLINE_VERSION == 0x0402
+		/* actually libedit */
 		rl_completion_entry_function = (Function *)mpw_completion_entry_function;
+		#else
+		/* gnu readline, I presume */
+		rl_completion_entry_function = mpw_completion_entry_function;
+		#endif
 	}
 }
 
