@@ -11,10 +11,9 @@ namespace MacOS {
 		class tool_return_base
 		{
 			protected:
-			macos_error _error;
+			macos_error _error = noErr;
 
-			tool_return_base() : _error(static_cast<macos_error>(0))
-			{}
+			tool_return_base() = default;
 
 			tool_return_base(macos_error error) : _error(error)
 			{}
@@ -41,7 +40,7 @@ namespace MacOS {
 	class tool_return : public internal::tool_return_base
 	{
 		private:
-		T _value;
+		T _value = T();
 
 		tool_return() = delete;
 
