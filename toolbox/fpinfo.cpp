@@ -1,6 +1,6 @@
 #include "fpinfo.h"
 
-#include <machine/endian.h>
+#include <config.h>
 
 
 static_assert(sizeof(float) == 4, "Unexpected float size");
