@@ -5,7 +5,7 @@
 
 static_assert(sizeof(float) == 4, "Unexpected float size");
 static_assert(sizeof(double) == 8, "Unexpected double size");
-static_assert(sizeof(long double) == 8 || sizeof(long double) == 16, "Unexpected long double size");
+static_assert(sizeof(long double) == 8 || sizeof(long double) == 12 || sizeof(long double) == 16, "Unexpected long double size");
 
 void fpinfo::init(float *f)
 {

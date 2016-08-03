@@ -15,7 +15,7 @@ struct fpinfo {
 	fpinfo(float f) { init(&f); }
 	fpinfo(double d) { init(&d); }
 	fpinfo(long double ld) {
-		if (sizeof(long double) == 16) init(&ld);
+		if (sizeof(long double) == 16 || sizeof(long double) == 12) init(&ld);
 		if (sizeof(long double) == 8) init((double *)&ld);
 	}
 

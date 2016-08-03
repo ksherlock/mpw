@@ -169,8 +169,7 @@ using its_complicated::signbit;
 	{
 		char buffer[16];
 
-		static_assert(sizeof(long double) == 16, "unexpected long double size");
-
+		static_assert(sizeof(long double) == 16 || sizeof(long double) == 12, "unexpected long double size");
 
 		// read and swap 10 bytes
 		// this is very much little endian.
@@ -184,6 +183,7 @@ using its_complicated::signbit;
 			buffer[i] = 0;
 
 		// now cast...
+
 
 		return *((long double *)buffer);
 	}
@@ -235,7 +235,7 @@ using its_complicated::signbit;
 	template<>
 	void writenum<long double>(long double value, uint32_t address)
 	{
-		static_assert(sizeof(value) == 16, "unexpected long double size");
+		static_assert(sizeof(value) == 16 || sizeof(value) == 12, "unexpected long double size");
 
 		char buffer[16];
 

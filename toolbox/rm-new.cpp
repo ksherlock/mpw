@@ -1320,7 +1320,6 @@ namespace Native {
 
 		uint32_t sp;
 		uint32_t theType;
-		uint16_t count;
 
 		sp = StackFrame<4>(theType);
 
@@ -1353,8 +1352,6 @@ namespace Native {
 	uint16_t Count1Types(uint16_t trap)
 	{
 		// FUNCTION Count1Types: Integer;
-
-		uint16_t count;
 
 		Log("%04x Count1Types\n", trap);
 
