@@ -108,7 +108,7 @@ namespace native {
 		prodos_ftype_in(buffer);
 
 
-		int fd = attropen(path_name.c_str(), XATTR_FINDERINFO_NAME, O_WRONLY | O_CREAT);
+		int fd = attropen(path_name.c_str(), XATTR_FINDERINFO_NAME, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0) return macos_error_from_errno();
 
 		rv = write(fd, info, extended ? 32 : 16);
