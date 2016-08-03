@@ -115,7 +115,10 @@ namespace {
 		machine lexer;
 
 		action addx {
-			value = (value << 4) + digittoint(fc);
+			int x = fc;
+			if (x >= '0' && x <= '9') x = x -'0';
+			else x = (x | 0x20) - 'a' + 10;
+			value = (value << 4) + x;
 		}
 
 		ws = [ \t];
