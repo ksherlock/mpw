@@ -55,6 +55,8 @@
 #include "stackframe.h"
 #include "fs_spec.h"
 
+#include <config.h>
+
 #include <native/native.h>
 
 using ToolBox::Log;
@@ -381,6 +383,8 @@ namespace OS {
 				}
 #ifdef HAVE_DIRENT_D_NAMLEN
 				if (dir->d_namlen > 255) continue;  // too long!
+#else
+				if (strlen(dir->d_name) > 255) continue;
 #endif
 				if (--ioFDirIndex == 0) break;
 			}

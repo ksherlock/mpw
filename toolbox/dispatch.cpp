@@ -54,6 +54,8 @@
 #include <macos/errors.h>
 #include <macos/traps.h>
 
+#include <config.h>
+
 // yuck.  TST.W d0
 extern "C" void cpuSetFlagsNZ00NewW(UWO res);
 
@@ -102,7 +104,7 @@ namespace {
 	#if BYTE_ORDER == LITTLE_ENDIAN
 	inline constexpr uint16_t host_to_big_endian_16(uint16_t x)
 	{
-		return __builtin_bswap16(x);
+		return (x << 8) | (x >> 8); // __builtin_bswap16(x);
 	}
 	#endif
 
