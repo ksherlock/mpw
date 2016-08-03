@@ -36,7 +36,7 @@ extern char **environ;
 
 
 namespace _env_rl {
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+#if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
     #define _GETDELIM_GROWBY 128 /* amount to grow line buffer by */
     #define _GETDELIM_MINLEN 4 /* minimum line buffer size */
      
@@ -105,7 +105,7 @@ namespace _env_rl {
      
      
     ssize_t getline(char ** lineptr, size_t * n, FILE * stream) {
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+#if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
         return getdelim(lineptr, n, '\n', stream);
 #else
         return ::getline(lineptr, n, stream);
