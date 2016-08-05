@@ -110,38 +110,56 @@ namespace MM
 	template<class T>
 	struct tool_return_base { typedef T type; };
 
+	// not quite right.... gets turned to tool_return<void>();
+	/*
+	template<>
+	struct tool_return_base<macos_error> { typedef void type ; };
+	*/
+
 	template<class T>
 	struct tool_return_base<tool_return<T>> { typedef T type; };
 
 
-	template<class T, class F>
-	tool_return<T> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<!std::is_void<T>::value>::type* = 0) {
-		tool_return<T> rv = f(info);
+
+	template<class T>
+	struct tool_return_type { typedef tool_return<T> type; };
+
+	template<>
+	struct tool_return_type<MacOS::macos_error> { typedef tool_return<void> type; };
+
+
+	template<class T>
+	struct tool_return_type<tool_return<T>> { typedef tool_return<T> type; };
+
+
+	template<class T, class FRT, class F>
+	T with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<!std::is_void<FRT>::value>::type* = 0) {
+		T rv = f(info);
 		return rv;
 	}
 
-	template<class T, class F>
-	tool_return<void> with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<std::is_void<T>::value>::type* = 0) {
+	template<class T, class FRT, class F>
+	T with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<std::is_void<FRT>::value>::type* = 0) {
 		f(info);
 		return tool_return<void>();
 	}
 
 
 
-	template<class F, typename T = typename tool_return_base<typename std::result_of<F(HandleInfo &)>::type>::type>
-	tool_return<T>
-	__with_handle(uint32_t handle, F &&f)
+	template<class F,
+		typename FRT = typename std::result_of<F(HandleInfo &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT __with_handle(uint32_t handle, F &&f)
 	{
 		const auto iter = HandleMap.find(handle);
 
 		if (iter == HandleMap.end()) {
-			tool_return<T> rv = SetMemError(MacOS::memWZErr);
+			TRT rv = SetMemError(MacOS::memWZErr);
 			return rv;
 		}
 
 		auto &info = iter->second;
-		//tool_return<T> rv = f(info);
-		tool_return<T> rv = with_handle_helper<T>(std::forward<F>(f), info);
+		TRT rv = with_handle_helper<TRT, FRT>(std::forward<F>(f), info);
 		SetMemError(rv.error());
 		return rv;	
 	}

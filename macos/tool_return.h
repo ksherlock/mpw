@@ -50,6 +50,7 @@ namespace MacOS {
 		}
 
 		public:
+		typedef T value_type;
 
 		tool_return(T value) : _value(value)
 		{}
@@ -116,8 +117,9 @@ namespace MacOS {
 	{
 		public:
 
-		tool_return()
-		{}
+		typedef void value_type;
+
+		tool_return() = default;
 
 		tool_return(macos_error error) : tool_return_base(error)
 		{}
