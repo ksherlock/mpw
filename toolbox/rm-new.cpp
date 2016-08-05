@@ -206,7 +206,10 @@ bool operator<(const resource &lhs, const resource &rhs) {
 	return (lhs.type < rhs.type) || (lhs.type == rhs.type && lhs.id < rhs.id);
 }
 
-
+/*
+ * snake_case functions DO NOT set ResError.
+ * CamelCase functions set ResError.
+ */
 
 namespace {
 
@@ -294,15 +297,70 @@ namespace {
 		return noErr;
 	}
 
+	tool_return<void> load_resource(resource_file &rf, resource &r) {
+		ssize_t ok;
+		uint32_t handle = r.handle;
+
+		if (!handle) return resNotFound;
+		auto hi = MM::Native::GetHandleInfo(handle);
+		if (hi.error()) return hi.error();
+		if (hi->address) return noErr;
+
+
+		// always loads, even if res_load is false.
+
+		if (r.size == -1) {
+			uint8_t buffer[4];
+			if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
+				return macos_error_from_errno();
+			ok = read(rf.fd, buffer, sizeof(buffer));
+			if (ok != 4) return mapReadErr;
+
+			r.size = read_32(buffer);
+		} else {
+
+			if (lseek(rf.fd, rf.offset_rdata + r.data_offset + 4, SEEK_SET) < 0)
+				return macos_error_from_errno();
+
+		}
+
+		auto ptr = MM::Native::ReallocHandle(handle, r.size);
+		if (ptr.error()) return ptr.error();
+
+		unsigned attr = MM::attrResource;
+		if (r.attr & resPurgeable) attr |= MM::attrPurgeable;
+		if (r.attr & resLocked) attr |= MM::attrLocked;
+
+
+		ok = read(rf.fd, memoryPointer(*ptr), r.size);
+		if (ok < 0) {
+			auto rv = macos_error_from_errno();
+			// ???
+			MM::Native::EmptyHandle(handle);
+			return rv;
+		}
+
+		if (ok != r.size) {
+			MM::Native::EmptyHandle(handle);
+			return mapReadErr;
+		}
+
+		// locked blocks can't be purged.
+		MM::Native::HSetState(handle, attr);
+		return noErr;
+
+	}
+
 	tool_return<uint32_t> read_resource(resource_file &rf, resource &r) {
 
 		ssize_t ok;
 
 		if (r.handle) return r.handle;
 
+
 		if (!res_load) {
 			/* create a null handle */
-			auto hh = MM::Native::NewHandle();
+			auto hh = MM::Native::NewEmptyHandle();
 			if (hh.error()) return hh.error();
 			r.handle = *hh;
 			return *hh;
@@ -313,7 +371,7 @@ namespace {
 			if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
 				return macos_error_from_errno();
 			ok = read(rf.fd, buffer, sizeof(buffer));
-			if (ok != 4) return badExtResource;
+			if (ok != 4) return mapReadErr;
 
 			r.size = read_32(buffer);
 		} else {
@@ -323,9 +381,13 @@ namespace {
 
 		}
 
-		auto hh = MM::Native::NewHandle(r.size, false);
+		unsigned attr = MM::attrResource;
+		if (r.attr & resPurgeable) attr |= MM::attrPurgeable;
+		if (r.attr & resLocked) attr |= MM::attrLocked;
+
+
+		auto hh = MM::Native::NewHandleWithAttr(r.size, attr);
 		if (hh.error()) return hh.error();
-		MM::Native::HSetRBit(hh->handle);
 
 		ok = read(rf.fd, memoryPointer(hh->pointer), r.size);
 		if (ok < 0) {
@@ -336,7 +398,7 @@ namespace {
 
 		if (ok != r.size) {
 			MM::Native::DisposeHandle(hh->handle);
-			return badExtResource;
+			return mapReadErr;
 		}
 
 		r.handle = hh->handle;
