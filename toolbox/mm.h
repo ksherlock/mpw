@@ -9,6 +9,12 @@
 namespace MM
 {
 
+	enum  {
+		attrResource = 1 << 5,
+		attrPurgeable = 1 << 6,
+		attrLocked = 1 << 7,
+	};
+
 	struct HandleInfo
 	{
 		uint32_t address = 0;
@@ -20,6 +26,15 @@ namespace MM
 		HandleInfo(uint32_t a = 0, uint32_t s = 0) :
 			address(a), size(s)
 		{}
+
+		HandleInfo(uint32_t a, uint32_t s, unsigned attr) :
+			address(a), size(s)
+		{
+			resource = attr & attrResource;
+			purgeable = attr & attrPurgeable;
+			locked = attr & attrLocked;
+		}
+
 	};
 
 
@@ -40,7 +55,8 @@ namespace MM
 		void PrintMemoryStats();
 
 		tool_return<hp> NewHandle(uint32_t size, bool clear);
-		tool_return<uint32_t> NewHandle();
+		tool_return<hp> NewHandleWithAttr(uint32_t size, unsigned attr);
+		tool_return<uint32_t> NewEmptyHandle();
 
 		tool_return<uint32_t> NewPtr(uint32_t size, bool clear);
 
@@ -49,14 +65,20 @@ namespace MM
 
 		tool_return<uint32_t> GetHandleSize(uint32_t handle);
 
-		tool_return<void> SetHandleSize(uint32_t handle, uint32_t newSize);
-		tool_return<void> ReallocHandle(uint32_t handle, uint32_t newSize);
+		tool_return<uint32_t> SetHandleSize(uint32_t handle, uint32_t newSize);
+		tool_return<uint32_t> ReallocHandle(uint32_t handle, uint32_t newSize);
+
+		tool_return<void> HSetState(uint32_t handle, uint16_t attr);
+		tool_return<uint16_t> HGetState(uint32_t handle);
 
 		tool_return<void> HSetRBit(uint32_t handle);
 		tool_return<void> HClrRBit(uint32_t handle);
 
 		tool_return<void> HLock(uint32_t handle);
 		tool_return<void> HUnlock(uint32_t handle);
+
+		tool_return<void> EmptyHandle(uint32_t handle);
+
 
 
 		tool_return<HandleInfo> GetHandleInfo(uint32_t handle);

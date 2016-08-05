@@ -331,7 +331,7 @@ namespace MM
 		}
 
 		/* create a NULL handle (for resource manager) */
-		tool_return<uint32_t> NewHandle()
+		tool_return<uint32_t> NewEmptyHandle()
 		{
 			uint32_t hh;
 
@@ -370,14 +370,6 @@ namespace MM
 			hh = HandleQueue.front();
 			HandleQueue.pop_front();
 
-			ptr = nullptr;
-
-			// todo -- size 0 should have a ptr to differentiate
-			// from purged.
-
-			// PPCLink calls NewHandle(0) but expects a valid pointer
-			// Assertion failed: *fHandle != NULL
-
 			ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
 			if (!ptr)
 			{
@@ -391,6 +383,46 @@ namespace MM
 
 			// need a handle -> ptr map?
 			HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size)));
+
+			memoryWriteLong(mcptr, hh);
+			handle = hh;
+			SetMemError(0);
+			return hp{handle, mcptr};
+		}
+
+
+		tool_return<hp> NewHandleWithAttr(uint32_t size, unsigned attr)
+		{
+			uint8_t *ptr;
+			uint32_t hh;
+
+			uint32_t handle = 0;
+			uint32_t mcptr = 0;
+
+			if (!HandleQueue.size())
+			{
+				if (!alloc_handle_block())
+				{
+					return SetMemError(MacOS::memFullErr);
+				}
+			}
+
+			hh = HandleQueue.front();
+			HandleQueue.pop_front();
+
+			ptr = (uint8_t *)mplite_malloc(&pool, size ? size : 1);
+			if (!ptr)
+			{
+				HandleQueue.push_back(hh);
+				return SetMemError(MacOS::memFullErr);
+			}
+			mcptr = ptr - Memory;
+
+			// always clear it.
+			std::memset(ptr, 0, size);
+
+			// need a handle -> ptr map?
+			HandleMap.emplace(std::make_pair(hh, HandleInfo(mcptr, size, attr)));
 
 			memoryWriteLong(mcptr, hh);
 			handle = hh;
@@ -423,8 +455,9 @@ namespace MM
 
 
 
-		tool_return<void> ReallocHandle(uint32_t handle, uint32_t logicalSize)
+		tool_return<uint32_t> ReallocHandle(uint32_t handle, uint32_t logicalSize)
 		{
+			if (handle == 0) return SetMemError(MacOS::nilHandleErr);
 
 			auto iter = HandleMap.find(handle);
 
@@ -434,18 +467,15 @@ namespace MM
 
 			if (info.locked) return SetMemError(MacOS::memLockedErr);
 
-
 			uint32_t mcptr = 0;
 
-			if (logicalSize)
-			{
-				// todo -- purge & retry on failure.
+			// todo -- purge & retry on failure.
 
-				void *address = mplite_malloc(&pool, logicalSize);
-				if (!address) return SetMemError(MacOS::memFullErr);
+			void *address = mplite_malloc(&pool, logicalSize ? logicalSize : 1);
+			if (!address) return SetMemError(MacOS::memFullErr);
 
-				mcptr = (uint8_t *)address - Memory;
-			}
+			std::memset(address, 0, logicalSize);
+			mcptr = (uint8_t *)address - Memory;
 
 			// the handle is not altered in the event of an error.
 			if (info.address)
@@ -458,16 +488,46 @@ namespace MM
 			info.address = mcptr;
 			info.size = logicalSize;
 
+			// "The new block is unlocked and unpurgeable."
+			info.locked = false;
+			info.purgeable = false;
+
+
 			memoryWriteLong(mcptr, handle);
 
-			// lock?  clear purged flag?
-
-			return MacOS::noErr;
+			return mcptr;
 
 		}
 
+		/* returns true if memory has been purged. */
+		bool Purge(uint32_t but_not_this_handle = 0) {
+			bool rv = false;
 
-		tool_return<void> SetHandleSize(uint32_t handle, uint32_t newSize)
+			for (auto & kv : HandleMap)
+			{
+				uint32_t ph = kv.first;
+				auto &info = kv.second;
+
+				if (info.address == 0) continue;
+				if (ph == but_not_this_handle) continue;
+
+				if (info.purgeable && !info.locked)
+				{
+					mplite_free(&pool, Memory + info.address);
+					info.size = 0;
+					info.address = 0;
+
+					// also need to update memory
+					memoryWriteLong(0, ph);
+
+					rv = true;
+				}
+			}
+
+			return rv;
+		}
+
+		tool_return<uint32_t> SetHandleSize(uint32_t handle, uint32_t newSize)
 		{
 			if (handle == 0) return SetMemError(MacOS::nilHandleErr);
 
@@ -503,7 +563,9 @@ namespace MM
 				info.size = 0;
 
 				memoryWriteLong(info.address, handle);
-				return SetMemError(0);
+				SetMemError(0);
+				return info.address;
+
 			}
 
 			// 2. - resizing from 0.
@@ -520,7 +582,8 @@ namespace MM
 				info.size = newSize;
 
 				memoryWriteLong(info.address, handle);
-				return SetMemError(0);
+				SetMemError(0);
+				return info.address;
 			}
 
 			for (unsigned i = 0; i < 2; ++i)
@@ -532,7 +595,8 @@ namespace MM
 					if (mplite_resize(&pool, ptr, mplite_roundup(&pool, newSize)) == MPLITE_OK)
 					{
 						info.size = newSize;
-						return SetMemError(0);
+						SetMemError(0);
+						return info.address;
 					}
 				}
 				else
@@ -549,7 +613,8 @@ namespace MM
 						info.size = newSize;
 
 						memoryWriteLong(info.address, handle);
-						return SetMemError(0);
+						SetMemError(0);
+						return info.address;
 					}
 
 				}
@@ -557,30 +622,30 @@ namespace MM
 				fprintf(stderr, "mplite_realloc failed.\n");
 				Native::PrintMemoryStats();
 
-				if (i > 0) return SetMemError(MacOS::memFullErr);
-
-				// purge...
-				for (auto & kv : HandleMap)
-				{
-					uint32_t ph = kv.first;
-					auto &info = kv.second;
-
-					if (ph == handle) continue;
-					if (info.size && info.purgeable && !info.locked)
-					{
-						mplite_free(&pool, Memory + info.address);
-						info.size = 0;
-						info.address = 0;
-
-						// also need to update memory
-						memoryWriteLong(0, ph);
-					}
-				}
+				if (i > 0 || !Purge(handle)) break;
 			}
 			return SetMemError(MacOS::memFullErr);
-
 		}
 
+		tool_return<void> HSetState(uint32_t handle, uint16_t attr)
+		{
+			return __with_handle(handle, [attr](HandleInfo &info){
+				info.resource = attr & attrResource;
+				info.purgeable = attr & attrPurgeable;
+				info.locked = attr & attrLocked;
+			});
+		}
+
+		tool_return<uint16_t> HGetState(uint32_t handle)
+		{
+			return __with_handle(handle, [](const HandleInfo &info){
+				uint16_t attr = 0;
+				if (info.resource) attr |= attrResource;
+				if (info.purgeable) attr |= attrPurgeable;
+				if (info.locked) attr |= attrLocked;
+				return attr;
+			});
+		}
 
 		tool_return<void> HSetRBit(uint32_t handle)
 		{
@@ -613,6 +678,24 @@ namespace MM
 		}
 
 
+		tool_return<void> EmptyHandle(uint32_t handle) {
+			return __with_handle(handle, [handle](HandleInfo &info)  {
+
+				if (info.address == 0) return MacOS::noErr;
+				// "The block whose handle is h must be unlocked but need not be purgeable."
+				if (info.locked) return MacOS::memPurErr;
+
+				void *address = Memory + info.address;
+
+				mplite_free(&pool, address);
+
+				info.address = 0;
+				info.size = 0;
+
+				memoryWriteLong(0, handle);
+				return MacOS::noErr;
+			});
+		}
 
 	}
 
@@ -989,23 +1072,7 @@ namespace MM
 		uint32_t hh = cpuGetAReg(0);
 		Log("%04x EmptyHandle(%08x)\n", trap, hh);
 
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		auto &info = iter->second;
-		if (info.address == 0) return SetMemError(0);
-		if (info.locked) return SetMemError(MacOS::memLockedErr); // ?
-
-		void *address = Memory + info.address;
-
-		mplite_free(&pool, address);
-
-		info.address = 0;
-		info.size = 0;
-
-		memoryWriteLong(0, hh);
-		return 0;
+		return Native::EmptyHandle(hh).error();
 	}
 
 	/*
@@ -1164,31 +1231,8 @@ namespace MM
 
 		Log("%04x HGetState(%08x)\n", trap, hh);
 
-
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		/*
-		 * flag bits:
-		 * 0-4: reserved
-		 * 5: is a resource
-		 * 6: set if purgeable
-		 * 7: set if locked
-		 */
-
-		const auto &info = iter->second;
-
-		// resouce not yet supported...
-		// would need extra field and support in RM:: when
-		// creating.
-		// see HSetRBit, HClrRBit
-		if (info.resource) flags |= (1 << 5);
-		if (info.purgeable) flags |= (1 << 6);
-		if (info.locked) flags |= (1 << 7);
-
-		SetMemError(0);
-		return flags;
+		auto rv = Native::HGetState(hh);
+		return rv.error() ? rv.error() : rv.value();
 	}
 
 	uint16_t HSetState(uint16_t trap)
@@ -1208,18 +1252,7 @@ namespace MM
 
 		Log("%04x HSetState(%08x, %04x)\n", trap, hh, flags);
 
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		auto &info = iter->second;
-
-		info.resource = (flags & (1 << 5));
-		info.purgeable = (flags & (1 << 6));
-		info.locked = (flags & (1 << 7));
-
-
-		return SetMemError(0);
+		return Native::HSetState(hh, flags).error();
 	}
 
 	uint16_t HPurge(uint16_t trap)
