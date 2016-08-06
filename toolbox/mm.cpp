@@ -108,20 +108,6 @@ namespace MM
 
 
 	template<class T>
-	struct tool_return_base { typedef T type; };
-
-	// not quite right.... gets turned to tool_return<void>();
-	/*
-	template<>
-	struct tool_return_base<macos_error> { typedef void type ; };
-	*/
-
-	template<class T>
-	struct tool_return_base<tool_return<T>> { typedef T type; };
-
-
-
-	template<class T>
 	struct tool_return_type { typedef tool_return<T> type; };
 
 	template<>
@@ -1136,13 +1122,8 @@ namespace MM
 
 		Log("%04x GetHandleSize(%08x)\n", trap, hh);
 
-		if (hh == 0) return SetMemError(MacOS::nilHandleErr); // ????
-
-		auto iter = HandleMap.find(hh);
-
-		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
-
-		return iter->second.size;
+		auto rv = Native::GetHandleSize(hh);
+		return rv ? rv.value() : rv.error();
 	}
 
 	uint16_t SetHandleSize(uint16_t trap)
@@ -1232,7 +1213,8 @@ namespace MM
 		Log("%04x HGetState(%08x)\n", trap, hh);
 
 		auto rv = Native::HGetState(hh);
-		return rv.error() ? rv.error() : rv.value();
+		return rv ? rv.value() :  rv.error();
+		//return Native::HGetState(hh).then([](const tool_return<uint16_t> &rv){ return rv ? *rv : rv.error(); });
 	}
 
 	uint16_t HSetState(uint16_t trap)
