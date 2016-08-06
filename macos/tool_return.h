@@ -48,6 +48,53 @@ namespace MacOS {
 			}
 
 		};
+
+		class void_tool_return : public tool_return_base {
+			public:
+
+			typedef void value_type;
+
+			void_tool_return() = default;
+
+			void_tool_return(macos_error error) : tool_return_base(error)
+			{}
+
+			void_tool_return &operator=(macos_error error)
+			{
+				_error = error;
+				return *this;
+			}
+
+			template<class F, typename RT = typename std::result_of<F(void_tool_return)>::type>
+			void then(F &&f, typename std::enable_if<std::is_void<RT>::value>::type* = 0) {
+				f(std::move(*this));
+			}
+
+			template<class F, typename RT = typename std::result_of<F(void_tool_return)>::type>
+			RT then(F &&f, typename std::enable_if<!std::is_void<RT>::value>::type* = 0) {
+				return f(std::move(*this));
+			}
+
+			template<class F, typename RT = typename std::result_of<F()>::type>
+			typename tool_return_type<RT>::type
+			map(F &&f, typename std::enable_if<std::is_void<RT>::value>::type* = 0) {
+				if (_error) return _error;
+				f();
+				//return tool_return<void>();
+				return noErr;
+			}		
+
+			template<class F, typename RT = typename std::result_of<F()>::type>
+			typename tool_return_type<RT>::type
+			map(F &&f, typename std::enable_if<!std::is_void<RT>::value>::type* = 0) {
+				if (_error) return _error;
+				return f();
+			}
+
+
+
+		};
+
 	} // namespace
 
 
@@ -142,12 +189,12 @@ namespace MacOS {
 			return _value;
 		}
 
-		template<class F, typename RT = typename std::result_of<F(tool_return<T>)>::type>
+		template<class F, typename RT = typename std::result_of<F(tool_return)>::type>
 		void then(F &&f, typename std::enable_if<std::is_void<RT>::value>::type* = 0) {
 			f(std::move(*this));
 		}
 
-		template<class F, typename RT = typename std::result_of<F(tool_return<T>)>::type>
+		template<class F, typename RT = typename std::result_of<F(tool_return)>::type>
 		RT then(F &&f, typename std::enable_if<!std::is_void<RT>::value>::type* = 0) {
 			return f(std::move(*this));
 		}
@@ -171,43 +218,14 @@ namespace MacOS {
 	};
 
 	template<>
-	class tool_return<void> : public internal::tool_return_base
-	{
-		public:
-
-		typedef void value_type;
-
-		tool_return() = default;
-
-		tool_return(macos_error error) : tool_return_base(error)
-		{}
-
-		tool_return &operator=(macos_error error)
-		{
-			_error = error;
-			return *this;
-		}
+	class tool_return<void> : public internal::void_tool_return {
+		public: using void_tool_return::void_tool_return;
 	};
 
 
-
 	template<>
-	class tool_return<macos_error> : public internal::tool_return_base
-	{
-		public:
-
-		typedef void value_type;
-
-		tool_return() = default;
-
-		tool_return(macos_error error) : tool_return_base(error)
-		{}
-
-		tool_return &operator=(macos_error error)
-		{
-			_error = error;
-			return *this;
-		}
+	class tool_return<macos_error> : public internal::void_tool_return {
+		public: using void_tool_return::void_tool_return;
 	};
 
 
