@@ -3,6 +3,8 @@
 
 #include "errors.h"
 #include <utility>
+#include <type_traits>
+
 
 namespace MacOS {
 
@@ -213,6 +215,11 @@ namespace MacOS {
 		map(F &&f, typename std::enable_if<!std::is_void<RT>::value>::type* = 0) {
 			if (_error) return _error;
 			return f(std::move(_value));
+		}
+
+		template<class TT=T>
+		T value_or_error(typename std::enable_if<std::is_integral<TT>::value>::type * = 0) const {
+			return _error ? _error : _value;
 		}
 
 	};

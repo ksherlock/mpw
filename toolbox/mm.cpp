@@ -936,10 +936,7 @@ namespace MM
 
 		Log("%04x DisposePtr(%08x)\n", trap, mcptr);
 
-
-		auto rv = Native::DisposePtr(mcptr);
-
-		return rv.error(); //SetMemError(error);
+		return Native::DisposePtr(mcptr).error();
 	}
 
 	uint32_t GetPtrSize(uint16_t trap)
@@ -1093,7 +1090,6 @@ namespace MM
 		Log("%04x ReallocHandle(%08x, %08x)\n", trap, hh, logicalSize);
 
 		return Native::ReallocHandle(hh, logicalSize).error();
-
 	}
 
 
@@ -1122,8 +1118,7 @@ namespace MM
 
 		Log("%04x GetHandleSize(%08x)\n", trap, hh);
 
-		auto rv = Native::GetHandleSize(hh);
-		return rv ? rv.value() : rv.error();
+		return Native::GetHandleSize(hh).value_or_error();
 	}
 
 	uint16_t SetHandleSize(uint16_t trap)
@@ -1212,9 +1207,7 @@ namespace MM
 
 		Log("%04x HGetState(%08x)\n", trap, hh);
 
-		auto rv = Native::HGetState(hh);
-		return rv ? rv.value() :  rv.error();
-		//return Native::HGetState(hh).then([](const tool_return<uint16_t> &rv){ return rv ? *rv : rv.error(); });
+		return Native::HGetState(hh).value_or_error();
 	}
 
 	uint16_t HSetState(uint16_t trap)
