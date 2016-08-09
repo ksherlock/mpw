@@ -77,6 +77,7 @@ target_link_libraries(mpw MPW_LIB)
 target_link_libraries(mpw MPLITE_LIB)
 target_link_libraries(mpw NATIVE_LIB)
 target_link_libraries(mpw MACOS_LIB)
+target_link_libraries(mpw CXX_LIB)
 set_target_properties(mpw PROPERTIES LINK_FLAGS "-ledit")
 
 
