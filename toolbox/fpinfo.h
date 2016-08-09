@@ -4,6 +4,16 @@
 #include <cstdint>
 
 struct fpinfo {
+
+private:
+	/*
+	void init(float *);
+	void init(double *);
+	void init(long double *);
+	*/
+
+public:
+
 	bool sign = false;
 	bool one = false;
 	int exp = 0;
@@ -12,17 +22,9 @@ struct fpinfo {
 	bool nan = false;
 	bool inf = false;
 
-	fpinfo(float f) { init(&f); }
-	fpinfo(double d) { init(&d); }
-	fpinfo(long double ld) {
-		if (sizeof(long double) == 16 || sizeof(long double) == 12) init(&ld);
-		if (sizeof(long double) == 8) init((double *)&ld);
-	}
-
-private:
-	void init(float *);
-	void init(double *);
-	void init(long double *);
+	fpinfo(const float &f);
+	fpinfo(const double &d);
+	fpinfo(const long double &ld);
 };
 
 

@@ -21,7 +21,7 @@
 #define bswap32 __builtin_bswap32
 #define bswap64 __builtin_bswap64
 
-#if _BYTE_ORDER == _LITTLE_ENDIAN
+#if BYTE_ORDER == LITTLE_ENDIAN
 #define	htobe16(x)	bswap16((x))
 #define	htobe32(x)	bswap32((x))
 #define	htobe64(x)	bswap64((x))
@@ -35,7 +35,7 @@
 #define	le16toh(x)	((uint16_t)(x))
 #define	le32toh(x)	((uint32_t)(x))
 #define	le64toh(x)	((uint64_t)(x))
-#else /* _BYTE_ORDER != _LITTLE_ENDIAN */
+#else /* BYTE_ORDER != LITTLE_ENDIAN */
 #define	htobe16(x)	((uint16_t)(x))
 #define	htobe32(x)	((uint32_t)(x))
 #define	htobe64(x)	((uint64_t)(x))
@@ -49,7 +49,28 @@
 #define	le16toh(x)	bswap16((x))
 #define	le32toh(x)	bswap32((x))
 #define	le64toh(x)	bswap64((x))
-#endif /* _BYTE_ORDER == _LITTLE_ENDIAN */
+#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+
+#endif
+
+
+#ifdef __cplusplus
+
+// https://github.com/HowardHinnant/hash_append/blob/master/endian.h
+enum class endian
+{
+    native = LITTLE_ENDIAN,
+    little = LITTLE_ENDIAN,
+    big    = BIG_ENDIAN
+};
+
+static_assert(endian::native == endian::little ||
+              endian::native == endian::big,
+              "endian::native shall be one of endian::little or endian::big");
+
+static_assert(endian::big != endian::little,
+              "endian::big and endian::little shall have different values");
+
 
 #endif
 

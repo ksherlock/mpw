@@ -167,7 +167,7 @@ using its_complicated::signbit;
 	template<>
 	long double readnum<long double>(uint32_t address)
 	{
-		char buffer[16];
+		uint8_t buffer[16];
 
 		static_assert(sizeof(long double) == 16 || sizeof(long double) == 12, "unexpected long double size");
 
@@ -237,7 +237,7 @@ using its_complicated::signbit;
 	{
 		static_assert(sizeof(value) == 16 || sizeof(value) == 12, "unexpected long double size");
 
-		char buffer[16];
+		uint8_t buffer[16];
 
 		std::memcpy(buffer, &value, sizeof(value));
 
