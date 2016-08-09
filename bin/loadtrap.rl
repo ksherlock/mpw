@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Kelvin W Sherlock
+ * Copyright (c) 2013, 2016, Kelvin W Sherlock
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,260 +24,120 @@
  *
  */
 
-#include <map>
-#include <string>
-#include <cstdio>
+%%{
 
-#include <sys/types.h>
-#include <limits.h>
+machine load_traps;
+alphtype unsigned char;
 
-namespace _loadtrap_rl {
-#if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
-    #define _GETDELIM_GROWBY 128 /* amount to grow line buffer by */
-    #define _GETDELIM_MINLEN 4 /* minimum line buffer size */
-     
-    ssize_t getdelim(char ** lineptr, size_t * n, int delimiter, FILE * stream) {
-        char *buf, *pos;
-        int c;
-        ssize_t bytes;
-         
-        if (lineptr == NULL || n == NULL) {
-            errno = EINVAL;
-            return -1;
-        }
-        if (stream == NULL) {
-            errno = EBADF;
-            return -1;
-        }
-         
-        /* resize (or allocate) the line buffer if necessary */
-        buf = *lineptr;
-        if (buf == NULL || *n < _GETDELIM_MINLEN) {
-            buf = (char*)realloc(*lineptr, _GETDELIM_GROWBY);
-            if (buf == NULL) {
-                /* ENOMEM */
-                return -1;
-            }
-            *n = _GETDELIM_GROWBY;
-            *lineptr = buf;
-        }
-         
-        /* read characters until delimiter is found, end of file is reached, or an
-        error occurs. */
-        bytes = 0;
-        pos = buf;
-        while ((c = getc(stream)) != EOF) {
-            if (bytes + 1 >= SSIZE_MAX) {
-                errno = EOVERFLOW;
-                return -1;
-            }
-            bytes++;
-            if (bytes >= *n - 1) {
-                buf = (char*)realloc(*lineptr, *n + _GETDELIM_GROWBY);
-                if (buf == NULL) {
-                    /* ENOMEM */
-                    return -1;
-                }
-                *n += _GETDELIM_GROWBY;
-                pos = buf + bytes - 1;
-                *lineptr = buf;
-            }
-             
-            *pos++ = (char) c;
-            if (c == delimiter) {
-                break;
-            }
-        }
-         
-        if (ferror(stream) || (feof(stream) && (bytes == 0))) {
-            /* EOF, or an error from getc(). */
-            return -1;
-        }
-         
-        *pos = '\0';
-        return bytes;
-    }
-#endif
-     
-     
-    ssize_t getline(char ** lineptr, size_t * n, FILE * stream) {
-#if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
-        return getdelim(lineptr, n, '\n', stream);
-#else
-        return ::getline(lineptr, n, stream);
-#endif
-    } 
+action reset {
+	negative = false;
+	value = 0;
+	key.clear();
+	scratch.clear();
 }
-namespace {
-	// private...
-	%%{
-		
-		machine lexer;
 
-		action addx {
-			int x = fc;
-			if (x >= '0' && x <= '9') x = x -'0';
-			else x = (x | 0x20) - 'a' + 10;
-			value = (value << 4) + x;
+action commit {
+	bool ok = true;
+
+	if (!scratch.empty()) {
+		auto iter = table.find(scratch);
+		if (iter == table.end()) {
+			fprintf(stderr, "Undefined reference: %s\n", scratch.c_str());
+			ok = false;
 		}
-
-		ws = [ \t];
-
-		value = 
-			'0x' xdigit+ @addx
-			|
-			'$' xdigit+ @addx
-			|
-			'-'? @{ negative = true; }
-			digit+ @{value = value * 10 + (fc - '0'); }
-			|
-			[A-Za-z_] @{ stringValue.push_back(fc); }
-			[A-Za-z0-9_]+ @{ stringValue.push_back(fc); }
-			;
-
-
-		name = 	
-			[A-Za-z0-9_]+ @{
-				name.push_back(fc);
-			}
-		;
-
-		main := 
-
-			name
-			ws*
-			'='
-			ws*
-			value
-		;
-
-		write data;
-	}%%
-
-
-
-	bool ParseLine(const char *p, const char *pe, std::map<std::string, uint16_t> &map)
-	{
-
-		// trap = number
-		// or trap = [previously defined trap]
-
-		std::string name;
-		std::string stringValue;
-		uint32_t value;
-		bool negative = false;
-
-		value = 0;
-		const char *eof = pe;
-		int cs;
-
-		%%write init;
-		%%write exec;
-
-		if (cs < %%{ write first_final; }%% )
-		{
-			return false;
-		}
-		if (negative) value = (-value) & 0xffff;
-
-		// name lookup
-		if (!stringValue.empty())
-		{
-			auto iter = map.find(stringValue);
-			if (iter == map.end())
-			{
-				fprintf(stderr, "Undefined trap: %s\n", stringValue.c_str());
-				return false;
-			}
-			value = iter->second;
-		}
-
-		#if 0
-		// if loading globals, wouldn't need to do this...
-		if (value > 0xafff || value < 0xa000)
-		{
-			fprintf(stderr, "Invalid trap number: $%04x\n", value);
-			return false;
-		}
-#endif
-
-		map.emplace(name, (uint16_t)value);
-
-
-		return true;
+		else value = iter->second;
 	}
+	if (negative) value = -value;
 
-
-
+	if (ok) table.emplace(std::move(key), value);
 }
+
+eol = [\r\n] ${ line++; };
+ws = [ \t];
+
+error := [^\r\n]* eol $reset ${ fnext main; };
+
+comment = '#' [^\r\n]*;
+
+
+word = [A-Za-z_][A-Za-z_0-9]*;
+key = word ${ key.push_back(fc); };
+
+base16 =
+	  [0-9]    ${value = (value << 4) + fc - '0'; }
+	| [A-Fa-f] ${value = (value << 4) + (fc | 0x20) - 'a' + 10; }
+	;
+
+base10 = [0-9]+ ${ value = (value * 10) + fc - '0'; };
+
+decnumber = ( '-' ${ negative = true; } )?  base10+;
+hexnumber = ('$' | '0x') base16+;
+
+number = decnumber | hexnumber;
+
+value = number | word ${ scratch.push_back(fc); };
+
+
+line =
+	ws* ( key ws* '=' ws* value %commit %reset ws*)? comment? eol
+	;
+
+ main := line*
+ 	$err{
+ 		fprintf(stderr, "Unexpected character '%c' on line %d\n", fc, line);
+ 		fnext error;
+ 	};
+
+}%%;
+
+
+namespace {
+	%% write data;
+}
+
+#include <string>
+#include <map>
+#include <stdexcept>
+
+#include <cstdint>
+#include <cxx/mapped_file.h>
 
 namespace Debug {
 
-	void LoadTrapFile(const std::string &path, std::map<std::string, uint16_t> &map)
-	{
-		FILE *fp;
+	void LoadTrapFile(const std::string &path, std::map<std::string, uint16_t> &table) {
+		int cs;
+		const unsigned char *p;
+		const unsigned char *pe;
+		const unsigned char *eof;
+		int line = 1;
 
-		fp = fopen(path.c_str(), "r");
-		if (!fp)
-		{
-			fprintf(stderr, "Unable to open trap file %s\n", path.c_str());
+		int value = 0;
+		bool negative = false;
+		std::string key;
+		std::string scratch;
+
+		mapped_file mf;
+		try {
+			mf.open(path, mapped_file::readonly);
+		} catch (const std::exception &ex) {
+			//fprintf(stderr, "### %s: %s\n", path.c_str(), ex.what());
 			return;
 		}
 
+		%% write init;
+		p = mf.cbegin();
+		pe = mf.cend();
+		eof = nullptr;
 
-		/*
-		 * getline(3) is 2008 posix. it allocates (and resizes as appropriate)
-		 * the buffer.
-		 *
-		 */
-		char *lineBuffer = NULL;
-		size_t lineSize = 0;
+		for (int i = 0; i < 2; ++i) {
+			%% write exec;
 
-		for(;;)
-		{
-			char *line;
-			ssize_t length;
-
-			length = _loadtrap_rl::getline(&lineBuffer, &lineSize, fp);
-			if (!length) continue; //?
-			if (length < 0) break; // eof or error.
-
-			line = lineBuffer;
-
-			// skip any leading space.
-			while (length && isspace(*line))
-			{
-				++line;
-				--length;
-			}
-			if (!length) continue;
-
-			// comments
-			if (*line == '#') continue;
-
-
-			// strip any trailing space.
-			// (will be \n terminated unless there was no \n)
-			while (length && isspace(line[length - 1]))
-			{
-				line[--length] = 0;
-			}
-			if (!length) continue;
-
-			if (!ParseLine(line, line + length, map))
-			{
-				fprintf(stderr, "Error in trap definition: %s\n", line);
-			}
+			p = (const unsigned char *)"\n";
+			pe = eof = p+1;
 		}
-
-		fclose(fp);
 	}
 
-
-
-
 }
-
 
 #ifdef TEST
 
@@ -289,7 +149,7 @@ int main(int argc, char **argv)
 		std::map<std::string, uint16_t> map;
 		Debug::LoadTrapFile(f, map);
 
-		for(const auto kv  : map)
+		for(const auto &kv  : map)
 		{
 			printf("%s -> %04x\n", kv.first.c_str(), kv.second);
 		}
