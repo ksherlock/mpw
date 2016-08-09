@@ -32,8 +32,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
- #include "config.h"
-
+#include "config.h"
+#include <include/endian.h>
 
 //using MacOS::macos_error_from_errno;
 //using MacOS::macos_error;
@@ -146,10 +146,7 @@ namespace native {
 		int rv2 = ::getxattr(path_name.c_str(), "prodos.AuxType", &atype, 2, 0, 0);
 
 		if (rv1 == 1 && rv2 == 2) {
-			#if BYTE_ORDER == BIG_ENDIAN
-			ftype = (ftype >> 8) | (ftype << 8);
-			#endif
-
+			ftype = le16toh(ftype);
 
 
 			memcpy(buffer, "pxxxpdos", 8);

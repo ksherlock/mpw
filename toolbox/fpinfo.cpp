@@ -1,7 +1,7 @@
 #include "fpinfo.h"
 
 #include <config.h>
-
+#include <include/endian.h>
 
 static_assert(sizeof(float) == 4, "Unexpected float size");
 static_assert(sizeof(double) == 8, "Unexpected double size");

@@ -53,7 +53,7 @@ CHECK_TYPE_SIZE("((struct stat *)0)->st_birthtime" STAT_ST_BIRTHTIME)
 SET(CMAKE_EXTRA_INCLUDE_FILES)
 
 
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
 
 
 add_subdirectory(bin)
