@@ -43,6 +43,9 @@
 #include "mm.h"
 
 #include <macos/sysequ.h>
+#include <macos/tool_return.h>
+
+using MacOS::tool_return;
 
 enum {
   fsCurPerm                     = 0x00, /* open access permissions in ioPermssn */
@@ -155,7 +158,7 @@ namespace Loader {
 
 
 		// load code seg 0.
-		uint16_t LoadCode0(Segment0Info &rv)
+		tool_return<void> LoadCode0(Segment0Info &rv)
 		{
 			uint32_t rHandle;
 			uint32_t size;
@@ -208,11 +211,11 @@ namespace Loader {
 			rv.jtEnd = rv.jtStart + rv.jtSize;
 
 			// TODO -- should ReleaseResource on rHandle.
-			return 0;
+			return MacOS::noErr;
 		}
 
 		// load a standard code segment.
-		uint16_t LoadCode(uint16_t segment)
+		tool_return<void> LoadCode(uint16_t segment)
 		{
 
 			SegmentInfo si;
@@ -238,7 +241,7 @@ namespace Loader {
 
 			Segments[segment] = si;
 
-			return 0;
+			return MacOS::noErr;
 		}
 
 
@@ -247,10 +250,10 @@ namespace Loader {
 	namespace Native
 	{
 
-		uint16_t LoadFile(const std::string &path)
+		tool_return<void> LoadFile(const std::string &path)
 		{
 
-			uint16_t err;
+			tool_return<void> err;
 
 			// open the file
 			// load code seg 0
@@ -267,6 +270,7 @@ namespace Loader {
 			// load code 0.
 			Segment0Info seg0;
 			err = LoadCode0(seg0);
+			if (!err) return err;
 
 			// iterate through the jump table to get the other
 			// code segments to load
@@ -304,7 +308,7 @@ namespace Loader {
 				if (seg >= Segments.size() || Segments[seg].address == 0)
 				{
 					err = LoadCode(seg);
-					if (err) return err;
+					if (!err) return err;
 
 					const auto &p = Segments[seg];
 					if (p.farModel)
@@ -360,7 +364,7 @@ namespace Loader {
 
 
 
-			return 0;
+			return MacOS::noErr;
 		}
 
 

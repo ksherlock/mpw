@@ -6,10 +6,15 @@
 
 #include <cstdint>
 
+#include <macos/tool_return.h>
+
+
 namespace Loader {
 
 	typedef std::map<std::string, std::pair<uint32_t, uint32_t>> DebugNameTable;
 	namespace Native {
+
+		using MacOS::tool_return;
 
 		/*
 		 * loads the file
@@ -18,7 +23,7 @@ namespace Loader {
 		 *
 		 * Dependencies: MM, RM
 		 */
-		uint16_t LoadFile(const std::string &path);
+		tool_return<void> LoadFile(const std::string &path);
 
 		// scans segments for MacsBug debug names.
 		// associates them with the start of the segment.
