@@ -682,8 +682,14 @@ int main(int argc, char **argv)
 
 	CreateStack();
 
-	uint16_t err = Loader::Native::LoadFile(command);
-	if (err) exit(EX_CONFIG);
+	{
+		auto rv = Loader::Native::LoadFile(command);
+		if (!rv) {
+			fprintf(stderr, "### Unable to load %s\n", command.c_str());
+			fprintf(stderr, "# %s (OS error %d)\n", ErrorName(rv.error()), rv.error());
+			exit(EX_CONFIG);
+		}
+	}
 
 	GlobalInit();
 
