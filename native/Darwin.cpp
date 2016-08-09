@@ -32,12 +32,17 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+ #include "config.h"
+
 
 //using MacOS::macos_error_from_errno;
 //using MacOS::macos_error;
 using namespace MacOS;
 
-#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050
+// pre 10.5 I guess...
+
+#ifndef HAVE_STAT_ST_BIRTHTIME
+#undef st_birthtime
 #define st_birthtime st_ctime
 #endif
 

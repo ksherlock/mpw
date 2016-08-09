@@ -1,0 +1,11 @@
+#ifndef __mpw_config_h__
+#define __mpw_config_h__
+
+#cmakedefine HAVE_STAT_ST_BIRTHTIME
+#cmakedefine HAVE_DIRENT_D_NAMLEN
+
+#cmakedefine HAVE_ENDIAN_H
+#cmakedefine HAVE_MACHINE_ENDIAN_H
+#cmakedefine HAVE_SYS_ENDIAN_H
+
+#endif

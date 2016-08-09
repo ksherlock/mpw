@@ -33,9 +33,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+ #include "config.h"
 
-#define XATTR_FINDERINFO_NAME	"com.apple.FinderInfo"
-#define XATTR_RESOURCEFORK_NAME	"com.apple.ResourceFork"
+
+#define XATTR_FINDERINFO_NAME "com.apple.FinderInfo"
+#define XATTR_RESOURCEFORK_NAME "com.apple.ResourceFork"
 
 #define XATTR_FILETYPE_NAME	"prodos.FileType"
 #define XATTR_AUXTYPE_NAME	"prodos.AuxType"
