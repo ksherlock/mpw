@@ -106,17 +106,7 @@ namespace
 namespace MM
 {
 
-
-	template<class T>
-	struct tool_return_type { typedef tool_return<T> type; };
-
-	template<>
-	struct tool_return_type<MacOS::macos_error> { typedef tool_return<void> type; };
-
-
-	template<class T>
-	struct tool_return_type<tool_return<T>> { typedef tool_return<T> type; };
-
+	using MacOS::tool_return_type;
 
 	template<class T, class FRT, class F>
 	T with_handle_helper(F &&f, HandleInfo &info, typename std::enable_if<!std::is_void<FRT>::value>::type* = 0) {
@@ -137,12 +127,11 @@ namespace MM
 		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
 	TRT __with_handle(uint32_t handle, F &&f)
 	{
+		if (handle == 0) return SetMemError(MacOS::nilHandleErr);
+
 		const auto iter = HandleMap.find(handle);
 
-		if (iter == HandleMap.end()) {
-			TRT rv = SetMemError(MacOS::memWZErr);
-			return rv;
-		}
+		if (iter == HandleMap.end()) return SetMemError(MacOS::memWZErr);
 
 		auto &info = iter->second;
 		TRT rv = with_handle_helper<TRT, FRT>(std::forward<F>(f), info);
