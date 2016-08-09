@@ -19,7 +19,8 @@ namespace MacOS {
 	template<class T>
 	struct tool_return_type<tool_return<T>> { typedef tool_return<T> type; };
 
-
+	template<>
+	struct tool_return_type<macos_error> { typedef tool_return<void> type; };
 
 
 
@@ -218,7 +219,7 @@ namespace MacOS {
 		}
 
 		template<class TT=T>
-		T value_or_error(typename std::enable_if<std::is_integral<TT>::value>::type * = 0) const {
+		TT value_or_error(typename std::enable_if<std::is_integral<TT>::value>::type * = 0) const {
 			return _error ? _error : _value;
 		}
 
