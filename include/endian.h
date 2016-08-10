@@ -12,6 +12,7 @@
 #elif defined(HAVE_MACHINE_ENDIAN_H)
 #include <machine/endian.h>
 #else
+/* aix doesn't have an endian, but gcc #defines _BIG_ENDIAN=1 and __BIG_ENDIAN__=1 */
 #error missing endian.h
 #endif
 
