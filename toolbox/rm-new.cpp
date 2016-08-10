@@ -206,6 +206,8 @@ bool operator<(const resource &lhs, const resource &rhs) {
 	return (lhs.type < rhs.type) || (lhs.type == rhs.type && lhs.id < rhs.id);
 }
 
+
+
 /*
  * snake_case functions DO NOT set ResError.
  * CamelCase functions set ResError.
@@ -213,11 +215,109 @@ bool operator<(const resource &lhs, const resource &rhs) {
 
 namespace {
 
+
+
 	int refnum = 100;
 	bool res_load = true;
 
 	resource_file *current = nullptr;
 	resource_file *head = nullptr;
+
+
+	inline macos_error SetResError(uint16_t error)
+	{
+		memoryWriteWord(error, MacOS::ResErr);
+		return (macos_error)error;
+	}
+
+	/* templates */
+
+	template<class T, class FRT, class F>
+	T with_resource_helper(F &&f, resource_file &rf, resource &r, typename std::enable_if<!std::is_void<FRT>::value>::type* = 0) {
+		T rv = f(rf, r);
+		return rv;
+	}
+
+	template<class T, class FRT, class F>
+	T with_resource_helper(F &&f, resource_file &rf, resource &r, typename std::enable_if<std::is_void<FRT>::value>::type* = 0) {
+		f(rf, r);
+		return tool_return<void>();
+	}
+
+	template<class F, 
+		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT with_resource_handle(uint32_t theResource, F &&f){
+
+		if (!theResource) return SetResError(resNotFound);
+
+		for (auto rf = head; rf; rf = rf->next) {
+			for (auto &r : rf->resources) {
+				if (r.handle == theResource) {
+
+					TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf, r);
+					SetResError(rv.error());
+					return rv;
+				}
+			}
+		}
+		return SetResError(resNotFound);
+	}
+
+
+#if 0
+	template<class F, 
+		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT with_resource(uint32_t type, uint16_t id, F &&f) {
+
+		for (auto rf = current; rf; rf = rf->next) {
+
+			auto &resources = rf.resources;
+			auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
+				[type,id](const resource &lhs, int rhs){
+					if (lhs.type < type) return true;
+					if (lhs.type == type && lhs.id < id) return true;
+					return false;
+			});
+			if (iter == resources.end()) continue;
+			if (iter->type != type || iter->id != id) continue;
+
+			TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf, *iter);
+			SetResError(rv.error());
+			return rv;
+
+		}
+		return SetResError(resNotFound);
+	}
+#endif
+
+
+
+
+
+
+
+	/* returns the resource size and set the seek position to read the resource */
+	tool_return<int32_t> get_resource_size(resource_file &rf, resource &r) {
+
+		if (r.size == -1) {
+			uint8_t buffer[4];
+			if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
+				return macos_error_from_errno();
+			size_t ok = read(rf.fd, buffer, sizeof(buffer));
+			if (ok != 4) return mapReadErr;
+
+			return r.size = read_32(buffer);
+		} else {
+
+			if (lseek(rf.fd, rf.offset_rdata + r.data_offset + 4, SEEK_SET) < 0)
+				return macos_error_from_errno();
+
+			return r.size;
+		}
+
+	}
 
 
 	tool_return<void> read_resource_map(resource_file &rf) {
@@ -301,7 +401,7 @@ namespace {
 		ssize_t ok;
 		uint32_t handle = r.handle;
 
-		if (!handle) return resNotFound;
+		//if (!handle) return resNotFound;
 		auto hi = MM::Native::GetHandleInfo(handle);
 		if (hi.error()) return hi.error();
 		if (hi->address) return noErr;
@@ -309,22 +409,10 @@ namespace {
 
 		// always loads, even if res_load is false.
 
-		if (r.size == -1) {
-			uint8_t buffer[4];
-			if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
-				return macos_error_from_errno();
-			ok = read(rf.fd, buffer, sizeof(buffer));
-			if (ok != 4) return mapReadErr;
+		auto size = get_resource_size(rf, r);
+		if (!size) return size.error();
 
-			r.size = read_32(buffer);
-		} else {
-
-			if (lseek(rf.fd, rf.offset_rdata + r.data_offset + 4, SEEK_SET) < 0)
-				return macos_error_from_errno();
-
-		}
-
-		auto ptr = MM::Native::ReallocHandle(handle, r.size);
+		auto ptr = MM::Native::ReallocHandle(handle, *size);
 		if (ptr.error()) return ptr.error();
 
 		unsigned attr = MM::attrResource;
@@ -332,7 +420,7 @@ namespace {
 		if (r.attr & resLocked) attr |= MM::attrLocked;
 
 
-		ok = read(rf.fd, memoryPointer(*ptr), r.size);
+		ok = read(rf.fd, memoryPointer(*ptr), *size);
 		if (ok < 0) {
 			auto rv = macos_error_from_errno();
 			// ???
@@ -340,7 +428,7 @@ namespace {
 			return rv;
 		}
 
-		if (ok != r.size) {
+		if (ok != *size) {
 			MM::Native::EmptyHandle(handle);
 			return mapReadErr;
 		}
@@ -348,7 +436,6 @@ namespace {
 		// locked blocks can't be purged.
 		MM::Native::HSetState(handle, attr);
 		return noErr;
-
 	}
 
 	tool_return<uint32_t> read_resource(resource_file &rf, resource &r) {
@@ -366,37 +453,25 @@ namespace {
 			return *hh;
 		}
 
-		if (r.size == -1) {
-			uint8_t buffer[4];
-			if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
-				return macos_error_from_errno();
-			ok = read(rf.fd, buffer, sizeof(buffer));
-			if (ok != 4) return mapReadErr;
-
-			r.size = read_32(buffer);
-		} else {
-
-			if (lseek(rf.fd, rf.offset_rdata + r.data_offset + 4, SEEK_SET) < 0)
-				return macos_error_from_errno();
-
-		}
+		auto size = get_resource_size(rf, r);
+		if (!size) return size.error();
 
 		unsigned attr = MM::attrResource;
 		if (r.attr & resPurgeable) attr |= MM::attrPurgeable;
 		if (r.attr & resLocked) attr |= MM::attrLocked;
 
 
-		auto hh = MM::Native::NewHandleWithAttr(r.size, attr);
+		auto hh = MM::Native::NewHandleWithAttr(*size, attr);
 		if (hh.error()) return hh.error();
 
-		ok = read(rf.fd, memoryPointer(hh->pointer), r.size);
+		ok = read(rf.fd, memoryPointer(hh->pointer), *size);
 		if (ok < 0) {
 			auto rv = macos_error_from_errno();
 			MM::Native::DisposeHandle(hh->handle);
 			return rv;
 		}
 
-		if (ok != r.size) {
+		if (ok != *size) {
 			MM::Native::DisposeHandle(hh->handle);
 			return mapReadErr;
 		}
@@ -405,11 +480,7 @@ namespace {
 		return hh->handle;
 	}
 
-	inline macos_error SetResError(uint16_t error)
-	{
-		memoryWriteWord(error, MacOS::ResErr);
-		return (macos_error)error;
-	}
+
 
 };
 
@@ -1266,6 +1337,45 @@ namespace Native {
 		return SetResError(rv.error() == MacOS::dupFNErr ? 0 : rv.error());
 	}
 
+
+
+	uint16_t GetResourceSizeOnDisk(uint16_t trap)
+	{
+		// FUNCTION GetResourceSizeOnDisk (theResource: Handle): LongInt;
+
+		uint32_t sp;
+		uint32_t theResource;
+
+		sp = StackFrame<4>(theResource);
+
+		Log("%04x GetResourceSizeOnDisk(%08x)\n", trap, theResource);
+
+
+		auto rv = with_resource_handle(theResource, get_resource_size);
+
+		ToolReturn<4>(sp, rv.value_or(-1));
+		return rv.error();
+	}
+
+	uint16_t LoadResource(uint16_t trap)
+	{
+		// PROCEDURE LoadResource (theResource: Handle);
+
+		// this loads the resource from disk, if not already
+		// loaded. (if purgeable or SetResLoad(false))
+
+		// this needs cooperation with MM to check if
+		// handle was purged.
+
+		uint32_t theResource;
+
+		StackFrame<4>(theResource);
+
+		Log("%04x LoadResource(%08x)\n", trap, theResource);
+
+		return with_resource_handle(theResource, load_resource).error();
+	}
+
 #pragma mark - Not Yet Implemented.
 
 
@@ -1294,26 +1404,7 @@ namespace Native {
 	}
 
 
-	uint16_t LoadResource(uint16_t trap)
-	{
-		// PROCEDURE LoadResource (theResource: Handle);
 
-		// this loads the resource from disk, if not already
-		// loaded. (if purgeable or SetResLoad(false))
-
-		// this needs cooperation with MM to check if
-		// handle was purged.
-
-		uint32_t theResource;
-
-		StackFrame<4>(theResource);
-
-		Log("%04x LoadResource(%08x)\n", trap, theResource);
-
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
-	}
 
 	uint16_t UpdateResFile(uint16_t trap)
 	{
@@ -1359,21 +1450,8 @@ namespace Native {
 		return SetResError(0);
 	}
 
-	uint16_t GetResourceSizeOnDisk(uint16_t trap)
-	{
-		// FUNCTION GetResourceSizeOnDisk (theResource: Handle): LongInt;
 
-		uint32_t sp;
-		uint32_t theResource;
 
-		sp = StackFrame<4>(theResource);
-
-		Log("%04x GetResourceSizeOnDisk(%08x)\n", trap, theResource);
-
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
-	}
 
 
 	uint16_t Count1Resources(uint16_t trap)
