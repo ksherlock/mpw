@@ -324,7 +324,7 @@ namespace native {
 			if (ftype == 'BINA') return true;
 		}
 
-		return is_text_file_internal(path_name);
+		return is_binary_file_internal(path_name);
 
 	}
 
