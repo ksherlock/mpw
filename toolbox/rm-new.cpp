@@ -244,6 +244,21 @@ namespace {
 		return tool_return<void>();
 	}
 
+
+	template<class T, class FRT, class F>
+	T with_resource_helper(F &&f, resource_file &rf, typename std::enable_if<!std::is_void<FRT>::value>::type* = 0) {
+		T rv = f(rf);
+		return rv;
+	}
+
+	template<class T, class FRT, class F>
+	T with_resource_helper(F &&f, resource_file &rf, typename std::enable_if<std::is_void<FRT>::value>::type* = 0) {
+		f(rf);
+		return tool_return<void>();
+	}
+
+
+
 	template<class F, 
 		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
 		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
@@ -265,7 +280,6 @@ namespace {
 	}
 
 
-#if 0
 	template<class F, 
 		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
 		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
@@ -273,15 +287,15 @@ namespace {
 
 		for (auto rf = current; rf; rf = rf->next) {
 
-			auto &resources = rf.resources;
+			auto &resources = rf->resources;
 			auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
 				[type,id](const resource &lhs, int rhs){
 					if (lhs.type < type) return true;
 					if (lhs.type == type && lhs.id < id) return true;
 					return false;
 			});
-			if (iter == resources.end()) continue;
-			if (iter->type != type || iter->id != id) continue;
+			if (iter == resources.end() || iter->type != type || iter->id != id)
+				continue;
 
 			TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf, *iter);
 			SetResError(rv.error());
@@ -290,12 +304,114 @@ namespace {
 		}
 		return SetResError(resNotFound);
 	}
-#endif
 
 
+	template<class F, 
+		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT with_resource(uint32_t type, const std::string &name, F &&f) {
+
+		for (auto rf = current; rf; rf = rf->next) {
+
+			auto &resources = rf->resources;
+			auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
+				[type](const resource &lhs, int rhs){
+					if (lhs.type < type) return true;
+					return false;
+			});
+			if (iter == resources.end())
+				continue;
+
+			for (; iter != resources.end(); ++iter) {
+
+				if (iter->type != type) break;
+				if (iter->name != name) continue;
+
+				TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf, *iter);
+				SetResError(rv.error());
+				return rv;
+			}
+
+		}
+		return SetResError(resNotFound);
+	}
 
 
+	template<class F, 
+		typename FRT = typename std::result_of<F(resource_file &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT with_resource(uint16_t refNum, F &&f) {
 
+		// 0 is the system resource....
+
+		for (auto rf = head; rf; rf = rf->next) {
+
+			if (rf->refnum == refNum) {
+				TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf);
+				SetResError(rv.error());
+				return rv;		
+			}
+		}
+		return SetResError(resFNotFound);
+	}
+
+
+	template<class F, 
+		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT with_one_resource(uint32_t type, uint16_t id, F &&f) {
+
+		auto rf = current;
+		if (rf) {
+			auto &resources = rf->resources;
+			auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
+				[type,id](const resource &lhs, int rhs){
+					if (lhs.type < type) return true;
+					if (lhs.type == type && lhs.id < id) return true;
+					return false;
+			});
+			if (iter == resources.end() || iter->type != type || iter->id != id)
+				return SetResError(resNotFound);
+
+			TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf, *iter);
+			SetResError(rv.error());
+			return rv;
+
+		}
+		return SetResError(resNotFound);
+	}
+
+
+	template<class F, 
+		typename FRT = typename std::result_of<F(resource_file &, resource &)>::type, // function return type
+		typename TRT = typename tool_return_type<FRT>::type> // tool return type.
+	TRT with_one_resource(uint32_t type, const std::string &name, F &&f) {
+
+		auto rf = current;
+		if (rf) {
+			auto &resources = rf->resources;
+			auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
+				[type](const resource &lhs, int rhs){
+					if (lhs.type < type) return true;
+					return false;
+			});
+			if (iter == resources.end())
+				return SetResError(resNotFound);
+
+
+			for (; iter != resources.end(); ++iter) {
+
+				if (iter->type != type) break;
+				if (iter->name != name) continue;
+
+				TRT rv = with_resource_helper<TRT, FRT>(std::forward<F>(f), *rf, *iter);
+				SetResError(rv.error());
+				return rv;
+			}
+
+		}
+		return SetResError(resNotFound);
+	}
 
 
 	/* returns the resource size and set the seek position to read the resource */
@@ -450,6 +566,7 @@ namespace {
 			auto hh = MM::Native::NewEmptyHandle();
 			if (hh.error()) return hh.error();
 			r.handle = *hh;
+			MM::Native::HSetRBit(*hh);
 			return *hh;
 		}
 
@@ -493,14 +610,14 @@ namespace Native {
 	tool_return<int16_t> OpenResFile(const std::string &path_name, uint16_t perm) {
 
 		int fd = native::open_resource_fork(path_name, O_RDONLY);
-		if (fd < 0) return macos_error_from_errno();
+		if (fd < 0) return SetResError(macos_error_from_errno());
 
 		auto rf = std::make_unique<resource_file>();
 
 		rf->fd = fd;
 		rf->attr |= mapReadOnly;
 		auto rv = read_resource_map(*rf);
-		if (rv.error()) return rv.error();
+		if (!rv) return SetResError(rv.error());
 
 		rf->refnum = ++refnum;
 
@@ -508,13 +625,15 @@ namespace Native {
 		head = rf.release();
 		current = head;
 
+		SetResError(noErr);
 		return refnum;
 	}
 
 
 	tool_return<void> UpdateResFile(resource_file &rf)
 	{
-		return noErr;
+		/* todo... */
+		return SetResError(noErr);
 	}
 
 
@@ -553,86 +672,25 @@ namespace Native {
 		return SetResError(MacOS::noErr);
 	}
 
-
-	tool_return<uint32_t> Get1Resource(resource_file &rf, uint32_t type, uint16_t id) {
-
-		auto &resources = rf.resources;
-		auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
-			[type,id](const resource &lhs, int rhs){
-				if (lhs.type < type) return true;
-				if (lhs.type == type && lhs.id < id) return true;
-				return false;
-		});
-
-		if (iter == resources.end())
-			return SetResError(MacOS::resNotFound);
-
-		auto &r = *iter;
-		if (r.type != type || r.id != id)
-			return SetResError(MacOS::resNotFound);
-
-		auto rv = read_resource(rf, r);
-		SetResError(rv.error());
-		return rv;
-	}
-
-
-	tool_return<uint32_t> Get1NamedResource(resource_file &rf, uint32_t type, const std::string &name) {
-
-		auto &resources = rf.resources;
-		auto iter = std::lower_bound(resources.begin(), resources.end(), 0,
-			[type](const resource &lhs, int rhs){
-				if (lhs.type < type) return true;
-				return false;
-		});
-
-		if (iter == resources.end())
-			return SetResError(MacOS::resNotFound);
-
-		for (; iter != resources.end(); ++iter) {
-			auto &r = *iter;
-			if (r.type != type) break;
-			if (r.name == name) {
-				auto rv = read_resource(rf, r);
-				SetResError(rv.error());
-				return rv;
-			}
-		}
-		return SetResError(MacOS::resNotFound);
-	}
-
-
 	tool_return<uint32_t> Get1Resource(uint32_t type, uint16_t id) {
 
-		resource_file *rf = current;
-		if (rf) return Get1Resource(*rf, type, id);
-		return SetResError(MacOS::resNotFound);
+		return with_one_resource(type, id, read_resource);
 	}
 
 	tool_return<uint32_t> Get1NamedResource(uint32_t type, const std::string &name) {
 
-		resource_file *rf = current;
-		if (rf) return Get1NamedResource(*rf, type, name);
-		return SetResError(MacOS::resNotFound);
+		return with_one_resource(type, name, read_resource);
 	}
 
 	tool_return<uint32_t> GetResource(uint32_t type, uint16_t id) {
 
-		for (auto rf = current; rf; rf = rf->next) {
-			auto rv = Get1Resource(*rf, type, id);
-			if (!rv.error()) return rv;
-		}
-		return SetResError(MacOS::resNotFound);
+		return with_resource(type, id, read_resource);
 	}
 
 
 	tool_return<uint32_t> GetNamedResource(uint32_t type, const std::string &name) {
 
-		for (auto rf = current; rf; rf = rf->next) {
-			auto rv = Get1NamedResource(*rf, type, name);
-			if (!rv.error()) return rv;
-		}
-		return SetResError(MacOS::resNotFound);
+		return with_resource(type, name, read_resource);
 	}
 
 
@@ -698,22 +756,14 @@ namespace Native {
 
 		Log("%04x GetResInfo(%08x)\n", trap, theResource);
 
-		if (!theResource) return SetResError(resNotFound);
+		return with_resource_handle(theResource, [=](const resource_file &rf, const resource &r){
 
-		for (resource_file *rf = head; rf; rf = rf->next) {
-			for (const auto &r : rf->resources) {
+			if (theID) memoryWriteWord(r.id, theID);
+			if (theType) memoryWriteLong(r.type, theType);
+			if (name) ToolBox::WritePString(name, r.name);
 
-				if (r.handle == theResource) {
-					if (theID) memoryWriteWord(r.id, theID);
-					if (theType) memoryWriteLong(r.type, theType);
-					if (name) ToolBox::WritePString(name, r.name);
+		}).error();
 
-					return SetResError(noErr);
-				}
-
-			}
-		}
-		return SetResError(resNotFound);
 	}
 
 
@@ -728,20 +778,12 @@ namespace Native {
 
 		Log("%04x GetResAttrs(%08x)\n", trap, theResource);
 
+		auto rv = with_resource_handle(theResource, [=](const resource_file &rf, const resource &r){
+			return r.attr;
+		});
 
-		if (!theResource) return SetResError(resNotFound);
-
-		for (resource_file *rf = head; rf; rf = rf->next) {
-			for (const auto &r : rf->resources) {
-
-				if (r.handle == theResource) {
-					ToolReturn<2>(sp, r.attr);
-					return SetResError(noErr);
-				}
-
-			}
-		}
-		return SetResError(resNotFound);
+		ToolReturn<2>(sp, rv.value());
+		return rv.error();
 	}
 
 
@@ -756,20 +798,12 @@ namespace Native {
 
 		Log("%04x SetResAttrs(%08x, %04x)\n", trap, theResource, attrs);
 
-		if (!theResource) return SetResError(resNotFound);
 
-		for (resource_file *rf = head; rf; rf = rf->next) {
-			for (auto &r : rf->resources) {
+		return with_resource_handle(theResource, [&attrs](const resource_file &rf, resource &r){
+			if (r.attr & resChanged) attrs |= resChanged;
+			r.attr = attrs;
+		}).error();
 
-				if (r.handle == theResource) {
-					if (r.attr & resChanged) attrs |= resChanged;
-					r.attr = attrs;
-					return SetResError(noErr);
-				}
-
-			}
-		}
-		return SetResError(resNotFound);
 	}
 
 
@@ -782,14 +816,12 @@ namespace Native {
 		sp = StackFrame<2>(refNum);
 		Log("%04x GetResFileAttrs(%04x)\n", trap, refNum);
 
-		for (auto rf = head ; rf; rf = rf->next) {
-			if (rf->refnum == refNum) {
-				ToolReturn<2>(sp, rf->attr);
-				return SetResError(noErr);
-			}
-		}
+		auto rv = with_resource(refNum, [](const resource_file &rf){
+			return rf.attr;
+		});
 
-		return SetResError(resFNotFound);
+		ToolReturn<2>(sp, rv.value());
+		return rv.error();
 	}
 
 
@@ -804,16 +836,12 @@ namespace Native {
 		Log("%04x GetResFileAttrs(%04x, %04x)\n", trap, refNum, attrs);
 
 
-		for (auto rf = head ; rf; rf = rf->next) {
-			if (rf->refnum == refNum) {
+		return with_resource(refNum, [&attrs](resource_file &rf){
 				// don't clear the read-only flag [???]
-				if (rf->attr & mapReadOnly) attrs |= mapReadOnly;
-				rf->attr = attrs;
-				return SetResError(noErr);
-			}
-		}
+				if (rf.attr & mapReadOnly) attrs |= mapReadOnly;
+				rf.attr = attrs;
 
-		return SetResError(resFNotFound);
+		}).error();
 	}
 
 
@@ -828,25 +856,20 @@ namespace Native {
 
 		Log("%04x DetachResource(%08x)\n", trap, theResource);
 
-		if (!theResource) return SetResError(resNotFound);
 
-		for (resource_file *rf = head; rf; rf = rf->next) {
-			for (auto &r : rf->resources) {
+		return with_resource_handle(theResource, [](const resource_file &rf, resource &r){
 
-				if (r.handle == theResource) {
-					/*
-					 * DetachResource won't let you detach a resource whose resChanged
-					 * attribute has been set; however, ResError will still return noErr.
-					 */
-					if ((r.attr & resChanged) == 0) {
-						r.handle = 0;
-						MM::Native::HClrRBit(theResource);
-					}
-					return SetResError(noErr);
-				}
+			/*
+			 * DetachResource won't let you detach a resource whose resChanged
+			 * attribute has been set; however, ResError will still return noErr.
+			 */
+			if ((r.attr & resChanged) == 0) {
+				MM::Native::HClrRBit(r.handle);
+				r.handle = 0;
 			}
-		}
-		return SetResError(resNotFound);
+
+		}).error();
+
 	}
 
 
@@ -868,25 +891,21 @@ namespace Native {
 
 		Log("%04x ReleaseResource(%08x)\n", trap, theResource);
 
-		if (!theResource) return SetResError(resNotFound);
 
-		for (resource_file *rf = head; rf; rf = rf->next) {
-			for (auto &r : rf->resources) {
 
-				if (r.handle == theResource) {
-					/*
-					 * ReleaseResource won't let you release a resource whose resChanged
-					 * attribute has been set; however, ResError will still return noErr.
-					 */
-					if ((r.attr & resChanged) == 0) {
-						MM::Native::DisposeHandle(theResource);
-						r.handle = 0;
-					}
-					return SetResError(noErr);
-				}
+		return with_resource_handle(theResource, [](const resource_file &rf, resource &r){
+
+			/*
+			 * ReleaseResource won't let you release a resource whose resChanged
+			 * attribute has been set; however, ResError will still return noErr.
+			 */
+			if ((r.attr & resChanged) == 0) {
+				MM::Native::DisposeHandle(r.handle);
+				r.handle = 0;
 			}
-		}
-		return SetResError(resNotFound);
+
+		}).error();
+
 	}
 
 
@@ -903,26 +922,14 @@ namespace Native {
 		sp = StackFrame<4>(theResource);
 		Log("%04x HomeResFile(%08x)\n", trap, theResource);
 
-		if (!theResource) {
-			ToolReturn<2>(sp, -1);
-			return SetResError(resNotFound);
-		}
 
-		for (resource_file *rf = head; rf; rf = rf->next) {
-			for (const auto &r : rf->resources) {
+		auto rv = with_resource_handle(theResource, [](const resource_file &rf, const resource &r){
+			return rf.refnum;
+		});
 
-				if (r.handle == theResource) {
-					ToolReturn<2>(sp, rf->refnum);
-					return SetResError(noErr);
-				}
+		ToolReturn<2>(sp, rv.value_or(-1));
+		return rv.error();
 
-			}
-		}
-
-
-
-		ToolReturn<2>(sp, -1);
-		return SetResError(resNotFound);
 	}
 
 	uint16_t ResError(uint16_t trap)
@@ -975,7 +982,7 @@ namespace Native {
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t HOpenResFile(uint16_t trap)
@@ -1013,7 +1020,7 @@ namespace Native {
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t OpenRFPerm(uint16_t trap)
@@ -1035,7 +1042,7 @@ namespace Native {
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t FSpOpenResFile(void)
@@ -1067,7 +1074,7 @@ namespace Native {
 
 		ToolReturn<2>(sp, rv.value_or(-1));
 
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t CloseResFile(uint16_t trap)
@@ -1082,8 +1089,7 @@ namespace Native {
 		// If the value of the refNum parameter is 0, it represents the System file and is ignored.
 		// n.b. -- should close --all-- resources.
 
-		auto rv = Native::CloseResFile(refNum);
-		return SetResError(rv.error());
+		return Native::CloseResFile(refNum).error();
 	}
 
 
@@ -1118,7 +1124,7 @@ namespace Native {
 		auto rv = Native::Get1NamedResource(theType, sname);
 
 		ToolReturn<4>(sp, rv.value());
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t GetNamedResource(uint16_t trap)
@@ -1139,7 +1145,7 @@ namespace Native {
 		auto rv = Native::GetNamedResource(theType, sname);
 
 		ToolReturn<4>(sp, rv.value());
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t GetResource(uint16_t trap)
@@ -1171,7 +1177,7 @@ namespace Native {
 		auto rv = Native::GetResource(theType, theID);
 
 		ToolReturn<4>(sp, rv.value());
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 
@@ -1204,7 +1210,7 @@ namespace Native {
 		auto rv = Native::Get1Resource(theType, theID);
 
 		ToolReturn<4>(sp, rv.value());
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 
@@ -1219,22 +1225,17 @@ namespace Native {
 		Log("%04x ChangedResource(%08x)\n", trap, theResource);
 
 
-		if (!theResource) return SetResError(resNotFound);
+		return with_resource_handle(theResource, [](resource_file &rf, resource &r){
 
-		for (auto rf = head; rf; rf = rf->next) {
-			for (auto &r : rf->resources) {
-				if (r.handle == theResource) {
-					if (rf->attr & mapReadOnly) return wPrErr; // ?
-					if (r.attr & resProtected) return noErr;
-					r.attr |= resChanged;
-					rf->attr |= mapChanged;
+			if (rf.attr & mapReadOnly) return wPrErr; // ?
+			if (r.attr & resProtected) return noErr;
+			r.attr |= resChanged;
+			rf.attr |= mapChanged;
 
-					// inside macintosh says it also extends the file size.
-					return noErr;
-				}
-			}
-		}
-		return SetResError(resNotFound);
+			// inside macintosh says it also extends the file size.
+			return noErr;
+
+		}).error();
 	}
 
 
@@ -1268,7 +1269,7 @@ namespace Native {
 
 		auto rv = Native::CreateResFile(sname);
 
-		return SetResError(rv.error());
+		return rv.error();
 	}
 
 	uint16_t HCreateResFile(uint16_t trap)
