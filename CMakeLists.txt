@@ -14,43 +14,35 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS FALSE)
 
-if (APPLE)
-	set(CMAKE_C_COMPILER "clang")
-	set(CMAKE_CXX_COMPILER "clang++")
+
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+	# Clang or AppleClang
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ -Wall -g")
 	set(CMAKE_C_FLAGS "-Wall -g")
-elseif("${CMAKE_SYSTEM_NAME}" MATCHES "SunOS")
-	set(CMAKE_C_COMPILER "gcc")
-	set(CMAKE_CXX_COMPILER "g++")
-	set(CMAKE_CXX_FLAGS "-Wall -g -Wno-unknown-pragmas")
-	set(CMAKE_C_FLAGS "-std=c99 -Wall -g")
-elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
-	set(CMAKE_C_COMPILER "gcc")
-	set(CMAKE_CXX_COMPILER "g++")
+
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+
 	set(CMAKE_CXX_FLAGS "-Wall -g -Wno-unknown-pragmas")
 	set(CMAKE_C_FLAGS "-Wall -g")
-elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Windows")
+
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 endif()
+
 
 #
 # create the config.h file.
 #
 
 INCLUDE (CheckIncludeFiles)
-INCLUDE (CheckTypeSize)
+INCLUDE (CheckStructHasMember)
 
 CHECK_INCLUDE_FILES(endian.h HAVE_ENDIAN_H)
 CHECK_INCLUDE_FILES(sys/endian.h HAVE_SYS_ENDIAN_H)
 CHECK_INCLUDE_FILES(machine/endian.h HAVE_MACHINE_ENDIAN_H)
 
-SET(CMAKE_EXTRA_INCLUDE_FILES dirent.h)
-CHECK_TYPE_SIZE("((struct dirent *)0)->d_namlen" DIRENT_D_NAMLEN)
-SET(CMAKE_EXTRA_INCLUDE_FILES)
-
-SET(CMAKE_EXTRA_INCLUDE_FILES sys/stat.h)
-CHECK_TYPE_SIZE("((struct stat *)0)->st_birthtime" STAT_ST_BIRTHTIME)
-SET(CMAKE_EXTRA_INCLUDE_FILES)
+CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namlen dirent.h HAVE_DIRENT_D_NAMLEN)
+CHECK_STRUCT_HAS_MEMBER("struct stat" st_birthtime sys/stat.h HAVE_STAT_ST_BIRTHTIME)
 
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
