@@ -50,7 +50,7 @@
 #include <macos/sysequ.h>
 
 #include <native/native.h>
-
+#include <include/endian.h>
 
 #include "stackframe.h"
 #include "fs_spec.h"
@@ -165,6 +165,7 @@ struct resource {
 	uint16_t id = 0;
 	uint16_t attr = 0;
 	uint32_t data_offset = 0;
+	uint32_t disk_size = -1;
 	//uint32_t name_offset = 0;
 	uint32_t handle = 0;
 	std::string name;
@@ -423,7 +424,7 @@ namespace {
 		size_t ok = read(rf.fd, buffer, sizeof(buffer));
 		if (ok != 4) return mapReadErr;
 
-		return read_32(buffer);
+		return r.disk_size = read_32(buffer);
 
 	}
 
@@ -594,14 +595,32 @@ namespace {
 		if (!(r.attr & resChanged)) return noErr;
 		if (r.attr & resProtected) return noErr;
 
-		// todo...
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
+		if (!r.handle) return noErr; // should never happen...
 
-		// set r.attr |= mapChanged; if it moves.
-		r.attr &= ~resChanged;
+		auto hi = MM::Native::GetHandleInfo(r.handle);
+
+		if (r.data_offset && r.disk_size != -1 && r.disk_size < hi->size)
+			rf.attr |= mapCompact;
+
+
+		if (r.data_offset == 0 || r.disk_size == -1 || r.disk_size < hi->size){
+			// append
+			rf.attr |= mapChanged;
+
+
+			r.data_offset = rf.offset_rdata + rf.length_rdata;
+			rf.length_rdata += hi->size;
+			// rf.offset_rmap no longer valid.
+		}
+
+		uint32_t xx = htobe32(hi->size);
+		lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET);
+		write(rf.fd, &xx, 4);
+		// todo -- if purged, is size 0??
+		write(rf.fd, memoryPointer(hi->address), hi->size);
+		rf.attr &= ~resChanged;
 		return noErr;
+
 	}
 
 	tool_return<void> write_resource_map(resource_file &rf) {
