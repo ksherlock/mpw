@@ -166,7 +166,6 @@ struct resource {
 	uint16_t attr = 0;
 	uint32_t data_offset = 0;
 	//uint32_t name_offset = 0;
-	uint32_t size = -1;
 	uint32_t handle = 0;
 	std::string name;
 };
@@ -418,21 +417,13 @@ namespace {
 	/* returns the resource size and set the seek position to read the resource */
 	tool_return<int32_t> get_resource_size(resource_file &rf, resource &r) {
 
-		if (r.size == -1) {
-			uint8_t buffer[4];
-			if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
-				return macos_error_from_errno();
-			size_t ok = read(rf.fd, buffer, sizeof(buffer));
-			if (ok != 4) return mapReadErr;
+		uint8_t buffer[4];
+		if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
+			return macos_error_from_errno();
+		size_t ok = read(rf.fd, buffer, sizeof(buffer));
+		if (ok != 4) return mapReadErr;
 
-			return r.size = read_32(buffer);
-		} else {
-
-			if (lseek(rf.fd, rf.offset_rdata + r.data_offset + 4, SEEK_SET) < 0)
-				return macos_error_from_errno();
-
-			return r.size;
-		}
+		return read_32(buffer);
 
 	}
 
@@ -471,7 +462,7 @@ namespace {
 		try {
 
 			unsigned tl_offset = offset_type_list + 2;
-			check_size(rmap, tl_offset + (count + 1) * 8);
+			check_size(rmap, tl_offset + count * 8);
 
 			while (count--) {
 
@@ -481,7 +472,7 @@ namespace {
 				int count = (read_16(rmap, tl_offset + 4, std::nothrow) + 1) & 0xffff;
 				unsigned rl_offset = offset_type_list + read_16(rmap, tl_offset + 6, std::nothrow);
 
-				check_size(rmap, rl_offset + (count + 1) * 12);
+				check_size(rmap, rl_offset + count * 12);
 
 				while (count--) {
 
@@ -599,6 +590,105 @@ namespace {
 	}
 
 
+	tool_return<void> write_resource(resource_file &rf, resource &r) {
+		if (!(r.attr & resChanged)) return noErr;
+		if (r.attr & resProtected) return noErr;
+
+		// todo...
+		fprintf(stderr, "%s not yet implemented\n", __func__);
+		exit(1);
+		return SetResError(0);
+
+		// set r.attr |= mapChanged; if it moves.
+		r.attr &= ~resChanged;
+		return noErr;
+	}
+
+	tool_return<void> write_resource_map(resource_file &rf) {
+		// todo...
+
+		rf.attr &= ~mapChanged;
+		return noErr;
+	}
+
+	tool_return<void> update_res_file(resource_file &rf)
+	{
+		if (rf.attr & mapReadOnly) return noErr;
+
+		// 1. call WriteResource for any changed resources.
+		for (auto &r : rf.resources) {
+			write_resource(rf, r);
+		}
+		// 2. compact the resource fork...
+		if (rf.attr & mapCompact) {
+			rf.attr &= ~mapCompact;
+		}
+
+
+		// 3. write updated resource map.
+		if (rf.attr & mapChanged) {
+			write_resource_map(rf);
+		}
+
+		return noErr;
+	}
+
+
+
+	tool_return<void> add_resource(uint32_t theData, uint32_t theType, uint16_t theID, const std::string &theName) {
+
+		if (!current) return addResFailed;
+
+
+		resource_file &rf = *current;
+
+		if (rf.attr & mapReadOnly) return addResFailed;
+
+		// if handle is null or in use, return an error.
+		if (!theData) return addResFailed;
+		auto ok = with_resource_handle(theData, [](const resource_file &, const resource &){});
+		if (ok) return addResFailed;
+
+		// resource manager doesn't check if res type/id is unique...
+
+
+		// returns first item >= { theType, theID} or end.
+		auto iter = std::lower_bound(rf.resources.begin(), rf.resources.end(), 0,
+			[=](const resource &r, int x){
+				if (r.type == theType) return r.id < theID;
+				return r.type < theType;
+			});
+
+		if (iter == rf.resources.end() || iter->type != theType || iter->id != theID) {
+			// add a new resource
+
+			resource r;
+			r.type = theType;
+			r.id = theID;
+			r.handle = theData;
+			r.name = theName;
+			r.attr |= resChanged;
+
+			rf.resources.emplace(iter, std::move(r));
+			rf.attr |= mapChanged; //?
+
+		} else {
+			// update/replace existing resource. [???]
+
+			resource &r = *iter;
+			if (r.attr & resProtected) return addResFailed;
+
+			if (r.handle) MM::Native::DisposeHandle(r.handle);
+			r.handle = theData;
+			r.name = theName;
+			r.attr |= resChanged;
+		}
+
+		MM::Native::HSetRBit(theData);
+		return noErr;
+	}
+
+
 
 };
 
@@ -631,11 +721,6 @@ namespace Native {
 	}
 
 
-	tool_return<void> UpdateResFile(resource_file &rf)
-	{
-		/* todo... */
-		return SetResError(noErr);
-	}
 
 
 
@@ -650,7 +735,7 @@ namespace Native {
 		}
 		if (!rf) return SetResError(MacOS::resFNotFound);
 
-		auto rv = UpdateResFile(*rf);
+		auto rv = update_res_file(*rf);
 
 		for (auto &r : rf->resources) {
 			if (r.handle) MM::Native::DisposeHandle(r.handle);
@@ -735,9 +820,16 @@ namespace Native {
 
 
 		struct stat st;
+		macos_error err = noErr;
 
+		int fd = native::open_fork(path, 0, O_CREAT | O_EXCL | O_WRONLY, 0666);
+		if (fd < 0) {
+			if (errno == EEXIST) err = dupFNErr;
+			else return SetResError(macos_error_from_errno());
+		}
+		close(fd);
 
-		int fd = native::open_fork(path, 1, O_WRONLY, 0666);
+		fd = native::open_fork(path, 1, O_WRONLY, 0666);
 		if (fd < 0) return SetResError(macos_error_from_errno());
 
 		// need to check if resource fork size > 0 -- don't clobber an existing fork.
@@ -748,7 +840,7 @@ namespace Native {
 		}
 		if (st.st_size > 0) {
 			close(fd);
-			return SetResError(noErr);			
+			return SetResError(err);			
 		}
 
 		ssize_t ok = write(fd, empty_resource_fork, sizeof(empty_resource_fork));
@@ -759,7 +851,7 @@ namespace Native {
 		}
 
 		close(fd);
-		return SetResError(noErr);
+		return SetResError(err);
 	}
 
 
@@ -890,7 +982,7 @@ namespace Native {
 		uint16_t refNum;
 
 		sp = StackFrame<4>(refNum, attrs);
-		Log("%04x GetResFileAttrs(%04x, %04x)\n", trap, refNum, attrs);
+		Log("%04x SetResFileAttrs(%04x, %04x)\n", trap, refNum, attrs);
 
 
 		return with_resource(refNum, [&attrs](resource_file &rf){
@@ -1228,6 +1320,14 @@ namespace Native {
 
 		sp = StackFrame<6>(theType, theID);
 
+		#if 0
+		// this is just noise!
+		if (theType == 'acur') {
+		ToolReturn<4>(sp, 0);
+			return resNotFound;
+		}
+		#endif
+
 		Log("%04x GetResource(%08x ('%s'), %04x)\n",
 				trap, theType, TypeToString(theType).c_str(), theID);
 
@@ -1321,13 +1421,6 @@ namespace Native {
 		std::string sname = ToolBox::ReadPString(fileName, true);
 		Log("%04x CreateResFile(%s)\n", trap, sname.c_str());
 
-		if (!sname.length()) return SetResError(MacOS::bdNamErr);
-		/* check if file exists ... */
-		int fd = open(sname.c_str(), O_CREAT|O_EXCL|O_WRONLY, 0666);
-		if (fd < 0 && errno == EEXIST) return SetResError(dupFNErr);
-		if (fd >= 0) close(fd);
-
-
 		return Native::CreateResFile(sname).error();
 	}
 
@@ -1352,7 +1445,9 @@ namespace Native {
 		if (sname.empty())
 			return SetResError(MacOS::dirNFErr);
 
-		return Native::CreateResFile(sname).error();
+		auto rv = Native::CreateResFile(sname);
+		if (rv.error() == dupFNErr) return SetResError(noErr);
+		return rv.error();
 	}
 
 
@@ -1386,7 +1481,9 @@ namespace Native {
 		if (sname.empty())
 			return SetResError(MacOS::dirNFErr);
 
-		return Native::CreateResFile(sname, creator, fileType).error();
+		auto rv = Native::CreateResFile(sname);
+		if (rv.error() == dupFNErr) return SetResError(noErr);
+		return rv.error();
 	}
 
 
@@ -1450,9 +1547,8 @@ namespace Native {
 			trap, theData, theType, TypeToString(theType).c_str(), theID, sname.c_str()
 		);
 
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
+		return SetResError(add_resource(theData, theType, theID, sname).error());
+
 	}
 
 
@@ -1468,9 +1564,7 @@ namespace Native {
 
 		Log("%04x UpdateResFile(%04x)\n", trap, refNum);
 
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
+		return with_resource(refNum, update_res_file).error();
 	}
 
 	uint16_t WriteResource(uint16_t trap)
@@ -1482,9 +1576,7 @@ namespace Native {
 
 		Log("%04x WriteResource(%08x)\n", trap, theResource);
 
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
+		return with_resource_handle(theResource, write_resource).error();
 	}
 
 	uint16_t RemoveResource(uint16_t trap)
@@ -1504,6 +1596,23 @@ namespace Native {
 
 
 
+	template<class F>
+	void for_each_one(F &&f){
+		resource_file *rf = current;
+		if (rf) {
+			for (auto &r : rf->resources) 
+				f(*rf, r);
+		}
+	}
+
+	template<class F>
+	void for_each(F &&f){
+		for (resource_file *rf = current; rf; rf = rf->next) {
+			for (auto &r : rf->resources) 
+				f(*rf, r);
+		}
+	}
+
 
 
 	uint16_t Count1Resources(uint16_t trap)
@@ -1512,15 +1621,27 @@ namespace Native {
 
 		uint32_t sp;
 		uint32_t theType;
-
+		uint16_t count = 0;
 		sp = StackFrame<4>(theType);
 
 		Log("%04x Count1Resources(%08x ('%s'))\n",
 			trap, theType, TypeToString(theType).c_str());
 
-		fprintf(stderr, "%s not yet implemented\n", __func__);
-		exit(1);
-		return SetResError(0);
+#if 0
+		if (current) {
+			const auto &resources = current->resources;
+			auto iter = std::lower_bound(resources.begin(), resources.end(),
+				[theType](const resource &r){ return r.type < theType; });
+
+			for ( ; iter != resources.end() && iter->type == theType; ++count, ++iter) ;
+		}
+#endif
+		for_each_one([&count,theType](const resource_file &rf, const resource &r){
+			if (r.type == theType) ++count;
+		});
+
+		ToolReturn<2>(sp, count);
+		return SetResError(noErr);
 	}
 
 	uint16_t Get1IndResource(uint16_t trap)
