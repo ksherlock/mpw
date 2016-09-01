@@ -1,7 +1,5 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-add_definitions(-I ${CMAKE_SOURCE_DIR}/)
-
 set(MPW_SRC mpw.cpp mpw_io.cpp mpw_close.cpp mpw_access.cpp mpw_ioctl.cpp mpw_errno.cpp
 	environment.cpp)
 

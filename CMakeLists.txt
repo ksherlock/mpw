@@ -17,18 +17,18 @@ set(CMAKE_C_EXTENSIONS FALSE)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 	# Clang or AppleClang
-	set(CMAKE_CXX_FLAGS "-stdlib=libc++ -Wall -g")
-	set(CMAKE_C_FLAGS "-Wall -g")
+	add_compile_options(-g -Wall)
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
-	set(CMAKE_CXX_FLAGS "-Wall -g -Wno-unknown-pragmas")
-	set(CMAKE_C_FLAGS "-Wall -g")
+	add_compile_options(-g -Wall -Wno-unknown-pragmas)
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_BINARY_DIR})
 
 #
 # create the config.h file.
