@@ -160,7 +160,7 @@ namespace {
 		if (eof == new_eof) return MacOS::noErr;
 
 		buffer.resize(new_eof, 0);
-		int ok = fsetxattr(_fd, XATTR_RESOURCEFORK_NAME, buffer->data(), buffer.size(), 0);
+		int ok = fsetxattr(_fd, XATTR_RESOURCEFORK_NAME, buffer.data(), buffer.size(), 0);
 		if (ok < 0) return macos_error_from_errno();
 		return new_eof;
 	}
