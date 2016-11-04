@@ -32,9 +32,9 @@
 #include <cctype>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 #include <strings.h>
 #include <stdlib.h>
-#include <strings.h>
 
 
 using namespace MacOS;
@@ -149,7 +149,7 @@ namespace native {
 	macos_error set_finder_info(const std::string &path_name, uint32_t ftype, uint32_t ctype) {
 
 		uint8_t buffer[32];
-		std::memset(buffer, 0, sizeof(buffer));
+		memset(buffer, 0, sizeof(buffer));
 
 		buffer[0] = ftype >> 24;
 		buffer[1] = ftype >> 16;
