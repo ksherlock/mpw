@@ -366,8 +366,37 @@ namespace native {
 		// todo -- verify behavior on non-hfs volume.
 		//if ((oflag & O_ACCMODE) & O_WRONLY) oflag |= O_CREAT;
 
+		// under apfs, resource fork needs to be specifically created.
+		// (if 0-length, it doesn't actually exist...)
+
+		// apfs -- zero-length resource fork
+
+		int parent;
+		if (oflag & O_CREAT) {
+			int excl = oflag & O_EXCL;
+			parent = open(path_name.c_str(), O_RDONLY | O_CREAT | excl, 0666);
+		} else {
+			parent = open(path_name.c_str(), O_RDONLY);
+		}
+
+		if (parent < 0) return macos_error_from_errno();
+		close(parent);
+
+		oflag &= ~(O_CREAT | O_EXCL);
+		int mode = oflag & O_ACCMODE;
+		if (mode == O_WRONLY || mode == O_RDWR) oflag |= O_CREAT;
+
 		int fd = open(rname.c_str(), oflag, 0666);
-		if (fd < 0) return macos_error_from_errno();
+		if (fd < 0) {
+			auto e = macos_error_from_errno();
+
+			if (errno == ENOENT && mode == O_RDONLY) {
+				auto tmp = new empty_file(path_name);
+				tmp->resource = true;
+				return file_ptr(tmp);
+			}
+			return e;
+		}
 
 		auto tmp = new fd_file(path_name, fd);
 		tmp->resource = true;

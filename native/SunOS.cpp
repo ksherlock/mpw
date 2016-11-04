@@ -206,14 +206,35 @@ namespace native {
 		/* under HFS, every file has a resource fork.
 		 * Therefore, create it if opening for O_RDWR or O_WRONLY
 		 */
+
+		int parent;
+		if (oflag & O_CREAT) {
+			int excl = oflag & O_EXCL;
+			parent = open(path_name.c_str(), O_RDONLY | O_CREAT | excl, 0666);
+		} else {
+			parent = open(path_name.c_str(), O_RDONLY);
+		}
+		if (parent < 0) return macos_error_from_errno();
+
+		oflag &= ~(O_CREAT | O_EXCL);
 		int mode = oflag & O_ACCMODE;
 		if (mode == O_WRONLY || mode == O_RDWR) oflag |= O_CREAT;
-		int fd = attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, oflag, 0666);
-		if (fd < 0) return macos_error_from_errno();
+		//int fd = attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, oflag, 0666);
+		int fd = openat(parent, XATTR_RESOURCEFORK_NAME, oflag | O_XATTR, 0666);
+		if (fd < 0) {
+			int e = macos_error_from_errno();
+			close(parent);
+			if (e == ENOENT && mode == O_RDONLY) {
+				auto tmp = new empty_file(path_name);
+				tmp->resource = true;
+				return file_ptr(tmp);
+			}
+			return e;
+		}
+		close(parent);
 
 		auto tmp = new fd_file(path_name, fd);
 		tmp->resource = true;
-
 		return file_ptr(tmp);
 	}
 

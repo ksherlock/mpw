@@ -53,7 +53,7 @@ namespace native {
 
 
 
-	tool_return<file_ptr> open_fork(const std::string &path_name, int fork, int oflag, int perm = 0666);
+	tool_return<file_ptr> open_fork(const std::string &path_name, int fork, int oflag);
 	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag);
 
 }

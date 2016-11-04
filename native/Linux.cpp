@@ -47,7 +47,7 @@ namespace {
 
 	class xattr_file final : public file {
 	public:
-		xattr_file(int fd): _fd(fd);
+		xattr_file(const std::string &path, int fd, bool readonly): file(path), _fd(fd), _readonly(readonly);
 		~xattr_file(); 
 
 
@@ -65,7 +65,7 @@ namespace {
 
 		int _fd = -1;
 		off_t _displacement = 0;
-
+		bool _readonly = false;
 	};
 
 	xattr_file::~xattr_file() {
@@ -101,6 +101,8 @@ namespace {
 
 
 	tool_return<size_t> xattr_file::write(const void *in_buffer, size_t count) {
+		if (_readonly) return MacOS::wrPermErr;
+
 		std::vector<uint8_t> buffer;
 		ssize_t size;
 		size = read_rfork(buffer);
@@ -140,6 +142,8 @@ namespace {
 
 	tool_return<void> xattr_file::set_eof(ssize_t new_eof) {
 
+		if (_readonly) return MacOS::wrPermErr;
+
 		if (new_eof < 0) return paramErr;
 
 		std::vector<uint8_t> buffer;
@@ -159,11 +163,26 @@ namespace {
  
 namespace native {
 
- 	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag) {
+	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag) {
 
- 		int fd = open(rname.c_str(), oflag);
- 		if (fd < 0) return macos_error_from_errno();
- 		return std::make_shared<file>(fd);
+		/* under HFS, every file has a resource fork.
+		 * Therefore, create it if opening for O_RDWR or O_WRONLY
+		 */
+
+		int parent;
+		if (oflag & O_CREAT) {
+			int excl = oflag & O_EXCL;
+			parent = open(path_name.c_str(), O_RDONLY | O_CREAT | excl, 0666);
+		} else {
+			parent = open(path_name.c_str(), O_RDONLY);
+		}
+		if (parent < 0) return macos_error_from_errno();
+
+		int mode = oflag & O_ACCMODE;
+
+		auto tmp = new xattr_file(path_name, parent, oflags == O_RDONLY);
+		tmp->resource = true;
+		return file_ptr(tmp);
 	}
 
 
