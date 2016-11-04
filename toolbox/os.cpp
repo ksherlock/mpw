@@ -47,6 +47,9 @@
 #include <macos/errors.h>
 #include <macos/traps.h>
 
+#include <native/native.h>
+#include <native/file.h>
+
 #include "os.h"
 #include "os_internal.h"
 #include "toolbox.h"
@@ -117,180 +120,6 @@ namespace OS
 		return true;
 	}
 
-#if 0
-	// known text file extensions
-	bool IsTextFile(const std::string &s)
-	{
-
-		// 1. check for a TEXT file type.
-		{
-			int rv;
-			char buffer[32];
-
-			rv = ::getxattr(s.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-			if (rv >= 8 && memcmp(buffer, "TEXT", 4) == 0)
-				return true;
-		}
-
-		std::string ext = extension(s);
-		if (ext.empty()) return false;
-
-		char c = ext[0];
-		switch(c)
-		{
-			case 'a':
-				if (ext == "aii") // assembler
-					return true;
-				if (ext == "asm")
-					return true;
-				break;
-
-			case 'c':
-				if (ext == "c")
-					return true;
-				if (ext == "cpp")
-					return true;
-				break;
-
-			case 'e':
-				if (ext == "equ") // asm iigs include file.
-					return true;
-				if (ext == "equates") // asm iigs include file.
-					return true;
-				break;
-
-			case 'i':
-				if (ext == "i") // asmiigs include file
-					return true;
-				if (ext == "inc")
-					return true;
-				break;
-
-			case 'h':
-				if (ext == "h") // c header
-					return true;
-				break;
-
-			case 'l':
-				if (ext == "lst") // asm iigs listing
-					return true;
-				break;
-
-			case 'm':
-				if (ext == "macros")
-					return true;
-				break;
-
-			case 'p':
-				if (ext == "p") // pascal
-					return true;
-				if (ext == "pas") // pascal
-					return true;
-				if (ext == "pii") // pascal
-					return true;
-				break;
-
-			case 'r':
-				if (ext == "r")
-					return true;
-				if (ext == "rez")
-					return true;
-				if (ext == "rii") // rez
-					return true;
-				break;
-
-			case 's':
-				if (ext == "src") // asm equates
-					return true;
-				break;
-
-		}
-
-		// check for e16.xxxx or m16.xxxx
-		ext = basename(s);
-		if (ext.length() > 4)
-		{
-			switch (ext[0])
-			{
-				case 'm':
-				case 'M':
-				case 'e':
-				case 'E':
-					if (!strncmp("16.", ext.c_str() + 1, 3))
-						return true;
-					break;
-			}
-		}
-
-		return false;
-	}
-
-	// known binary file extensions
-	bool IsBinaryFile(const std::string &s)
-	{
-
-		// first -- check for a finder info extension.
-		{
-			uint8_t buffer[32];
-			int rv;
-
-			rv = ::getxattr(s.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0, 0);
-
-			if (rv >= 8 && ::memcmp(buffer + 4, "pdos",4) == 0)
-			{
-				// Bx__ ?
-				if (buffer[0] == 'B' && buffer[2] == ' ' && buffer[3] == ' ')
-					return true;
-
-				// "p" $uv $wx $yz
-				if (buffer[0] == 'p')
-				{
-					uint8_t fileType = buffer[1];
-					//uint16_t auxType = buffer[2] | (buffer[3] << 8);
-
-					if (fileType >= 0xb1 && fileType <= 0xbf)
-						return true;
-				}
-			}
-		}
-
-		std::string ext = extension(s);
-		if (ext.empty()) return false;
-
-		char c = ext[0];
-		switch(c)
-		{
-			case 'l':
-				if (ext == "lib")
-					return true;
-				break;
-
-			case 'n':
-				// MrC / MrCpp temp file.
-				if (ext == "n")
-					return true;
-				// Newton C++ Tools output
-				if (ext == "ntkc")
-					return true;
-				break;
-
-			case 'o':
-				if (ext == "o")
-					return true;
-				if (ext == "obj")
-					return true;
-				break;
-
-			case 's':
-				// Newton C++ Intermediate file
-				if (ext == "sym")
-					return true;
-				break;
-		}
-
-		return false;
-	}
-#endif
 
 	uint16_t Close(uint16_t trap)
 	{
@@ -303,8 +132,8 @@ namespace OS
 		uint16_t ioRefNum = memoryReadWord(parm + 24);
 
 
-		int rv = OS::Internal::FDEntry::close(ioRefNum, true);
-		if (rv < 0) d0 = macos_error_from_errno();
+		int rv = OS::Internal::close_file(ioRefNum, true);
+		if (rv < 0) d0 = MacOS::rfNumErr;
 		else d0 = 0;
 
 		memoryWriteWord(d0, parm + 16);
@@ -418,9 +247,7 @@ namespace OS
 
 		};
 
-		uint32_t d0;
-
-		int fd;
+		uint32_t d0 = 0;
 
 		uint8_t ioPermission = memoryReadByte(parm + _ioPermssn);
 		uint32_t namePtr = memoryReadLong(parm + _ioNamePtr);
@@ -433,12 +260,9 @@ namespace OS
 			sname = FSSpecManager::ExpandPath(sname, ioDirID);
 		}
 
-		fd = Internal::FDEntry::open(sname, ioPermission, resource);
-		d0 = fd < 0 ? fd : 0;
-		if (fd >= 0)
-		{
-			memoryWriteWord(fd, parm + _ioRefNum);
-		}
+		auto fd = Internal::open_file(sname, resource, ioPermission);
+		if (fd) memoryWriteWord(fd.value(), parm + _ioRefNum);
+		d0 = fd.error();
 
 		memoryWriteWord(d0, parm + _ioResult);
 		return d0;
@@ -469,8 +293,7 @@ namespace OS
 
 	uint16_t Read(uint16_t trap)
 	{
-		uint32_t d0;
-		int32_t pos;
+		uint32_t d0 = 0;
 		uint32_t parm = cpuGetAReg(0);
 
 		Log("%04x Read(%08x)\n", trap, parm);
@@ -483,6 +306,24 @@ namespace OS
 		uint16_t ioPosMode = memoryReadWord(parm + 44);
 		int32_t ioPosOffset = memoryReadLong(parm + 46);
 
+		Log("     read(%04x, %08x, %08x)\n", ioRefNum, ioBuffer, ioReqCount);
+
+		/*
+		 * per inside macintosh II-101:
+		 *  bit 6 (0x40) of ioPosOffset is used for read-verify operation
+		 * (write date, call read w/ bit 6 to verify disk matches memory)
+		 * returns ioError if it doesn't match.
+		 *
+		 * bit 7 (0x80) of ioPosMode indicate new-line mode is enabled --
+		 * bits 8-15 are a newline character. reading terminates when newline
+		 * char is encountered (or eof or ioReqCount).
+		 *
+		 * bit 4 is please cache bit
+		 * bit 5 is please don't cache bit
+		 * (if neither or both set, no preference)
+		 *
+		 */
+
 		if (ioReqCount < 0)
 		{
 			d0 = MacOS::paramErr;
@@ -490,46 +331,48 @@ namespace OS
 			return d0;
 		}
 
-		pos = Internal::mac_seek(ioRefNum, ioPosMode, ioPosOffset);
-		if (pos < 0)
-		{
-			d0 = pos;
-			pos = 0;
+		if (ioPosMode & 0x80) {
+			fprintf(stderr, "Newline Read (eof char = %02x)\n", ioPosMode >> 8);
+			exit(1);
+		}
 
-			memoryWriteLong(pos, parm + 46); // new offset.
+		ssize_t offset = ioPosOffset;
+		int whence = ioPosMode;
+		uint32_t transferCount = 0;
+
+		Internal::remap_seek(offset, whence);
+
+		auto ff = Internal::find_file(ioRefNum);
+		if (!ff) {
+			d0 = MacOS::rfNumErr;
 			memoryWriteWord(d0, parm + 16);
 			return d0;
 		}
 
-		Log("     read(%04x, %08x, %08x)\n", ioRefNum, ioBuffer, ioReqCount);
-		ssize_t count = OS::Internal::FDEntry::read(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
-		if (count >= 0)
-		{
-			d0 = 0;
-			pos += count;
-			memoryWriteLong(count, parm + 40);
+		auto pos = ff->seek(offset, whence);
+		if (!pos) {
+			d0 = pos.error();
+			memoryWriteWord(d0, parm + 16);
+			return d0;
 		}
 
-		if (count == 0)
-		{
-			d0 = MacOS::eofErr;
-		}
-		if (count < 0)
-		{
-			d0 = macos_error_from_errno();
-		}
+		auto xfer = ff->read(memoryPointer(ioBuffer), ioReqCount);
+		if (xfer && *xfer == 0) xfer = MacOS::eofErr;
 
-		memoryWriteLong(pos, parm + 46); // new offset.
+		d0 = xfer.error();
+		transferCount = xfer.value_or(0);
+		offset = ff->get_mark().value_or(0ul);
+
+		memoryWriteLong(offset, parm + 46); // new offset.
+		memoryWriteLong(transferCount, parm + 40);
 		memoryWriteWord(d0, parm + 16);
 		return d0;
-
 	}
 
 
 	uint16_t Write(uint16_t trap)
 	{
-		uint32_t d0;
-		int32_t pos;
+		uint32_t d0 = 0;
 		uint32_t parm = cpuGetAReg(0);
 
 		Log("%04x Write(%08x)\n", trap, parm);
@@ -542,6 +385,8 @@ namespace OS
 		uint16_t ioPosMode = memoryReadWord(parm + 44);
 		int32_t ioPosOffset = memoryReadLong(parm + 46);
 
+		Log("     write(%04x, %08x, %08x)\n", ioRefNum, ioBuffer, ioReqCount);
+
 		if (ioReqCount < 0)
 		{
 			d0 = MacOS::paramErr;
@@ -549,36 +394,37 @@ namespace OS
 			return d0;
 		}
 
-		pos = Internal::mac_seek(ioRefNum, ioPosMode, ioPosOffset);
-		if (pos < 0)
-		{
-			d0 = pos;
-			pos = 0;
+		ssize_t offset = ioPosOffset;
+		int whence = ioPosMode;
+		uint32_t transferCount = 0;
 
-			memoryWriteLong(pos, parm + 46); // new offset.
+		Internal::remap_seek(offset, whence);
+
+		auto ff = Internal::find_file(ioRefNum);
+		if (!ff) {
+			d0 = MacOS::rfNumErr;
 			memoryWriteWord(d0, parm + 16);
 			return d0;
-
 		}
 
-		Log("     write(%04x, %08x, %08x)\n", ioRefNum, ioBuffer, ioReqCount);
-		ssize_t count = OS::Internal::FDEntry::write(ioRefNum, memoryPointer(ioBuffer), ioReqCount);
-		if (count >= 0)
-		{
-			d0 = 0;
-			pos += count;
-			memoryWriteLong(count, parm + 40);
+		auto pos = ff->seek(offset, whence);
+		if (!pos) {
+			d0 = pos.error();
+			memoryWriteWord(d0, parm + 16);
+			return d0;
 		}
 
-		if (count < 0)
-		{
-			d0 = macos_error_from_errno();
-		}
+		auto xfer = ff->write(memoryPointer(ioBuffer), ioReqCount);
+		if (xfer && *xfer == 0) xfer = MacOS::eofErr;
 
-		memoryWriteLong(pos, parm + 46); // new offset.
+		d0 = xfer.error();
+		transferCount = xfer.value_or(0);
+		offset = ff->get_mark().value_or(0ul);
+
+		memoryWriteLong(offset, parm + 46); // new offset.
+		memoryWriteLong(transferCount, parm + 40);
 		memoryWriteWord(d0, parm + 16);
 		return d0;
-
 	}
 
 
@@ -670,8 +516,8 @@ namespace OS
 
 	uint16_t GetEOF(uint16_t trap)
 	{
-		uint32_t d0;
-		size_t size;
+		uint32_t d0 = 0;
+		size_t size = 0;
 
 		uint32_t parm = cpuGetAReg(0);
 
@@ -680,17 +526,14 @@ namespace OS
 		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint16_t ioRefNum = memoryReadWord(parm + 24);
 
-		struct stat st;
-
-		if (::fstat(ioRefNum, &st) < 0)
-		{
-			d0 = macos_error_from_errno();
+		auto ff = Internal::find_file(ioRefNum);
+		if (ff) {
+			auto eof = ff->get_eof();
+			d0 = eof.error();
+			size = eof.value_or(0);
+		} else {
+			d0 = MacOS::rfNumErr;
 			size = 0;
-		}
-		else
-		{
-			d0 = 0;
-			size = st.st_size;
 		}
 
 		memoryWriteWord(d0, parm + 16);
@@ -711,9 +554,14 @@ namespace OS
 		uint16_t ioRefNum = memoryReadWord(parm + 24);
 		uint32_t ioMisc = memoryReadLong(parm + 28);
 
-		int rv = ::ftruncate(ioRefNum, ioMisc);
 
-		d0 = rv < 0  ? macos_error_from_errno() : 0;
+		auto ff = Internal::find_file(ioRefNum);
+		if (ff) {
+			auto eof = ff->set_eof(ioMisc);
+			d0 = eof.error();
+		} else {
+			d0 = MacOS::rfNumErr;
+		}
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
@@ -721,7 +569,8 @@ namespace OS
 
 	uint16_t GetFPos(uint16_t trap)
 	{
-		uint32_t d0;
+		uint32_t d0 = 0;
+		size_t size = 0;
 
 		uint32_t parm = cpuGetAReg(0);
 
@@ -730,19 +579,22 @@ namespace OS
 		//uint32_t ioCompletion = memoryReadLong(parm + 12);
 		uint16_t ioRefNum = memoryReadWord(parm + 24);
 
-		int rv = ::lseek(ioRefNum, 0, SEEK_CUR);
-		if (rv < 0)
-		{
-			d0 = macos_error_from_errno();
+
+		auto ff = Internal::find_file(ioRefNum);
+		if (ff) {
+			auto mark = ff->get_mark();
+			d0 = mark.error();
+			size = mark.value_or(0);
+		} else {
+			d0 = MacOS::rfNumErr;
+			size = 0;
 		}
-		else
-		{
-			memoryWriteLong(0, parm + 36); // ioReqCount
-			memoryWriteLong(0, parm + 40); // ioActCount
-			memoryWriteWord(0, parm + 44); // ioPosMode
-			memoryWriteLong(rv, parm + 46); // ioPosOffset
-			d0 = 0;
-		}
+
+
+		memoryWriteLong(0, parm + 36); // ioReqCount
+		memoryWriteLong(0, parm + 40); // ioActCount
+		memoryWriteWord(0, parm + 44); // ioPosMode
+		memoryWriteLong(size, parm + 46); // ioPosOffset
 
 		memoryWriteWord(d0, parm + 16);
 		return d0;
@@ -762,15 +614,23 @@ namespace OS
 		int32_t ioPosOffset = memoryReadLong(parm + 46);
 
 
-		ioPosOffset = Internal::mac_seek(ioRefNum, ioPosMode, ioPosOffset);
-		d0 = 0;
-		if (ioPosOffset < 0)
-		{
-			d0 = ioPosOffset;
-			ioPosOffset = 0;
+		ssize_t offset = ioPosOffset;
+		int whence = ioPosMode;
+
+		Internal::remap_seek(offset, whence);
+
+		auto ff = Internal::find_file(ioRefNum);
+		if (ff) {
+			auto pos = ff->seek(offset, whence);
+			d0 = pos.error();
+			offset = pos.value_or(0);
+		} else {
+			d0 = MacOS::rfNumErr;
+			offset = 0;
 		}
 
-		memoryWriteLong(ioPosOffset, parm + 46); // new offset.
+
+		memoryWriteLong(offset, parm + 46); // new offset.
 		memoryWriteWord(d0, parm + 16);
 		return d0;
 	}

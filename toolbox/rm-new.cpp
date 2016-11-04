@@ -24,6 +24,10 @@
  *
  */
 
+/*
+ * TODO - https://www.fenestrated.net/mirrors/Apple%20Technotes%20(As%20of%202002)/tn/tn1120.html
+ * Opening Files Twice Considered Hard
+ */
 
 #include "rm.h"
 #include "mm.h"
@@ -50,6 +54,7 @@
 #include <macos/sysequ.h>
 
 #include <native/native.h>
+#include <native/file.h>
 #include <include/endian.h>
 
 #include "stackframe.h"
@@ -174,7 +179,7 @@ struct resource {
 
 struct resource_file {
 	resource_file *next = nullptr;
-	int fd = -1;
+	native::file_ptr file;
 	int refnum = -1;
 
 
@@ -197,9 +202,7 @@ struct resource_file {
 	resource_file &operator=(const resource_file &) = delete;
 	resource_file &operator=(resource_file &&) = delete;
 
-	~resource_file() {
-		if (fd >= 0) close(fd);
-	}
+	~resource_file() = default;
 };
 
 
@@ -419,23 +422,22 @@ namespace {
 	tool_return<int32_t> get_resource_size(resource_file &rf, resource &r) {
 
 		uint8_t buffer[4];
-		if (lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET) < 0)
-			return macos_error_from_errno();
-		size_t ok = read(rf.fd, buffer, sizeof(buffer));
-		if (ok != 4) return mapReadErr;
+		auto sm = rf.file->set_mark(rf.offset_rdata + r.data_offset);
+		if (sm.error()) return sm.error();
+
+		auto ok = rf.file->read(buffer, sizeof(buffer));
+		if (ok.value_or(0) != 4) return mapReadErr;
 
 		return r.disk_size = read_32(buffer);
-
 	}
 
 
 	tool_return<void> read_resource_map(resource_file &rf) {
 
-		ssize_t ok;
 		uint8_t header[100];
 
-		ok = read(rf.fd, header, sizeof(header));
-		if (ok != sizeof(header)) return mapReadErr;
+		auto ok = rf.file->read(header, sizeof(header));
+		if (ok.value_or(0) != sizeof(header)) return mapReadErr;
 
 		rf.offset_rdata = read_32(header+0);
 		rf.offset_rmap =  read_32(header+4);
@@ -445,9 +447,11 @@ namespace {
 		if (rf.length_rmap < 30) return mapReadErr;
 		std::vector<uint8_t> rmap(rf.length_rmap);
 
-		if (lseek(rf.fd, rf.offset_rmap, SEEK_SET) < 0) return macos_error_from_errno();
-		ok = read(rf.fd, rmap.data(), rf.length_rmap);
-		if (ok != rf.length_rmap) return mapReadErr;
+		auto sm = rf.file->set_mark(rf.offset_rmap);
+		if (sm.error()) return sm.error();
+
+		ok = rf.file->read(rmap.data(), rf.length_rmap);
+		if (ok.value_or(0) != rf.length_rmap) return mapReadErr;
 
 		rf.attr = read_16(rmap, 22, std::nothrow);
 		uint16_t offset_type_list = read_16(rmap, 24, std::nothrow);
@@ -507,7 +511,6 @@ namespace {
 	}
 
 	tool_return<void> load_resource(resource_file &rf, resource &r) {
-		ssize_t ok;
 		uint32_t handle = r.handle;
 
 		//if (!handle) return resNotFound;
@@ -529,15 +532,14 @@ namespace {
 		if (r.attr & resLocked) attr |= MM::attrLocked;
 
 
-		ok = read(rf.fd, memoryPointer(*ptr), *size);
-		if (ok < 0) {
-			auto rv = macos_error_from_errno();
+		auto ok = rf.file->read(memoryPointer(*ptr), *size);
+		if (ok.error()) {
 			// ???
 			MM::Native::EmptyHandle(handle);
-			return rv;
+			return ok.error();
 		}
 
-		if (ok != *size) {
+		if (ok.value() != *size) {
 			MM::Native::EmptyHandle(handle);
 			return mapReadErr;
 		}
@@ -548,8 +550,6 @@ namespace {
 	}
 
 	tool_return<uint32_t> read_resource(resource_file &rf, resource &r) {
-
-		ssize_t ok;
 
 		if (r.handle) return r.handle;
 
@@ -574,14 +574,13 @@ namespace {
 		auto hh = MM::Native::NewHandleWithAttr(*size, attr);
 		if (hh.error()) return hh.error();
 
-		ok = read(rf.fd, memoryPointer(hh->pointer), *size);
-		if (ok < 0) {
-			auto rv = macos_error_from_errno();
+		auto ok = rf.file->read(memoryPointer(hh->pointer), *size);
+		if (ok.error()) {
 			MM::Native::DisposeHandle(hh->handle);
-			return rv;
+			return ok.error();
 		}
 
-		if (ok != *size) {
+		if (*ok != *size) {
 			MM::Native::DisposeHandle(hh->handle);
 			return mapReadErr;
 		}
@@ -614,10 +613,10 @@ namespace {
 		}
 
 		uint32_t xx = htobe32(hi->size);
-		lseek(rf.fd, rf.offset_rdata + r.data_offset, SEEK_SET);
-		write(rf.fd, &xx, 4);
+		rf.file->set_mark(rf.offset_rdata + r.data_offset);
+		rf.file->write(&xx, 4);
 		// todo -- if purged, is size 0??
-		write(rf.fd, memoryPointer(hi->address), hi->size);
+		rf.file->write(memoryPointer(hi->address), hi->size);
 		rf.attr &= ~resChanged;
 		return noErr;
 
@@ -719,12 +718,13 @@ namespace Native {
 
 	tool_return<int16_t> OpenResFile(const std::string &path_name, uint16_t perm) {
 
-		int fd = native::open_resource_fork(path_name, O_RDONLY);
-		if (fd < 0) return SetResError(macos_error_from_errno());
+		auto fd = native::open_resource_fork(path_name, O_RDONLY);
+		if (fd.error()) return SetResError(fd.error());
 
 		auto rf = std::make_unique<resource_file>();
 
-		rf->fd = fd;
+		rf->file = std::move(fd).value();
+		rf->file->resource = true;
 		rf->attr |= mapReadOnly;
 		auto rv = read_resource_map(*rf);
 		if (!rv) return SetResError(rv.error());
@@ -838,38 +838,26 @@ namespace Native {
 		if (path.empty()) return SetResError(MacOS::bdNamErr);
 
 
-		struct stat st;
 		macos_error err = noErr;
 
-		int fd = native::open_fork(path, 0, O_CREAT | O_EXCL | O_WRONLY, 0666);
-		if (fd < 0) {
-			if (errno == EEXIST) err = dupFNErr;
-			else return SetResError(macos_error_from_errno());
+		auto fd = native::open_fork(path, 0, O_CREAT | O_EXCL | O_WRONLY, 0666);
+		if ((err = fd.error())) {
+			if (err != dupFNErr) return SetResError(err);
 		}
-		close(fd);
 
 		fd = native::open_fork(path, 1, O_WRONLY, 0666);
-		if (fd < 0) return SetResError(macos_error_from_errno());
+		if (fd.error()) return SetResError(macos_error_from_errno());
+
+		auto ff = std::move(fd).value();
 
 		// need to check if resource fork size > 0 -- don't clobber an existing fork.
-		if (fstat(fd, &st) < 0) {
-			auto rv = macos_error_from_errno();
-			close(fd);
-			return SetResError(rv);			
-		}
-		if (st.st_size > 0) {
-			close(fd);
-			return SetResError(err);			
+		if (ff->get_eof().value()) {
+			return SetResError(err); 
 		}
 
-		ssize_t ok = write(fd, empty_resource_fork, sizeof(empty_resource_fork));
-		if (ok != sizeof(empty_resource_fork)) {
-			auto rv = macos_error_from_errno();
-			close(fd);
-			return SetResError(rv);
-		}
+		auto ok = ff->write(empty_resource_fork, sizeof(empty_resource_fork));
+		if (ok.error()) return SetResError(ok.error());
 
-		close(fd);
 		return SetResError(err);
 	}
 

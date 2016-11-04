@@ -50,3 +50,5 @@ set_source_files_properties(
 )
 
 add_library(TOOLBOX_LIB ${TOOLBOX_SRC})
+target_link_libraries(TOOLBOX_LIB MACOS_LIB)
+target_link_libraries(TOOLBOX_LIB NATIVE_LIB)

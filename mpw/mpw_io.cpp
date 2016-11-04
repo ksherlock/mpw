@@ -53,7 +53,7 @@ namespace MPW
 	void ftrap_read(uint16_t trap)
 	{
 
-		uint32_t d0;
+		uint32_t d0 = 0;
 
 		uint32_t sp = cpuGetAReg(7);
 		uint32_t parm  = memoryReadLong(sp + 4);
@@ -67,27 +67,21 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
+		f.error = 0;
 
 		Log("%04x Read(%08x)\n", trap, parm);
 
-		d0 = 0;
 		int fd = f.cookie;
-		ssize_t size;
 
 		Log("     read(%04x, %08x, %08x)", fd, f.buffer, f.count);
-		size = OS::Internal::FDEntry::read(fd, memoryPointer(f.buffer), f.count);
-		//Log(" -> %ld\n", size);
 
-		if (size < 0)
-		{
-			//f.count = 0;
-			f.error = MacOS::ioErr; // ioErr
-			d0 = mpw_errno_from_errno();
-		}
-		else
-		{
-			f.count -= size;
-			f.error = 0;
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			auto e = ff->read(memoryPointer(f.buffer), f.count);
+			f.count -= e.value_or(0);
+			d0 = f.error = e.error();
+		} else {
+			d0 = kEBADF;
 		}
 
 		// write back...
@@ -99,7 +93,7 @@ namespace MPW
 
 	void ftrap_write(uint16_t trap)
 	{
-		uint32_t d0;
+		uint32_t d0 = 0;
 
 		uint32_t sp = cpuGetAReg(7);
 		uint32_t parm  = memoryReadLong(sp + 4);
@@ -113,26 +107,21 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
+		f.error = 0;
+
 		Log("%04x Write(%08x)\n", trap, parm);
 
-
-		d0 = 0;
 		int fd = f.cookie;
-		ssize_t size;
 
 		Log("     write(%04x, %08x, %08x)\n", fd, f.buffer, f.count);
-		size = OS::Internal::FDEntry::write(fd, memoryPointer(f.buffer), f.count);
 
-		if (size < 0)
-		{
-			//f.count = 0;
-			f.error = MacOS::ioErr; // ioErr
-			d0 = mpw_errno_from_errno();
-		}
-		else
-		{
-			f.count -= size;
-			f.error = 0;
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			auto e = ff->write(memoryPointer(f.buffer), f.count);
+			f.count -= e.value_or(0);
+			d0 = f.error = e.error();
+		} else {
+			d0 = kEBADF;
 		}
 
 		// write back...

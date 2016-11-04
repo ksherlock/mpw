@@ -6,10 +6,14 @@
 #include <ctime>
 
 #include <macos/errors.h>
+#include <macos/tool_return.h>
+
+#include "file.h"
 
 namespace native {
 
 	using MacOS::macos_error;
+	using MacOS::tool_return;
 
 	struct file_info {
 
@@ -49,8 +53,8 @@ namespace native {
 
 
 
-	int open_fork(const std::string &path_name, int fork, int oflag, int perm = 0666);
-	int open_resource_fork(const std::string &path_name, int oflag);
+	tool_return<file_ptr> open_fork(const std::string &path_name, int fork, int oflag, int perm = 0666);
+	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag);
 
 }
 

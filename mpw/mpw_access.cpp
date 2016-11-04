@@ -57,7 +57,7 @@
  * may return an errno or an oserr, too, apparently.
  */
 
-/* 2016 update -- faccess chedks if the error (16-bit) is negative (tool error)
+/* 2016 update -- faccess checks if the error (16-bit) is negative (tool error)
  * or positive (errno) and calls _uerror(errno, toolerr).  toolerr is stored into
  * the MacOSErr variable and remapped to an errno. if toolerr == 0, errno is stored in
  * errno.
@@ -165,7 +165,6 @@ namespace MPW
 	uint32_t ftrap_open(uint32_t name, uint32_t parm)
 	{
 		uint32_t d0;
-		int fd;
 		std::string sname;
 
 		MPWFile f;
@@ -203,12 +202,12 @@ namespace MPW
 
 		// TODO -- can you create a resource file like this?
 
-		fd = native::open_fork(sname, f.flags & kO_RSRC, nativeFlags);
+		auto fd = native::open_fork(sname, f.flags & kO_RSRC, nativeFlags);
 
-		if (fd < 0)
+		if (!fd)
 		{
 			// return a tool error.
-			auto e = macos_error_from_errno();
+			auto e = fd.error();
 
 			d0 = 0x40000000  | (uint16_t)e; /* | mpw_errno_from_errno(); */
 			f.error = (uint16_t)e;
@@ -218,8 +217,9 @@ namespace MPW
 		{
 			d0 = 0;
 			f.error = 0;
-			f.cookie = fd;
+			//f.cookie = fd;
 
+			native::file_ptr ff = std::move(fd).value();
 
 			// adjust the binary flags...
 			// some apps are good about this but
@@ -231,9 +231,16 @@ namespace MPW
 
 			if (f.flags & kO_RSRC) f.flags |= kO_BINARY;
 
+
+			ff->text = !(f.flags & kO_BINARY);
+			ff->resource = f.flags & kO_RSRC;
+
+			f.cookie = OS::Internal::open_file(std::move(ff));
+/*
 			auto &e = OS::Internal::FDEntry::allocate(fd, std::move(xname));
 			e.text = !(f.flags & kO_BINARY);
 			e.resource = f.flags & kO_RSRC;
+*/
 		}
 
 		memoryWriteWord(f.flags, parm + 0);

@@ -5,17 +5,43 @@
 #include <string>
 #include <sys/types.h>
 
+#include <native/file.h>
+
 namespace OS {
 
 	std::string realpath(const std::string &path);
 
 namespace Internal {
 
-	
-	int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset);
+	using MacOS::tool_return;
+
+	//int32_t mac_seek(uint16_t refNum, uint16_t mode, int32_t offset);
+
+	MacOS::macos_error remap_iopermission(int ioPermission);
+	MacOS::macos_error remap_seek(ssize_t &offset, int &mode);
+
+
+	int open_file(native::file_ptr &&f);
+
+	tool_return<int> open_file(const std::string &name, int fork, int permission);
+
+	int close_file(int fd, bool force = false);
+	native::file *find_file(int fd);
 
 
 
+
+#if 0
+	template<class FX>
+	macos_error with_file(int fd, FX fx) {
+		if (fd < 0 || fd >= FDTable.size()) return MacOS::rfNumErr;
+		auto &e = FDTable[fd];
+		if (!e) return MacOS::rfNumErr; 
+		return fx(e);
+	}
+#endif
+
+#if 0
 	struct FDEntry
 	{
 		int refcount;
@@ -65,6 +91,7 @@ namespace Internal {
 		}
 	};
 
+#endif
 
 } }
 

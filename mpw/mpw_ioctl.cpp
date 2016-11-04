@@ -59,7 +59,7 @@ namespace MPW
 
 	uint32_t ftrap_dup(uint32_t parm, uint32_t arg)
 	{
-		uint32_t d0;
+		uint32_t d0 = 0;
 		MPWFile f;
 
 		f.flags = memoryReadWord(parm);
@@ -75,37 +75,13 @@ namespace MPW
 
 		Log("     dup(%02x)\n", fd);
 
-
-		d0 = OS::Internal::FDEntry::action(fd,
-			[](int fd, OS::Internal::FDEntry &e){
-				e.refcount++;
-				return 0;
-			},
-			[](int fd){
-				return kEINVAL;
-			}
-		);
-
-		#if 0
-		try
-		{
-			auto &e = OS::Internal::FDTable.at(fd);
-
-			if (e.refcount)
-			{
-				d0 = 0;
-				fd.refcount++;
-			}
-			else
-			{
-				d0 = kEINVAL;
-			}
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			ff->refcount++;
 		}
-		catch(std::out_of_range &ex)
-		{
-			d0 = kEINVAL;
+		else {
+			d0 = kEBADF;
 		}
-		#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -116,6 +92,7 @@ namespace MPW
 		// should return the preferred buffsize in *arg
 		// an error will use the default size (0x400 bytes).
 
+		uint32_t d0 = 0;
 		MPWFile f;
 
 		f.flags = memoryReadWord(parm);
@@ -131,18 +108,24 @@ namespace MPW
 
 		Log("     bufsize(%02x)\n", fd);
 
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			d0 = kEINVAL;
+		} else {
+			d0 = kEBADF;
+		}
+
 		memoryWriteWord(f.error, parm + 2);
-		return kEINVAL;
+		return d0;
 	}
 
 
 	uint32_t ftrap_interactive(uint32_t parm, uint32_t arg)
 	{
 		// return 0 if interactive, an error if
-		// non-interactive.
+		// non-interactive. arg is null.
 
-		uint32_t d0;
-
+		uint32_t d0 = 0;
 		MPWFile f;
 
 		f.flags = memoryReadWord(parm);
@@ -162,37 +145,13 @@ namespace MPW
 
 		Log("     interactive(%02x)\n", fd);
 
-		d0 = OS::Internal::FDEntry::action(fd,
-			[](int fd, OS::Internal::FDEntry &e){
 
-				int tty = ::isatty(fd);
-				return tty ? 0 : kEINVAL;
-			},
-			[](int fd){
-				return kEINVAL;
-			}
-		);
-
-#if 0
-		try
-		{
-			auto &e = OS::Internal::FDTable.at(fd);
-
-			if (e.refcount)
-			{
-				int tty = ::isatty(fd);
-				d0 = tty ? 0 : kEINVAL;
-			}
-			else
-			{
-				d0 = kEINVAL;
-			}
+		auto ff = OS::Internal::find_file(fd);
+		if (!ff) {
+			d0 = kEBADF;
+		} else if (!ff->interactive()) {
+			f.error = d0 = MacOS::paramErr;
 		}
-		catch(std::out_of_range &ex)
-		{
-			d0 = kEINVAL;
-		}
-#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -200,9 +159,11 @@ namespace MPW
 
 	uint32_t ftrap_fname(uint32_t parm, uint32_t arg)
 	{
-		// return file name.
+		// return file name (full path).
 		// AsmIIgs uses this...
+		// arg is a c-string ptr.
 
+		uint32_t d0 = 0;
 		MPWFile f;
 
 		f.flags = memoryReadWord(parm);
@@ -218,15 +179,22 @@ namespace MPW
 
 		Log("     fname(%02x)\n", fd);
 
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			f.error = d0 = MacOS::paramErr;
+		} else {
+			d0 = kEBADF;
+		}
+
 		memoryWriteWord(f.error, parm + 2);
-		return kEINVAL;
+		return d0;
 	}
 
 	uint32_t ftrap_refnum(uint32_t parm, uint32_t arg)
 	{
 		// returns the refnum in *arg
-		uint32_t d0;
-
+		// on mpw, stdin/stdout/stderr return a param error.
+		uint32_t d0 = 0;
 		MPWFile f;
 
 		f.flags = memoryReadWord(parm);
@@ -242,27 +210,13 @@ namespace MPW
 
 		Log("     refnum(%02x)\n", fd);
 
-		d0 = OS::Internal::FDEntry::action(fd,
-			[arg](int fd, OS::Internal::FDEntry &e){
-				memoryWriteWord(fd, arg);
-				return 0;
-			},
-			[](int fd){
-				return kEINVAL;
-			}
-		);
-
-#if 0
-		if (fd < 0 || fd >= FDTable.size() || !FDTable[fd])
-		{
-			d0 = kEINVAL;
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			if (ff->interactive()) f.error = d0 = MacOS::paramErr;
+			else memoryWriteWord(fd, arg);
+		} else {
+			d0 = kEBADF;
 		}
-		else
-		{
-			d0 = 0;
-			memoryWriteWord(fd, arg);
-		}
-#endif
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;
@@ -272,8 +226,8 @@ namespace MPW
 
 	uint32_t ftrap_lseek(uint32_t parm, uint32_t arg)
 	{
+		uint32_t d0 = 0;
 		MPWFile f;
-		uint32_t d0;
 
 		uint32_t whence = memoryReadLong(arg);
 		int32_t offset = memoryReadLong(arg + 4); // signed value.
@@ -286,8 +240,8 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
+		f.error = 0;
 
-		int fd = f.cookie;
 
 		/*
 		 * LinkIIgs does a seek on stdin.  If it doesn't cause an
@@ -316,33 +270,21 @@ namespace MPW
 				return kEINVAL;
 		}
 
+		int fd = f.cookie;
 		Log("     lseek(%02x, %08x, %02x)\n", fd, offset, nativeWhence);
 
-		if (::isatty(fd))
-		{
-			off_t rv = -1;
 
-			d0 = kEINVAL;
-			f.error = 0;
-
-			memoryWriteLong(rv, arg + 4);
-			memoryWriteWord(f.error, parm + 2);
-			return d0;
-
-		}
-
-		off_t rv = ::lseek(fd, offset, nativeWhence);
-		if (rv < 0)
-		{
-			d0 = mpw_errno_from_errno();
-			f.error = macos_error_from_errno();
-			//perror(NULL);
-		}
-		else
-		{
-			d0 = 0;
-			f.error = 0;
-		}
+		off_t rv = - 1;
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			MacOS::tool_return<size_t> e(MacOS::noErr);
+			if (ff->interactive()) e = MacOS::paramErr;
+			else e = ff->seek(offset, nativeWhence);
+			rv = e.value_or(-1);
+			f.error = d0 = e.error();
+		} else {
+			d0 = kEBADF;
+		} 
 
 		memoryWriteLong(rv, arg + 4);
 		memoryWriteWord(f.error, parm + 2);
@@ -353,8 +295,7 @@ namespace MPW
 	uint32_t ftrap_seteof(uint32_t parm, uint32_t arg)
 	{
 
-		uint32_t d0;
-
+		uint32_t d0 = 0;
 		MPWFile f;
 
 		f.flags = memoryReadWord(parm);
@@ -370,18 +311,15 @@ namespace MPW
 
 		Log("     seteof(%02x, %08x)\n", fd, arg);
 
-		d0 = OS::Internal::FDEntry::action(fd,
-			[arg, &f](int fd, OS::Internal::FDEntry &e){
-				int ok = ftruncate(fd, arg);
-				if (ok == 0) return 0;
-				f.error = macos_error_from_errno();
-				return (int)mpw_errno_from_errno();
-			},
-			[](int fd){
-				return kEINVAL;
-			}
-		);
-
+		auto ff = OS::Internal::find_file(fd);
+		if (ff) {
+			MacOS::tool_return<size_t> e(MacOS::noErr);
+			if (ff->interactive()) e = MacOS::paramErr;
+			else e = ff->set_eof(arg);
+			f.error = d0 = e.error();
+		} else {
+			d0 = kEBADF;
+		} 
 
 		memoryWriteWord(f.error, parm + 2);
 		return d0;

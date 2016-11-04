@@ -359,13 +359,20 @@ namespace native {
 	}
 
 
-	int open_resource_fork(const std::string &path_name, int oflag) {
+	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag) {
 
 		std::string rname = path_name + _PATH_RSRCFORKSPEC;
 
 		// todo -- verify behavior on non-hfs volume.
 		//if ((oflag & O_ACCMODE) & O_WRONLY) oflag |= O_CREAT;
-		return open(rname.c_str(), oflag, 0666);
+
+		int fd = open(rname.c_str(), oflag, 0666);
+		if (fd < 0) return macos_error_from_errno();
+
+		auto tmp = new fd_file(path_name, fd);
+		tmp->resource = true;
+
+		return file_ptr(tmp);
 	}
 
 

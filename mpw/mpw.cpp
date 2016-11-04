@@ -54,6 +54,8 @@
 
 #include <macos/sysequ.h>
 
+#include <native/file.h>
+
 extern char **environ;
 
 
@@ -74,6 +76,7 @@ namespace MPW
 
 	bool Trace = false;
 
+	const std::string RootDir();
 
 
 	static bool isdir(const std::string &path)
@@ -209,30 +212,24 @@ namespace MPW
 
 	uint16_t Init(int argc, char **argv)
 	{
-		/*
-		FDTable.resize(16);
 
-		FDTable[STDIN_FILENO] = 1;
-		FDTable[STDOUT_FILENO] = 1;
-		FDTable[STDERR_FILENO] = 1;
-		*/
 
-		/*
-		OS::Internal::FDTable.resize(3);
-		FDTable[STDIN_FILENO].refcount = 1;
-		FDTable[STDIN_FILENO].text = true;
+		// stdin/stdout/stderr
+		{
+			native::file_ptr io;
 
-		FDTable[STDOUT_FILENO].refcount = 1;
-		FDTable[STDOUT_FILENO].text = true;
+			io.reset(new native::fd_file("<stdin>", STDIN_FILENO));
+			io->text = true;
+			OS::Internal::open_file(std::move(io));
 
-		FDTable[STDERR_FILENO].refcount = 1;
-		FDTable[STDERR_FILENO].text = true;
-		*/
+			io.reset(new native::fd_file("<stdout>", STDOUT_FILENO));
+			io->text = true;
+			OS::Internal::open_file(std::move(io));
 
-		OS::Internal::FDEntry::allocate(STDIN_FILENO).text = true;
-		OS::Internal::FDEntry::allocate(STDOUT_FILENO).text = true;
-		OS::Internal::FDEntry::allocate(STDERR_FILENO).text = true;
-
+			io.reset(new native::fd_file("<stderr>", STDERR_FILENO));
+			io->text = true;
+			OS::Internal::open_file(std::move(io));
+		}
 
 		std::string command = argv[0];
 

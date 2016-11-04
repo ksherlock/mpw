@@ -49,6 +49,8 @@
 
 #include <macos/errors.h>
 
+#include <native/native.h>
+
 #include "os.h"
 #include "rm.h"
 #include "os_internal.h"
@@ -211,12 +213,9 @@ namespace OS {
 			return MacOS::dirNFErr;
 		}
 
-		int fd = Internal::FDEntry::open(sname, permission, 0);
-		if (fd < 0) return fd;
-
-		memoryWriteWord(fd, refNum);
-
-		return 0;
+		auto fd = Internal::open_file(sname, 0, permission);
+		memoryWriteWord(fd.value_or(-1), refNum);
+		return fd.error();
 	}
 
 	uint16_t FSpGetFInfo()

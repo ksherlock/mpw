@@ -202,13 +202,19 @@ namespace native {
 	}
 
 
-	int open_resource_fork(const std::string &path_name, int oflag) {
+	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag) {
 		/* under HFS, every file has a resource fork.
 		 * Therefore, create it if opening for O_RDWR or O_WRONLY
 		 */
 		int mode = oflag & O_ACCMODE;
 		if (mode == O_WRONLY || mode == O_RDWR) oflag |= O_CREAT;
-		return attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, oflag, 0666);
+		int fd = attropen(path_name.c_str(), XATTR_RESOURCEFORK_NAME, oflag, 0666);
+		if (fd < 0) return macos_error_from_errno();
+
+		auto tmp = new fd_file(path_name, fd);
+		tmp->resource = true;
+
+		return file_ptr(tmp);
 	}
 
 

@@ -49,9 +49,6 @@ namespace MPW
 
 	void ftrap_close(uint16_t trap)
 	{
-		// returns an mpw_errno
-		// close actually checks the error in the File Entry and converts that to unix.
-		// (sigh)
 
 		uint32_t d0 = 0;
 
@@ -67,61 +64,24 @@ namespace MPW
 		f.count = memoryReadLong(parm + 12);
 		f.buffer = memoryReadLong(parm + 16);
 
+		f.error = 0;
+
 
 		Log("%04x Close(%08x)\n", trap, parm);
 
-		if (!parm)
-		{
-			cpuSetDReg(0, kEINVAL);
-			return;
-		}
-
-
 		int fd = f.cookie;
 
-		int rv = OS::Internal::FDEntry::close(fd);
+		Log("     close(%02x)\n", fd);
 
-		if (rv < 0)
-		{
-			f.error = MacOS::notOpenErr;
-			d0 = kEINVAL;
-		}
-		else
-		{
-			f.error = 0;
-			d0 = 0;
+		int rv = OS::Internal::close_file(fd);
+
+		if (rv < 0) {
+			d0 = kEBADF;
 		}
 
-
-#if 0
-		if (fd < 0 || fd >= OS::Internal::FDTable.size())
-		{
-			f.error = OS::notOpenErr;
-			d0 = kEINVAL;
-		}
-		else
-		{
-			auto &e = OS::Internal::FDTable[fd];
-			if (e.refcount == 0)
-			{
-				f.error = OS::notOpenErr;
-				d0 = kEINVAL;
-			}
-			else
-			{
-				if (--e.refcount == 0)
-				{
-					Log("     close(%02x)\n", fd);
-					::close(fd);
-				}
-				f.error = 0;
-				d0 = 0;
-			}
-		}
-#endif
 
 		memoryWriteWord(f.error, parm + 2);
-		cpuSetDReg(0, 0);
+		cpuSetDReg(0, d0);
 	}
 
 
