@@ -165,13 +165,17 @@ namespace MacOS {
 		}
 
 
-		T value() const
+		T value() const &
 		{
 			return _value;
 		}
 
+		T value() && {
+			return std::move(_value);
+		}
+
 		template<class U>
-		T value_or(U&& u) const
+		T value_or(U&& u) const &
 		{
 			if (_error) return std::forward<U>(u);
 			return _value;
