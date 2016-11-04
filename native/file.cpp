@@ -7,6 +7,8 @@
 
 #include <macos/errors.h>
 
+#include <algorithm>
+
 using MacOS::tool_return;
 using MacOS::macos_error_from_errno;
 
