@@ -840,12 +840,12 @@ namespace Native {
 
 		macos_error err = noErr;
 
-		auto fd = native::open_fork(path, 0, O_CREAT | O_EXCL | O_WRONLY, 0666);
+		auto fd = native::open_fork(path, 0, O_CREAT | O_EXCL | O_WRONLY);
 		if ((err = fd.error())) {
 			if (err != dupFNErr) return SetResError(err);
 		}
 
-		fd = native::open_fork(path, 1, O_WRONLY, 0666);
+		fd = native::open_fork(path, 1, O_WRONLY);
 		if (fd.error()) return SetResError(macos_error_from_errno());
 
 		auto ff = std::move(fd).value();

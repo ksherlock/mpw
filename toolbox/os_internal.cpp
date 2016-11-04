@@ -111,7 +111,7 @@ namespace OS { namespace Internal {
 		switch(ioPermission)
 		{
 			case fsWrPerm:
-				oflag = O_WRONLY;
+				oflag = O_RDWR;
 				break;
 			case fsRdWrPerm:
 			case fsRdWrShPerm:

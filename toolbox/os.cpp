@@ -260,6 +260,8 @@ namespace OS
 			sname = FSSpecManager::ExpandPath(sname, ioDirID);
 		}
 
+		Log("     open(%s, %02x, %02x)\n", sname.c_str(), resource, ioPermission);
+
 		auto fd = Internal::open_file(sname, resource, ioPermission);
 		if (fd) memoryWriteWord(fd.value(), parm + _ioRefNum);
 		d0 = fd.error();
