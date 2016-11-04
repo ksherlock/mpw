@@ -31,15 +31,18 @@
 #define XATTR_FILETYPE_NAME	"user.prodos.FileType"
 #define XATTR_AUXTYPE_NAME	"user.prodos.AuxType"
 
+
+#include "native_internal.h"
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/xattr.h>
 
-#include "file.h"
 #include <vector>
 #include <algorithm>
 
 #include <macos/errors.h>
+
 
 using MacOS::tool_return;
 using MacOS::macos_error;
@@ -53,12 +56,12 @@ namespace {
 		~xattr_file(); 
 
 
-		tool_return<size_t> read(void *out_buffer, size_t count) override;
-		tool_return<size_t> write(const void *in_buffer, size_t count) override;
-		tool_return<size_t> get_mark() override;
-		tool_return<void> set_mark(ssize_t new_mark) override;
-		tool_return<size_t> get_eof() override;
-		tool_return<void> set_eof(ssize_t new_eof) override;
+		virtual tool_return<size_t> read(void *out_buffer, size_t count) override;
+		virtual tool_return<size_t> write(void *in_buffer, size_t count) override;
+		virtual tool_return<size_t> get_mark() override;
+		virtual tool_return<size_t> set_mark(ssize_t new_mark) override;
+		virtual tool_return<size_t> get_eof() override;
+		virtual tool_return<size_t> set_eof(ssize_t new_eof) override;
 
 
 	private:
@@ -134,6 +137,7 @@ namespace {
 	tool_return<void> xattr_file::set_mark(ssize_t new_mark) {
 		if (new_mark < 0) return MacOS::paramErr;
 		_displacement = new_mark;
+		return new_mark;
 	}
 
 	tool_return<size_t> xattr_file::get_eof() {
@@ -157,7 +161,7 @@ namespace {
 		buffer.resize(new_eof, 0);
 		int ok = fsetxattr(_fd, XATTR_RESOURCEFORK_NAME, buffer->data(), buffer.size(), 0);
 		if (ok < 0) return macos_error_from_errno();
-		return MacOS::noErr;
+		return new_eof;
 	}
 
 
@@ -213,7 +217,7 @@ namespace native {
 			if (links > 65535) links = 65535;
 
 			fi.entry_count = links;
-			return noErr;
+			return MacOS::noErr;
 		}
 
 		// todo -- get actual block size instead of assuming 512.  oh well!
@@ -232,7 +236,7 @@ namespace native {
 			fi.resource_logical_size = (rsize + 511) & ~511;
 		}
 
-		return noErr;
+		return MacOS::noErr;
 	}
 
 
