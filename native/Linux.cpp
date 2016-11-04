@@ -135,7 +135,7 @@ namespace {
 		return _displacement;
 	}
 
-	tool_return<void> xattr_file::set_mark(ssize_t new_mark) {
+	tool_return<size_t> xattr_file::set_mark(ssize_t new_mark) {
 		if (new_mark < 0) return MacOS::paramErr;
 		_displacement = new_mark;
 		return new_mark;
@@ -147,7 +147,7 @@ namespace {
 		return eof;
 	}
 
-	tool_return<void> xattr_file::set_eof(ssize_t new_eof) {
+	tool_return<size_t> xattr_file::set_eof(ssize_t new_eof) {
 
 		if (_readonly) return MacOS::wrPermErr;
 
@@ -164,6 +164,17 @@ namespace {
 		if (ok < 0) return macos_error_from_errno();
 		return new_eof;
 	}
+
+
+
+	uint32_t rforksize(const std::string &path_name)
+	{
+
+		ssize_t ok = getxattr(path_name.c_str(), XATTR_RESOURCEFORK_NAME, NULL, 0);
+		if (ok < 0) ok = 0;
+		return ok;
+	}
+
 
 
 }
@@ -239,7 +250,6 @@ namespace native {
 
 		return MacOS::noErr;
 	}
-
 
 
 }
