@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/xattr.h>
+#include <sys/stat.h>
 
 #include <vector>
 #include <algorithm>
@@ -52,12 +53,13 @@ namespace {
 
 	class xattr_file final : public native::file {
 	public:
-		xattr_file(const std::string &path, int fd, bool readonly): file(path), _fd(fd), _readonly(readonly);
+		xattr_file(const std::string &path, int fd, bool readonly): file(path), _fd(fd), _readonly(readonly)
+		{}
 		~xattr_file(); 
 
 
 		virtual tool_return<size_t> read(void *out_buffer, size_t count) override;
-		virtual tool_return<size_t> write(void *in_buffer, size_t count) override;
+		virtual tool_return<size_t> write(const void *in_buffer, size_t count) override;
 		virtual tool_return<size_t> get_mark() override;
 		virtual tool_return<size_t> set_mark(ssize_t new_mark) override;
 		virtual tool_return<size_t> get_eof() override;
@@ -103,7 +105,6 @@ namespace {
 		_displacement += count;
 		return count;
 	}
-
 
 	tool_return<size_t> xattr_file::write(const void *in_buffer, size_t count) {
 		if (_readonly) return MacOS::wrPermErr;
@@ -199,10 +200,10 @@ namespace native {
 	{
 		struct stat st;
 
-		if (stat(path_name.c_str(), &st) < 0)
+		if (::stat(path_name.c_str(), &st) < 0)
 			return macos_error_from_errno();
 
-		fi.create_date = unix_to_mac(st.st_birthtime);
+		fi.create_date = unix_to_mac(st.st_ctime);
 		fi.modify_date = unix_to_mac(st.st_mtime);
 		fi.backup_date = 0;
 

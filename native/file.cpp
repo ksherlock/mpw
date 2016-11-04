@@ -100,7 +100,7 @@ tool_return<size_t> fd_file::read(void *buffer, size_t count) {
 	return ok;
 }
 
-tool_return<size_t> fd_file::write(void *buffer, size_t count) {
+tool_return<size_t> fd_file::write(const void *buffer, size_t count) {
 
 
 	if (_interactive || text) {
@@ -186,7 +186,7 @@ tool_return<size_t> empty_file::read(void *out_buffer, size_t count) {
 	if (count == 0) return 0;
 	return 0; // eofErr handled elsewhere.
 }
-tool_return<size_t> empty_file::write(void *in_buffer, size_t count) {
+tool_return<size_t> empty_file::write(const void *in_buffer, size_t count) {
 	return MacOS::wrPermErr;
 }
 tool_return<size_t> empty_file::seek(ssize_t position, int whence) {

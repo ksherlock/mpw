@@ -24,7 +24,7 @@ public:
 
 	virtual ~file() = default;
 	virtual tool_return<size_t> read(void *out_buffer, size_t count) = 0;
-	virtual tool_return<size_t> write(void *in_buffer, size_t count) = 0;
+	virtual tool_return<size_t> write(const void *in_buffer, size_t count) = 0;
 	virtual tool_return<size_t> seek(ssize_t position, int whence);
 	virtual tool_return<size_t> get_mark() = 0;
 	virtual tool_return<size_t> set_mark(ssize_t new_mark) = 0;
@@ -49,7 +49,7 @@ public:
 	virtual ~fd_file();
 
 	virtual tool_return<size_t> read(void *out_buffer, size_t count) override;
-	virtual tool_return<size_t> write(void *in_buffer, size_t count) override;
+	virtual tool_return<size_t> write(const void *in_buffer, size_t count) override;
 	virtual tool_return<size_t> seek(ssize_t position, int whence) override;
 	virtual tool_return<size_t> get_mark() override;
 	virtual tool_return<size_t> set_mark(ssize_t new_mark) override;
@@ -69,7 +69,7 @@ public:
 	empty_file(const std::string &s) : file(s) {}
 
 	virtual tool_return<size_t> read(void *out_buffer, size_t count) override;
-	virtual tool_return<size_t> write(void *in_buffer, size_t count) override;
+	virtual tool_return<size_t> write(const void *in_buffer, size_t count) override;
 	virtual tool_return<size_t> seek(ssize_t position, int whence) override;
 	virtual tool_return<size_t> get_mark() override;
 	virtual tool_return<size_t> set_mark(ssize_t new_mark) override;
