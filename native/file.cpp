@@ -137,7 +137,7 @@ tool_return<size_t> fd_file::get_mark() {
 
 	if (_interactive) return 0;
 
-	off_t pos = ::lseek(_fd, 0, SEEK_SET);
+	off_t pos = ::lseek(_fd, 0, SEEK_CUR);
 	if (pos < 0) return macos_error_from_errno();
 	return pos;
 }
