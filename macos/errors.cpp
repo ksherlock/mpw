@@ -537,7 +537,7 @@ const char *ErrorName(int16_t error)
 	case -339: return "Error occurred during _NewPtr";
 	case -338: return "Selector out of bounds";
 	case -337: return "Slot out of bounds or does not exist";
-	case -336: return "The physical block size of an sBlock was zero";
+	case -336: return "The physical block size of an sBlock was zero";
 	case -335: return "The sPointer is nil; no list is specified";
 	case -334: return "The CPU field of the code to be executed by sExec was wrong";
 	case -333: return "The revision code to be executed by sExec was wrong";
@@ -891,6 +891,11 @@ namespace MacOS {
 			case dupFNErr: return EEXIST;
 			case fBsyErr: return EBUSY;
 			case dskFulErr: return ENOSPC;
+			case paramErr: return EINVAL;
+			case posErr: return EINVAL;
+			case memFullErr: return ENOMEM;
+			case mFulErr: return ENOMEM;
+			case tmfoErr: return ENFILE;
 
 			default: return -1;
 			}
@@ -920,20 +925,23 @@ namespace MacOS {
 			case EBADF: return rfNumErr;
 			case EIO: return ioErr;
 			case EACCES: return permErr;
+			case EPERM: return permErr;
 			case ENOENT: return fnfErr;
 			case ENOTDIR: return dirNFErr;
 			case EISDIR: return notAFileErr;
 			case ENOTSUP: return extFSErr;
 			case EROFS: return wPrErr;
+			case EINVAL: return paramErr;
 
 			case EEXIST: return dupFNErr;
 
 			case EBUSY: return fBsyErr;
+			case ENOTEMPTY: return fBsyErr;
 
 			case EDQUOT: return dskFulErr;
 			case ENOSPC: return dskFulErr;
-
-			case ENOTEMPTY: return fBsyErr;
+			case ENOMEM: return mFulErr;
+			case ENFILE: return tmfoErr;
 
 
 			default:
