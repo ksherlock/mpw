@@ -37,22 +37,24 @@
 
 #include "file.h"
 #include <vector>
+#include <algorithm>
 
 #include <macos/errors.h>
 
 using MacOS::tool_return;
+using MacOS::macos_error;
 using MacOS::macos_error_from_errno;
 
 namespace {
 
-	class xattr_file final : public file {
+	class xattr_file final : public native::file {
 	public:
 		xattr_file(const std::string &path, int fd, bool readonly): file(path), _fd(fd), _readonly(readonly);
 		~xattr_file(); 
 
 
 		tool_return<size_t> read(void *out_buffer, size_t count) override;
-		tool_return<size_t> write(void *in_buffer, size_t count) override;
+		tool_return<size_t> write(const void *in_buffer, size_t count) override;
 		tool_return<size_t> get_mark() override;
 		tool_return<void> set_mark(ssize_t new_mark) override;
 		tool_return<size_t> get_eof() override;
@@ -64,7 +66,7 @@ namespace {
 		ssize_t read_rfork(std::vector<uint8_t> &buffer);
 
 		int _fd = -1;
-		off_t _displacement = 0;
+		size_t _displacement = 0;
 		bool _readonly = false;
 	};
 
@@ -130,7 +132,7 @@ namespace {
 	}
 
 	tool_return<void> xattr_file::set_mark(ssize_t new_mark) {
-		if (new_mark < 0) return paramErr;
+		if (new_mark < 0) return MacOS::paramErr;
 		_displacement = new_mark;
 	}
 
@@ -144,18 +146,18 @@ namespace {
 
 		if (_readonly) return MacOS::wrPermErr;
 
-		if (new_eof < 0) return paramErr;
+		if (new_eof < 0) return MacOS::paramErr;
 
 		std::vector<uint8_t> buffer;
 
 		ssize_t eof = read_rfork(buffer);
 		if (eof < 0) eof = 0;
-		if (eof == new_eof) return noErr;
+		if (eof == new_eof) return MacOS::noErr;
 
 		buffer.resize(new_eof, 0);
 		int ok = fsetxattr(_fd, XATTR_RESOURCEFORK_NAME, buffer->data(), buffer.size(), 0);
 		if (ok < 0) return macos_error_from_errno();
-		return noErr;
+		return MacOS::noErr;
 	}
 
 
@@ -180,7 +182,7 @@ namespace native {
 
 		int mode = oflag & O_ACCMODE;
 
-		auto tmp = new xattr_file(path_name, parent, oflags == O_RDONLY);
+		auto tmp = new xattr_file(path_name, parent, mode == O_RDONLY);
 		tmp->resource = true;
 		return file_ptr(tmp);
 	}
