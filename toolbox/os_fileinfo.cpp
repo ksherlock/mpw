@@ -26,6 +26,7 @@
 
 #include <cerrno>
 #include <cctype>
+#include <cstring>
 #include <ctime>
 #include <algorithm>
 #include <chrono>

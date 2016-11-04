@@ -363,7 +363,7 @@ namespace OS
 
 		d0 = xfer.error();
 		transferCount = xfer.value_or(0);
-		offset = ff->get_mark().value_or(0ul);
+		offset = ff->get_mark().value_or((size_t)0);
 
 		memoryWriteLong(offset, parm + 46); // new offset.
 		memoryWriteLong(transferCount, parm + 40);
@@ -421,7 +421,7 @@ namespace OS
 
 		d0 = xfer.error();
 		transferCount = xfer.value_or(0);
-		offset = ff->get_mark().value_or(0ul);
+		offset = ff->get_mark().value_or((size_t)0);
 
 		memoryWriteLong(offset, parm + 46); // new offset.
 		memoryWriteLong(transferCount, parm + 40);
