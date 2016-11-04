@@ -33,6 +33,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <strings.h>
+#include <stdlib.h>
+#include <strings.h>
+
 
 using namespace MacOS;
 

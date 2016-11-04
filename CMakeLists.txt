@@ -21,7 +21,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
-	add_compile_options(-g -Wall -Wno-unknown-pragmas)
+	add_compile_options(-g -Wall -Wno-unknown-pragmas -Wno-multichar)
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
