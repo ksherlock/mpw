@@ -63,11 +63,35 @@ set_source_files_properties(
 	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
 )
 
-add_executable(mpw main.cpp debugger.cpp debugger_internal.cpp 
-	address_map.cpp lexer.cpp parser.cpp loadtrap.cpp 
-	commands.cpp
-	template_loader.cpp template_parser.cpp intern.cpp template.cpp)
 
+#
+# -ledit includes history stuff.  gnu -lreadline does not.
+#
+
+IF (ENABLE_DEBUGGER)
+	set(DEBUGGER_SRC
+		debugger.cpp debugger.cpp debugger_internal.cpp 
+		address_map.cpp lexer.cpp parser.cpp loadtrap.cpp 
+		commands.cpp
+		template_loader.cpp template_parser.cpp intern.cpp template.cpp
+	)
+ENDIF()
+
+add_executable(mpw main.cpp loadtrap.cpp ${DEBUGGER_SRC})
+
+IF (ENABLE_DEBUGGER)
+
+	if(HAVE_LIBEDIT)
+		target_link_libraries(mpw edit)
+	elseif(HAVE_LIBREADLINE)
+		target_link_libraries(mpw readline)
+		if (HAVE_LIBHISTORY)
+		target_link_libraries(mpw history)
+		endif()
+	endif()
+
+
+ENDIF()
 
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
@@ -76,7 +100,7 @@ target_link_libraries(mpw MPLITE_LIB)
 target_link_libraries(mpw NATIVE_LIB)
 target_link_libraries(mpw MACOS_LIB)
 target_link_libraries(mpw CXX_LIB)
-set_target_properties(mpw PROPERTIES LINK_FLAGS "-ledit")
+
 
 
 #add_executable(disasm disasm.cpp)

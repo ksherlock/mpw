@@ -31,19 +31,25 @@
 #define XATTR_FILETYPE_NAME	"user.prodos.FileType"
 #define XATTR_AUXTYPE_NAME	"user.prodos.AuxType"
 
-
 #include "native_internal.h"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/xattr.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <utime.h>
 
 #include <vector>
 #include <algorithm>
+#include <cstring>
+#include <cerrno>
 
 #include <macos/errors.h>
 
+#ifndef ENOATTR
+#define ENOATTR ENODATA
+#endif
 
 using MacOS::tool_return;
 using MacOS::macos_error;
@@ -181,29 +187,50 @@ namespace {
  
 namespace native {
 
-	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag) {
 
-		/* under HFS, every file has a resource fork.
-		 * Therefore, create it if opening for O_RDWR or O_WRONLY
-		 */
+	macos_error get_finder_info(const std::string &path_name, void *info, bool extended) {
 
-		int parent;
-		if (oflag & O_CREAT) {
-			int excl = oflag & O_EXCL;
-			parent = open(path_name.c_str(), O_RDONLY | O_CREAT | excl, 0666);
-		} else {
-			parent = open(path_name.c_str(), O_RDONLY);
+		uint8_t buffer[32];
+		std::memset(buffer, 0, sizeof(buffer));
+
+		ssize_t ok;
+		ok = getxattr(path_name.c_str(), XATTR_FINDERINFO_NAME, buffer, 32);
+		if (ok ==16 || ok == 32) {
+			prodos_ftype_out(buffer);
+			memcpy(info, buffer, extended ? 32 : 16);
+			return MacOS::noErr;
 		}
-		if (parent < 0) return macos_error_from_errno();
 
-		int mode = oflag & O_ACCMODE;
+		if (ok < 0 && errno != ENOATTR && errno != ENOTSUP)  return macos_error_from_errno();
 
-		auto tmp = new xattr_file(path_name, parent, mode == O_RDONLY);
-		tmp->resource = true;
-		return file_ptr(tmp);
+		/* if it's a text file, call it a text file */
+		if (is_text_file_internal(path_name)) {
+			memcpy(buffer, "TEXTMPS ", 8);
+		}
+
+		memcpy(info, buffer, extended ? 32 : 16);
+		return MacOS::noErr;
 	}
 
 
+	macos_error set_finder_info(const std::string &path_name, const void *info, bool extended) {
+
+		uint8_t buffer[32];
+		ssize_t rv;
+
+		std::memset(buffer, 0, sizeof(buffer));
+		if (extended) {
+			std::memcpy(buffer, info, 32);
+		} else {
+			std::memcpy(buffer, info, 16);
+		}
+		prodos_ftype_in(buffer);
+
+		int ok = setxattr(path_name.c_str(), XATTR_FINDERINFO_NAME, buffer, 32, 0);
+		if ( ok < 0) return macos_error_from_errno();
+
+		return MacOS::noErr;
+	}
 
 
 
@@ -211,14 +238,12 @@ namespace native {
 	{
 		struct stat st;
 
-		if (::stat(path_name.c_str(), &st) < 0)
+		if (stat(path_name.c_str(), &st) < 0)
 			return macos_error_from_errno();
 
 		fi.create_date = unix_to_mac(st.st_ctime);
 		fi.modify_date = unix_to_mac(st.st_mtime);
 		fi.backup_date = 0;
-
-		fi.attributes = 0;
 
 		if (S_ISDIR(st.st_mode)) {
 			fi.type = file_info::directory;
@@ -250,6 +275,68 @@ namespace native {
 
 		return MacOS::noErr;
 	}
+
+
+	macos_error set_file_info(const std::string &path_name, const file_info &fi) {
+
+		struct stat st;
+
+		if (stat(path_name.c_str(), &st) < 0) return macos_error_from_errno();
+
+		if (S_ISREG(st.st_mode)) {
+			auto rv = set_finder_info(path_name, fi.finder_info);
+			if (rv) return rv;
+		}
+
+		time_t create_date = fi.create_date ? mac_to_unix(fi.create_date) : 0;
+		time_t modify_date = fi.modify_date ? mac_to_unix(fi.modify_date) : 0;
+		time_t backup_date = fi.backup_date ? mac_to_unix(fi.backup_date) : 0;
+
+		// todo -- value of 0 == set to current date/time?
+
+		if (modify_date == st.st_mtime) modify_date = 0;
+
+		// try utimes.
+
+		struct timeval tv[2];
+		memset(tv, 0, sizeof(tv));
+
+		int rv = 0;
+		if (modify_date) {
+			tv[0].tv_sec = st.st_atime;
+			tv[1].tv_sec = modify_date;
+			rv = utimes(path_name.c_str(), tv);
+		}
+
+		if (rv < 0) return macos_error_from_errno();
+		return MacOS::noErr;
+	}
+
+
+
+	tool_return<file_ptr> open_resource_fork(const std::string &path_name, int oflag) {
+
+		/* under HFS, every file has a resource fork.
+		 * Therefore, create it if opening for O_RDWR or O_WRONLY
+		 */
+
+		int parent;
+		if (oflag & O_CREAT) {
+			int excl = oflag & O_EXCL;
+			parent = open(path_name.c_str(), O_RDONLY | O_CREAT | excl, 0666);
+		} else {
+			parent = open(path_name.c_str(), O_RDONLY);
+		}
+		if (parent < 0) return macos_error_from_errno();
+
+		int mode = oflag & O_ACCMODE;
+
+		auto tmp = new xattr_file(path_name, parent, mode == O_RDONLY);
+		tmp->resource = true;
+		return file_ptr(tmp);
+	}
+
+
 
 
 }

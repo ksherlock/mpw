@@ -27,6 +27,11 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 endif()
 
+
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+	add_compile_options(-D _BSD_SOURCE)
+ENDIF()
+
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_BINARY_DIR})
 
@@ -36,14 +41,32 @@ include_directories(${CMAKE_BINARY_DIR})
 
 INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckStructHasMember)
+INCLUDE (CheckFunctionExists)
+INCLUDE (CheckLibraryExists)
 
 CHECK_INCLUDE_FILES(endian.h HAVE_ENDIAN_H)
 CHECK_INCLUDE_FILES(sys/endian.h HAVE_SYS_ENDIAN_H)
 CHECK_INCLUDE_FILES(machine/endian.h HAVE_MACHINE_ENDIAN_H)
+CHECK_INCLUDE_FILES(bsd/string.h HAVE_BSD_STRING_H)
 
 CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namlen dirent.h HAVE_DIRENT_D_NAMLEN)
 CHECK_STRUCT_HAS_MEMBER("struct stat" st_birthtime sys/stat.h HAVE_STAT_ST_BIRTHTIME)
 
+set(CMAKE_REQUIRED_INCLUDES string.h)
+CHECK_FUNCTION_EXISTS(strlcat HAVE_STRLCAT)
+CHECK_FUNCTION_EXISTS(strlcpy HAVE_STRLCPY)
+set(CMAKE_REQUIRED_INCLUDES)
+
+
+
+CHECK_LIBRARY_EXISTS(edit readline "" HAVE_LIBEDIT)
+CHECK_LIBRARY_EXISTS(readline readline "" HAVE_LIBREADLINE)
+CHECK_LIBRARY_EXISTS(history add_history "" HAVE_LIBHISTORY)
+
+# feature config
+SET(ENABLE_DEBUGGER 1 CACHE BOOL "Define whether debugger should be enabled.")
+IF(ENABLE_DEBUGGER)
+ENDIF()
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
 

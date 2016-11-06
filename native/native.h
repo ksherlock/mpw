@@ -38,6 +38,7 @@ namespace native {
 	macos_error get_file_info(const std::string &path_name, file_info &fi);
 	macos_error set_file_info(const std::string &path_name, const file_info &fi);
 
+
 	macos_error get_finder_info(const std::string &path_name, void *buffer, bool extended = true);
 	macos_error get_finder_info(const std::string &path_name, uint32_t &ftype, uint32_t &ctype);
 

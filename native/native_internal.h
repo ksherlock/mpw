@@ -14,6 +14,9 @@ namespace native {
 
 	void prodos_ftype_in(uint8_t *buffer);
 	void prodos_ftype_out(uint8_t *buffer);
+
+	void synthesize_finder_info(const std::string &path_name, uint8_t *buffer, bool extended);
+
 }
 
 #endif

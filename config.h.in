@@ -4,8 +4,14 @@
 #cmakedefine HAVE_STAT_ST_BIRTHTIME
 #cmakedefine HAVE_DIRENT_D_NAMLEN
 
+#cmakedefine HAVE_STRLCAT
+#cmakedefine HAVE_STRLCPY
+
+#cmakedefine ENABLE_DEBUGGER
+
 #cmakedefine HAVE_ENDIAN_H
 #cmakedefine HAVE_MACHINE_ENDIAN_H
 #cmakedefine HAVE_SYS_ENDIAN_H
+#cmakedefine HAVE_BSD_STRING_H
 
 #endif

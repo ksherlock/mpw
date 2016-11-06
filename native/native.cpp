@@ -132,6 +132,18 @@ namespace native {
 	}
 
 
+	void synthesize_finder_info(const std::string &path_name, uint8_t *buffer, bool extended) {
+
+		::memset(buffer, 0, extended ? 32 : 16);
+
+		/* if it's a text file, call it a text file */
+		if (is_text_file_internal(path_name)) {
+			::memcpy(buffer, "TEXTMPS ", 8);
+		}
+	}
+
+
+
 	macos_error get_finder_info(const std::string &path_name, uint32_t &ftype, uint32_t &ctype) {
 
 		uint8_t buffer[16];

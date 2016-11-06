@@ -25,6 +25,8 @@
  *
  */
 
+#include "config.h"
+
 #include <cstdint>
 #include <cctype>
 #include <cstring>
@@ -59,7 +61,9 @@
 #include <macos/traps.h>
 
 #include "main.h"
+#ifdef ENABLE_DEBUGGER
 #include "debugger.h"
+#endif
 
 
 
@@ -525,8 +529,10 @@ int main(int argc, char **argv)
 		{ "trace-tools", no_argument, NULL, kTraceToolBox },
 		{ "trace-mpw", no_argument, NULL, kTraceMPW },
 
+#ifdef ENABLE_DEBUGGER
 		{ "debug", no_argument, NULL, kDebugger },
 		{ "debugger", no_argument, NULL, kDebugger },
+#endif
 
 		{ "memory-stats", no_argument, NULL, kMemoryStats },
 
@@ -715,8 +721,13 @@ int main(int argc, char **argv)
 		// else do it manually below.
 	}
 
+#ifdef ENABLE_DEBUGGER
 	if (Flags.debugger) Debug::Shell();
 	else MainLoop();
+#else
+	MainLoop();
+#endif
+
 
 
 
@@ -727,8 +738,6 @@ int main(int argc, char **argv)
 
 	uint32_t rv = MPW::ExitStatus();
 	if (rv > 0xff) rv = 0xff;
-
-
 
 	exit(rv);
 }
