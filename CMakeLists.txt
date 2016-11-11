@@ -24,7 +24,9 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	add_compile_options(-g -Wall -Wno-unknown-pragmas -Wno-multichar)
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-
+	add_compile_options(/wd4996 /wd4068)
+	include_directories(winclude)
+	set(HAVE_ENDIAN_H 1)
 endif()
 
 

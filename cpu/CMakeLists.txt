@@ -1,4 +1,7 @@
+if (MSVC)
+else()
 add_compile_options(-g -Wall -Wno-unused-function)
+endif()
 
 set(CPU_SRC 
 	CpuModule.c 

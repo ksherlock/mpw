@@ -14,4 +14,9 @@
 #cmakedefine HAVE_SYS_ENDIAN_H
 #cmakedefine HAVE_BSD_STRING_H
 
+
+#ifdef _WIN32
+typedef long ssize_t;
+#endif
+
 #endif

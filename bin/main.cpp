@@ -328,6 +328,9 @@ void help()
 	printf(" --memory-stats      print memory usage information\n");
 	printf(" --ram=<number>      set the ram size.  Default=16M\n");
 	printf(" --stack=<number>    set the stack size.  Default=8K\n");
+#ifdef ENABLE_DEBUGGER
+	printf(" --debugger          Enable debug shell\n");
+#endif
 	printf("\n");
 }
 
