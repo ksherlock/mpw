@@ -43,6 +43,10 @@
 
 #include <strings.h>
 
+#include <filesystem>
+
+namespace fs = std::experimental::filesystem;
+
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
@@ -80,6 +84,10 @@ namespace OS {
 
 	// MacOS: -> { -1, 1, "MacOS" }
 	// MacOS:dumper -> {-1, 2 "dumper"}
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 	std::string realpath(const std::string &path)
 	{
@@ -340,7 +348,6 @@ namespace OS {
 		 */
 
 		uint32_t spec;
-		struct stat st;
 
 		StackFrame<4>(spec);
 
@@ -348,20 +355,11 @@ namespace OS {
 
 		Log("     FSpDelete(%s)\n", sname.c_str());
 
+		std::error_code ec;
 
-		if (::lstat(sname.c_str(), &st) < 0)
-			return macos_error_from_errno();
-
-		int ok = 0;
-		if (S_ISDIR(st.st_mode))
-			ok = ::rmdir(sname.c_str());
-		else
-			ok = ::unlink(sname.c_str());
-
-		if (ok < 0)
-			return macos_error_from_errno();
-
-		return 0;
+		if (fs::remove(sname, ec)) return 0;
+		if (ec) return macos_error_from_errno(ec);
+		return MacOS::fnfErr;			
 	}
 
 
@@ -388,20 +386,19 @@ namespace OS {
 
 		Log("     ResolveAliasFile(%s)\n", path.c_str());
 
-		struct stat st;
-		int rv;
 
-		rv = ::stat(path.c_str(), &st);
-		if (rv < 0)
-		{
+		std::error_code ec;
+		fs::file_status st = fs::status(path, ec);
+
+		if (ec) {
 			if (wasAliased) memoryWriteWord(0, wasAliased);
 			if (targetIsFolder) memoryWriteWord(0, targetIsFolder);
 
-			return macos_error_from_errno();
+			return macos_error_from_errno(ec);
 		}
 
 		if (targetIsFolder)
-				memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
+				memoryWriteWord(fs::is_directory(st) ? 1 : 0, targetIsFolder);
 
 		// don't bother pretending a soft link is an alias.
 		if (wasAliased) memoryWriteWord(0, wasAliased);

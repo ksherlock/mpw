@@ -2,8 +2,11 @@
 
 #include <algorithm>
 #include <cassert>
-#include <unistd.h>
-#include <sys/param.h>
+
+
+#include <filesystem>
+
+namespace fs = std::experimental::filesystem;
 
 namespace OS {
 
@@ -31,13 +34,12 @@ namespace OS {
 
 	int32_t FSSpecManager::IDForCWD()
 	{
-		char buffer[MAXPATHLEN];
-		char *cp;
 
-		cp = getcwd(buffer, sizeof(buffer));
-		if (cp < 0) return 0;
+		std::error_code ec;
+		fs::path p = fs::current_path(ec);
+		if (ec) return 0;
 
-		std::string path(cp);
+		std::string path(p.generic_u8string());
 
 		return FSSpecManager::IDForPath(std::move(path), true);
 	}

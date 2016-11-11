@@ -39,6 +39,10 @@
 
 #include <strings.h>
 
+#include <filesystem>
+
+namespace fs = std::experimental::filesystem;
+
 #include <cpu/defs.h>
 #include <cpu/CpuModule.h>
 #include <cpu/fmem.h>
@@ -465,8 +469,6 @@ namespace OS
 			_ioDirID = 48,
 		};
 
-		struct stat st;
-
 		bool htrap = trap & 0x0200;
 		const char *func = htrap ? "HDelete" : "Delete";
 
@@ -494,21 +496,10 @@ namespace OS
 
 		Log("     %s(%s)\n", func, sname.c_str());
 
-		int ok;
-
-		ok = ::lstat(sname.c_str(), &st);
-		if (ok == 0)
-		{
-			if (S_ISDIR(st.st_mode))
-				ok = ::rmdir(sname.c_str());
-			else
-				ok = ::unlink(sname.c_str());
-		}
-
-		if (ok < 0)
-			d0 = macos_error_from_errno();
-		else
-			d0 = 0;
+		std::error_code ec;
+		if (fs::remove(sname, ec)) d0 = 0;
+		else if (ec) d0 = macos_error_from_errno(ec);
+		else d0 = MacOS::fnfErr;
 
 		memoryWriteWord(d0, parm + _ioResult);
 		return d0;

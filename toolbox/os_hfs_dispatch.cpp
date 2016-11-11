@@ -33,13 +33,14 @@
 #include <deque>
 #include <string>
 #include <cstring>
+#include <vector>
 
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <dirent.h>
-#include <sys/param.h>
+
+#include <filesystem>
 
 #include <strings.h>
 
@@ -62,6 +63,8 @@
 using ToolBox::Log;
 
 using MacOS::macos_error_from_errno;
+
+namespace  fs = std::experimental::filesystem;
 
 namespace OS {
 
@@ -328,11 +331,8 @@ namespace OS {
 			std::string sname = FSSpecManager::PathForID(ioDirID);
 			if (sname.empty()) {
 
-				char buffer[MAXPATHLEN];
-				char *cp;
-
-				cp = getcwd(buffer, sizeof(buffer));
-				sname = cp ? cp : ".";				
+				auto path = fs::current_path();
+				sname = path.empty() ? "." : path.generic_u8string();
 			}
 			d0 = CatInfoByName(sname, parm);
 
@@ -366,46 +366,26 @@ namespace OS {
 			sname = OS::realpath(sname);
 
 			// if sname == "", error...
-			DIR *dp;
-			struct dirent *dir;
 
-			dp = opendir(sname.c_str());
-			if (!dp) {
-				d0 = macos_error_from_errno();
+			fs::directory_iterator dir(sname);
+			std::vector<fs::path> names(fs::begin(dir), fs::end(dir));
+
+			if (ioFDirIndex >= names.size()) {
+				d0 = MacOS::fnfErr; // end of dir error?
 				memoryWriteWord(d0, parm + _ioResult);
 				return d0;
 			}
 
-			while ((dir = readdir(dp))) {
-				if (dir->d_name[0] == '.') {
-					if (!strcmp(dir->d_name, ".")) continue;
-					if (!strcmp(dir->d_name, "..")) continue;
-				}
-#ifdef HAVE_DIRENT_D_NAMLEN
-				if (dir->d_namlen > 255) continue;  // too long!
-#else
-				if (strlen(dir->d_name) > 255) continue;
-#endif
-				if (--ioFDirIndex == 0) break;
-			}
+			// alphabetical order...
+			std::sort(names.begin(), names.end());
 
-			if (!dir) {
-				closedir(dp);
-				d0 = MacOS::fnfErr;
-				memoryWriteWord(d0, parm + _ioResult);
-				return d0;
-			}
+			auto e = names[ioFDirIndex - 1];
 
 			if (ioNamePtr) {
-				ToolBox::WritePString(ioNamePtr, dir->d_name);
+				ToolBox::WritePString(ioNamePtr, e.filename().generic_u8string());
 			}
 
-			sname.push_back('/');
-			sname.append(dir->d_name);
-			closedir(dp);
-
-	
-			d0 = CatInfoByName(sname, parm);
+			d0 = CatInfoByName(e.generic_u8string(), parm);
 		}
 
 		memoryWriteWord(d0, parm + _ioResult);
