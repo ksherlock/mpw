@@ -917,6 +917,27 @@ namespace MacOS {
     	return macos_error_from_errno(errno);
     }
 
+
+    macos_error macos_error_from_errno(const std::error_code &ec) {
+    	if (!ec) return noErr;
+
+    	// generic_category is a posix errno.
+    	// system_category is the native error (eg posix errno or windows error)
+    	// but will default_error_condition() to a generic_category, if possible.
+
+    	if (ec.category() == std::generic_category())
+    		return macos_error_from_errno(ec.value());
+
+    	if (ec.category() == macos_system_category()) return (macos_error)ec.value();
+
+		std::error_condition econd = ec.default_error_condition();
+		if (econd.category() == std::generic_category())
+			return macos_error_from_errno(econd.value());
+
+    	return ioErr; 
+    }
+
+
     macos_error macos_error_from_errno(int error)
     {
 		switch(error)
@@ -938,7 +959,9 @@ namespace MacOS {
 			case EBUSY: return fBsyErr;
 			case ENOTEMPTY: return fBsyErr;
 
+#ifdef EDQUOT
 			case EDQUOT: return dskFulErr;
+#endif
 			case ENOSPC: return dskFulErr;
 			case ENOMEM: return mFulErr;
 			case ENFILE: return tmfoErr;

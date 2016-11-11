@@ -565,6 +565,8 @@ namespace MacOS {
     macos_error macos_error_from_errno();
     macos_error macos_error_from_errno(int error);
 
+    macos_error macos_error_from_errno(const std::error_code &ec);
+
     // c++11 error stuff
     const std::error_category& macos_system_category();
 
