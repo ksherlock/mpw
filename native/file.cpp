@@ -170,7 +170,7 @@ tool_return<size_t> fd_file::set_eof(ssize_t new_eof) {
 
 	if (_interactive) return MacOS::paramErr;
 
-	int ok = ::ftruncate(_fd, new_eof);
+	int ok = ftruncate(_fd, new_eof);
 	if (ok < 0) return macos_error_from_errno();
 	return new_eof;
 }

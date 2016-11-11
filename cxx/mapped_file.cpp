@@ -92,7 +92,7 @@ void mapped_file_base::open(const path_type& p, mapmode flags, size_t length, si
 	if (length == -1) {
 		LARGE_INTEGER file_size;
 		GetFileSizeEx(fh, &file_size);
-		length = file_size.QuadPart;
+		length = (size_t)file_size.QuadPart;
 	}
 
 	if (length == 0) return;
@@ -173,7 +173,7 @@ void mapped_file_base::create(const path_type& p, size_t length) {
 
 
 	file_size.QuadPart = length;
-	if (!SetFilePointerEx(fh, file_size, nullptr, FILE_BEGIN));
+	if (!SetFilePointerEx(fh, file_size, nullptr, FILE_BEGIN)) throw_error();
 	if (!SetEndOfFile(fh)) throw_error();
 
 	mh = CreateFileMapping(fh, nullptr, protect, 0, 0, 0);

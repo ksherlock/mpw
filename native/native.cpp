@@ -25,15 +25,17 @@
  */
 
 
+
 #include "native_internal.h"
 #include <string>
 #include <algorithm>
 
+#include <unistd.h>
+#include <strings.h>
+
 #include <cctype>
 #include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
-#include <strings.h>
 #include <stdlib.h>
 
 

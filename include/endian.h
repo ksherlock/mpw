@@ -55,6 +55,46 @@
 #endif
 
 
+#ifdef _WIN32
+#include <stdlib.h>
+
+#define bswap16 _byteswap_ushort
+#define bswap32 _byteswap_ulong
+#define bswap64 _byteswap_uint64
+
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define	htobe16(x)	bswap16((x))
+#define	htobe32(x)	bswap32((x))
+#define	htobe64(x)	bswap64((x))
+#define	htole16(x)	((uint16_t)(x))
+#define	htole32(x)	((uint32_t)(x))
+#define	htole64(x)	((uint64_t)(x))
+
+#define	be16toh(x)	bswap16((x))
+#define	be32toh(x)	bswap32((x))
+#define	be64toh(x)	bswap64((x))
+#define	le16toh(x)	((uint16_t)(x))
+#define	le32toh(x)	((uint32_t)(x))
+#define	le64toh(x)	((uint64_t)(x))
+#else /* BYTE_ORDER != LITTLE_ENDIAN */
+#define	htobe16(x)	((uint16_t)(x))
+#define	htobe32(x)	((uint32_t)(x))
+#define	htobe64(x)	((uint64_t)(x))
+#define	htole16(x)	bswap16((x))
+#define	htole32(x)	bswap32((x))
+#define	htole64(x)	bswap64((x))
+
+#define	be16toh(x)	((uint16_t)(x))
+#define	be32toh(x)	((uint32_t)(x))
+#define	be64toh(x)	((uint64_t)(x))
+#define	le16toh(x)	bswap16((x))
+#define	le32toh(x)	bswap32((x))
+#define	le64toh(x)	bswap64((x))
+#endif /* BYTE_ORDER == LITTLE_ENDIAN */
+
+
+#endif
+
 #ifdef __cplusplus
 
 // https://github.com/HowardHinnant/hash_append/blob/master/endian.h

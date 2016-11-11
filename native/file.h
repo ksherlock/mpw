@@ -5,8 +5,13 @@
 #include <memory>
 #include <string>
 #include <stddef.h>
+#include <sys/types.h>
 
 #include <macos/tool_return.h>
+
+#ifdef _WIN32
+typedef long ssize_t;
+#endif
 
 namespace native {
 
