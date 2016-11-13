@@ -34,6 +34,16 @@ namespace floating_point {
 	void reverse_bytes_if(void *vp, std::false_type) {
 	}
 
+#if 0
+	enum classification {
+		zero,
+		infinite,
+		quiet_nan,
+		signaling_nan,
+		normal,
+		subnormal
+	};
+#endif
 
 	namespace single_traits {
 		constexpr size_t bias = 127;
@@ -114,6 +124,7 @@ namespace floating_point {
 		bool nan = false;
 		bool inf = false;
 
+		//classification type = zero;
 
 		template<class T, typename = std::enable_if<std::is_floating_point<T>::value> >
 		void read(T x)
@@ -187,13 +198,11 @@ namespace floating_point {
 		}
 
 		void write(format<12, endian::native>, void *vp) const {
-			// todo -- padding?
 			write_extended(vp);
 			std::memset((uint8_t *)vp + 10, 0, 12-10);
 		}
 
 		void write(format<16, endian::native>, void *vp) const {
-			// todo -- padding?
 			write_extended(vp);
 			std::memset((uint8_t *)vp + 10, 0, 16-10);
 		}
@@ -207,16 +216,7 @@ namespace floating_point {
 		info() = default;
 
 
-	#if 0
-		enum {
-			fp_zero,
-			fp_infinite,
-			fp_quiet_nan,
-			fp_signaling_nan,
-			fp_normal,
-			fp_subnormal
-		};
-	#endif
+
 
 
 	};

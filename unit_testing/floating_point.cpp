@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <inttypes.h>
 
 namespace fp = floating_point;
 
@@ -24,6 +25,19 @@ void bitdump(const void *vp, unsigned bytes) {
       printf(" ");
   }
   printf("\n");
+}
+
+void print(const fp::info &fpi) {
+
+  printf("sign: %d\n", fpi.sign);
+  printf("one : %d\n", fpi.one);
+  printf("exp : %d\n", fpi.exp);
+  printf("sig : %" PRIx64 "\n", fpi.sig);
+  bitdump(&fpi.sig, 8);
+  printf("nan : %d\n", (int)fpi.nan);
+  printf("inf : %d\n", (int)fpi.inf);
+  printf("\n");
+
 }
 
 
@@ -191,9 +205,10 @@ TEST_CASE( "Inf is handled", "[floating point info]") {
 
 TEST_CASE( "Re-cast 0.0", "[floating point info]") {
 
-  float target_f = 0.0;
-  double target_d = 0.0;
-  double target_ld = 0.0;
+  static const float target_f = 0.0;
+  static const double target_d = 0.0;
+  static const long double target_ld = 0.0;
+
   long double ld;
   double d;
   float f;
@@ -204,6 +219,8 @@ TEST_CASE( "Re-cast 0.0", "[floating point info]") {
   fpi.write(d);
   fpi.write(ld);
 
+  //bitdump(&ld, sizeof(ld));
+  //bitdump(&target_ld, sizeof(target_ld));
 
   REQUIRE(memcmp(&target_f, &f, sizeof(f)) == 0);
   REQUIRE(memcmp(&target_d, &d, sizeof(d)) == 0);
@@ -213,9 +230,10 @@ TEST_CASE( "Re-cast 0.0", "[floating point info]") {
 
 TEST_CASE( "Re-cast 1.0", "[floating point info]") {
 
-  float target_f = 1.0;
-  double target_d = 1.0;
-  double target_ld = 1.0;
+  static const float target_f = 1.0;
+  static const double target_d = 1.0;
+  static const long double target_ld = 1.0;
+
   long double ld;
   double d;
   float f;
@@ -226,6 +244,8 @@ TEST_CASE( "Re-cast 1.0", "[floating point info]") {
   fpi.write(d);
   fpi.write(ld);
 
+  //bitdump(&ld, sizeof(ld));
+  //bitdump(&target_ld, sizeof(target_ld));
 
   REQUIRE(memcmp(&target_f, &f, sizeof(f)) == 0);
   REQUIRE(memcmp(&target_d, &d, sizeof(d)) == 0);
@@ -235,9 +255,10 @@ TEST_CASE( "Re-cast 1.0", "[floating point info]") {
 
 TEST_CASE( "Re-cast -1.0", "[floating point info]") {
 
-  float target_f = -1.0;
-  double target_d = -1.0;
-  double target_ld = -1.0;
+  static const float target_f = -1.0;
+  static const double target_d = -1.0;
+  static const long double target_ld = -1.0;
+
   long double ld;
   double d;
   float f;
@@ -248,6 +269,8 @@ TEST_CASE( "Re-cast -1.0", "[floating point info]") {
   fpi.write(d);
   fpi.write(ld);
 
+  //bitdump(&ld, sizeof(ld));
+  //bitdump(&target_ld, sizeof(target_ld));
 
   REQUIRE(memcmp(&target_f, &f, sizeof(f)) == 0);
   REQUIRE(memcmp(&target_d, &d, sizeof(d)) == 0);
@@ -258,9 +281,10 @@ TEST_CASE( "Re-cast -1.0", "[floating point info]") {
 
 TEST_CASE( "Re-cast 1000.0", "[floating point info]") {
 
-  float target_f = 1000.0;
-  double target_d = 1000.0;
-  double target_ld = 1000.0;
+  static const float target_f = 1000.0;
+  static const double target_d = 1000.0;
+  static const long double target_ld = 1000.0;
+
   long double ld;
   double d;
   float f;
@@ -271,6 +295,8 @@ TEST_CASE( "Re-cast 1000.0", "[floating point info]") {
   fpi.write(d);
   fpi.write(ld);
 
+  //bitdump(&ld, sizeof(ld));
+  //bitdump(&target_ld, sizeof(target_ld));
 
   REQUIRE(memcmp(&target_f, &f, sizeof(f)) == 0);
   REQUIRE(memcmp(&target_d, &d, sizeof(d)) == 0);
@@ -281,9 +307,10 @@ TEST_CASE( "Re-cast 1000.0", "[floating point info]") {
 
 TEST_CASE( "Re-cast Inf", "[floating point info]") {
 
-  float target_f = 1.0/0.0;
-  double target_d = 1.0/0.0;
-  double target_ld = 1.0/0.0;
+  static const float target_f = 1.0/0.0;
+  static const double target_d = 1.0/0.0;
+  static const long double target_ld = 1.0/0.0;
+
   long double ld;
   double d;
   float f;
@@ -294,6 +321,8 @@ TEST_CASE( "Re-cast Inf", "[floating point info]") {
   fpi.write(d);
   fpi.write(ld);
 
+  //bitdump(&ld, sizeof(ld));
+  //bitdump(&target_ld, sizeof(target_ld));
 
   REQUIRE(memcmp(&target_f, &f, sizeof(f)) == 0);
   REQUIRE(memcmp(&target_d, &d, sizeof(d)) == 0);
@@ -303,9 +332,10 @@ TEST_CASE( "Re-cast Inf", "[floating point info]") {
 
 TEST_CASE( "Re-cast NaN", "[floating point info]") {
 
-  float target_f = nanf("16");
-  double target_d = nan("16");
-  double target_ld = nanl("16");
+  static const float target_f = nanf("16");
+  static const double target_d = nan("16");
+  static const long double target_ld = nanl("16");
+
   long double ld;
   double d;
   float f;
@@ -316,6 +346,9 @@ TEST_CASE( "Re-cast NaN", "[floating point info]") {
   fpi.write(d);
   fpi.write(ld);
 
+
+  //bitdump(&ld, sizeof(ld));
+  //bitdump(&target_ld, sizeof(target_ld));
 
   REQUIRE(memcmp(&target_f, &f, sizeof(f)) == 0);
   REQUIRE(memcmp(&target_d, &d, sizeof(d)) == 0);
