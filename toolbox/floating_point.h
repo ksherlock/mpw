@@ -155,12 +155,10 @@ namespace floating_point {
 		}
 
 		void read(format<12, endian::native>, const void *vp) {
-			// todo -- padding?
 			read_extended(vp);
 		}
 
 		void read(format<16, endian::native>, const void *vp) {
-			// todo -- padding?
 			read_extended(vp);
 		}
 
