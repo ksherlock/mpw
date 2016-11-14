@@ -25,7 +25,7 @@ set(TOOLBOX_SRC
 	fs_spec.cpp
 	realpath.c
 	dispatch.cpp
-	fpinfo.cpp
+	floating_point.cpp
 	debug.cpp
 )
 

@@ -40,7 +40,8 @@
 
 #include "stackframe.h"
 #include "complex.h"
-#include "fpinfo.h"
+#include "floating_point.h"
+#include "endian.h"
 
 using ToolBox::Log;
 
@@ -167,25 +168,16 @@ using its_complicated::signbit;
 	template<>
 	long double readnum<long double>(uint32_t address)
 	{
-		uint8_t buffer[16];
+		uint8_t buffer[10];
 
-		static_assert(sizeof(long double) == 16 || sizeof(long double) == 12, "unexpected long double size");
+		for (unsigned i = 0; i < 10; ++i) buffer[i] = memoryReadByte(address + i);
 
-		// read and swap 10 bytes
-		// this is very much little endian.
+		long double xx = 0.0;
+		fpinfo fpi;
+		fpi.read<10, endian::big>(buffer);
 
-		for (unsigned i = 0; i < 10; ++i)
-		{
-			buffer[9 - i] = memoryReadByte(address + i);
-		}
-		// remainder are 0-filled.
-		for (unsigned i = 10; i < 16; ++i)
-			buffer[i] = 0;
-
-		// now cast...
-
-
-		return *((long double *)buffer);
+		fpi.write(xx);
+		return xx;
 	}
 
 
@@ -235,16 +227,12 @@ using its_complicated::signbit;
 	template<>
 	void writenum<long double>(long double value, uint32_t address)
 	{
-		static_assert(sizeof(value) == 16 || sizeof(value) == 12, "unexpected long double size");
 
-		uint8_t buffer[16];
+		uint8_t buffer[10];
+		fpinfo fpi(value);
 
-		std::memcpy(buffer, &value, sizeof(value));
-
-		// copy 10 bytes over
-		// little-endian specific.
-		for(unsigned i = 0; i < 10; ++i)
-			memoryWriteByte(buffer[9 - i], address + i);
+		fpi.write<10, endian::native>(buffer);
+		for (unsigned i = 0; i < 10; ++i) memoryWriteByte(buffer[i], address + i);
 	}
 
 	decform decform::read(uint32_t address)
