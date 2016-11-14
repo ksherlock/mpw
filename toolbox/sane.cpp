@@ -45,6 +45,7 @@
 
 using ToolBox::Log;
 
+namespace fp = floating_point;
 
 namespace SANE
 {
@@ -173,8 +174,8 @@ using its_complicated::signbit;
 		for (unsigned i = 0; i < 10; ++i) buffer[i] = memoryReadByte(address + i);
 
 		long double xx = 0.0;
-		fpinfo fpi;
-		fpi.read<10, endian::big>(buffer);
+		fp::info fpi;
+		fpi.read(fp::format<10, endian::big>{}, buffer);
 
 		fpi.write(xx);
 		return xx;
@@ -229,9 +230,9 @@ using its_complicated::signbit;
 	{
 
 		uint8_t buffer[10];
-		fpinfo fpi(value);
+		fp::info fpi(value);
 
-		fpi.write<10, endian::native>(buffer);
+		fpi.write(fp::format<10, endian::big>{}, buffer);
 		for (unsigned i = 0; i < 10; ++i) memoryWriteByte(buffer[i], address + i);
 	}
 
