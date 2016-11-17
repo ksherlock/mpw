@@ -24,6 +24,8 @@
  *
  */
 
+#include "config.h"
+
 #include "qd.h"
 #include "toolbox.h"
 #include "sane.h"
@@ -58,6 +60,8 @@ using std::abs;
 using its_complicated::to_string;
 using its_complicated::fpclassify;
 using its_complicated::signbit;
+
+using std::to_string;
 
 	namespace {
 		// default environment is:
@@ -412,7 +416,7 @@ using its_complicated::signbit;
 		if (df.digits < 0) df.digits = 0;
 		if (df.digits > 19) df.digits = 19;
 
-		fpinfo fpi(s);
+		fp::info fpi(s);
 		//fprintf(stderr, "%02x %02x %d %016llx\n", fpi.sign, fpi.one, fpi.exp, fpi.sig);
 
 
