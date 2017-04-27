@@ -1,0 +1,3 @@
+[submodule "libsane"]
+	path = libsane
+	url = https://github.com/ksherlock/libsane.git

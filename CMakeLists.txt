@@ -24,3 +24,5 @@ add_subdirectory(toolbox)
 add_subdirectory(mplite)
 add_subdirectory(mpw)
 add_subdirectory(macos)
+
+add_subdirectory(libsane)

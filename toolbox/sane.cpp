@@ -39,11 +39,17 @@
 #include <cmath>
 
 #include "stackframe.h"
-#include "complex.h"
-#include "fpinfo.h"
+
+
+#include <sane/floating_point.h>
+#include <sane/sane.h>
+#include <sane/comp.h>
 
 using ToolBox::Log;
 
+enum {
+	SIGDIGLEN = 20,
+};
 
 namespace SANE
 {
@@ -53,9 +59,7 @@ using std::fpclassify;
 using std::signbit;
 using std::abs;
 
-using its_complicated::to_string;
-using its_complicated::fpclassify;
-using its_complicated::signbit;
+namespace fp = floating_point;
 
 	namespace {
 		// default environment is:
@@ -140,9 +144,9 @@ using its_complicated::signbit;
 
 
 	template<>
-	complex readnum<complex>(uint32_t address)
+	comp readnum<comp>(uint32_t address)
 	{
-		return complex(memoryReadLongLong(address));
+		return comp(memoryReadLongLong(address));
 	}
 
 
@@ -211,9 +215,9 @@ using its_complicated::signbit;
 	}
 
 	template<>
-	void writenum<complex>(complex value, uint32_t address)
+	void writenum<comp>(comp value, uint32_t address)
 	{
-		memoryWriteLongLong(value, address);
+		memoryWriteLongLong((uint64_t)value, address);
 	}
 
 	template<>
@@ -247,7 +251,7 @@ using its_complicated::signbit;
 			memoryWriteByte(buffer[9 - i], address + i);
 	}
 
-	decform decform::read(uint32_t address)
+	decform read_decform(uint32_t address)
 	{
 		enum {
 			_style = 0,
@@ -261,7 +265,8 @@ using its_complicated::signbit;
 		d.digits = memoryReadWord(address + _digits);
 		return d;
 	}
-	void decform::write(uint32_t address)
+
+	void write_decform(const decform &df, uint32_t address)
 	{
 		enum {
 			_style = 0,
@@ -270,18 +275,17 @@ using its_complicated::signbit;
 		};
 
 		if (!address) return;
-		memoryWriteByte(style, address + _style);
-		memoryWriteWord(digits, address + _digits);
+		memoryWriteByte(df.style, address + _style);
+		memoryWriteByte(0, address + _unused);
+		memoryWriteWord(df.digits, address + _digits);
 	}
 
-	decimal decimal::read(uint32_t address)
+	decimal read_decimal(uint32_t address)
 	{
 		enum {
 			_sgn = 0,
 			_exp = 2,
 			_sig = 4,
-
-			SIGDIGLEN = 20,
 		};
 
 		decimal d;
@@ -294,90 +298,23 @@ using its_complicated::signbit;
 		d.sig = ToolBox::ReadPString(address + _sig, false);
 		return d;
 	}
-	void decimal::write(uint32_t address)
+
+	void write_decimal(const decimal &d, uint32_t address)
 	{
 		enum {
 			_sgn = 0,
 			_exp = 2,
 			_sig = 4,
-
-			SIGDIGLEN = 20,
 		};
 
-		memoryWriteByte(sgn, address + _sgn);
+		memoryWriteByte(d.sgn, address + _sgn);
 		memoryWriteByte(0, address + _sgn + 1); // unused.
-		memoryWriteWord(exp, address + _exp);
+		memoryWriteWord(d.exp, address + _exp);
 
 		// check if <= SIGDIGLEN?
-		ToolBox::WritePString(address + _sig, sig);
+		ToolBox::WritePString(address + _sig, d.sig);
 	}
 
-	void format_f(extended x, int precision, std::string &mm, std::string &nn)
-	{
-		char *buffer = nullptr;
-
-		mm.clear();
-		nn.clear();
-
-		if (precision < 0) precision = 0;
-		int length = asprintf(&buffer, "%.*Lf", precision, x);
-		std::string tmp(buffer, length);
-		free(buffer);
-
-		auto dot = tmp.find('.');
-		if (dot == tmp.npos)
-		{
-			mm = std::move(tmp);
-		}
-		else
-		{
-			mm = tmp.substr(0, dot);
-			nn = tmp.substr(dot + 1);
-		}
-
-		// skip mm if it's 0
-		if (mm.length() == 1 && mm.front() == '0') mm.clear();
-
-		// skip nn if it's 0000...
-		if (std::all_of(nn.begin(), nn.end(), [](char c){ return c == '0'; }))
-			nn.clear();
-	}
-
-	void format_e(extended x, int precision, std::string &mm, std::string &nn, int &exp)
-	{
-		char *buffer = nullptr;
-
-		exp = 0;
-		mm.clear();
-		nn.clear();
-
-		if (precision < 0) precision = 0;
-		if (precision > 19) precision = 19;
-
-		int length = asprintf(&buffer, "%.*Le", precision, x);
-		// output mm . nn e[+-]exp
-		// mm e[+-]exp
-		std::string tmp(buffer, length);
-		free(buffer);
-
-		auto dot = tmp.find('.');
-		auto e = tmp.find('e');
-
-		if (dot == tmp.npos)
-		{
-			mm = tmp.substr(0, e);
-		}
-		else
-		{
-			mm = tmp.substr(0, dot);
-			nn = tmp.substr(dot + 1, e - dot - 1);
-		}
-
-		char sign = tmp[e+1];
-		tmp = tmp.substr(e + 2);
-		exp = std::stoi(tmp);
-		if (sign == '-') exp = -exp;
-	}
 
 	uint16_t fx2dec()
 	{
@@ -392,7 +329,6 @@ using its_complicated::signbit;
 		uint32_t d_adr;
 
 		decform df;
-		decimal d;
 
 		StackFrame<14>(f_adr, a_adr, d_adr, op);
 
@@ -400,7 +336,7 @@ using its_complicated::signbit;
 		Log("     FX2DEC(%08x, %08x, %08x, %04x)\n", f_adr, a_adr, d_adr, op);
 
 		extended s = readnum<extended>(a_adr);
-		df = decform::read(f_adr);
+		df = read_decform(f_adr);
 
 		if (ToolBox::Trace)
 		{
@@ -408,147 +344,10 @@ using its_complicated::signbit;
 			Log("     %s (style: %d digits: %d)\n", tmp1.c_str(), df.style, df.digits);
 		}
 
-
-		/*
-		 * SANE pp 30, 31
-		 *
-		 * Floating style:
-		 * [-| ]m[.nnn]e[+|-]dddd
-		 *
-		 * Fixed style:
-		 * [-]mmm[.nnn]
-		 */
-
-
-		if (df.digits < 0) df.digits = 0;
-		if (df.digits > 19) df.digits = 19;
-
-		fpinfo fpi(s);
-		//fprintf(stderr, "%02x %02x %d %016llx\n", fpi.sign, fpi.one, fpi.exp, fpi.sig);
-
-
-		d.sgn = signbit(s);
-
-		// handle infinity, nan as a special case.
-		switch (fpclassify(s))
-		{
-			case FP_ZERO:
-				d.sig = "0";
-				d.write(d_adr);
-				return 0;
-
-			case FP_NAN:
-				// NAN type encoded in the sig.
-				{
-					char buffer[20]; // 16 + 2 needed
-					snprintf(buffer, 20, "N%016llx", fpi.sig);
-					d.sig = buffer;
-					d.write(d_adr);
-				}
-				return 0;				
-
-			case FP_INFINITE:
-
-				d.sig = "I";
-				d.write(d_adr);
-				return 0;					
-
-			default:
-				break;
-
-		}
-
-		// normal and subnormal handled here....
-
-		// float decimal: df.digits refers to the total length
-		// fixed decimal: df.digits refers to the fractional part only.
-
-		s = abs(s);
-
-
-		if (s < 1.0 && df.style == decform::FLOATDECIMAL)
-		{
-			std::string mm;
-			std::string nn;
-
-			format_e(s, df.digits - 1, mm, nn, d.exp);
-
-			d.sig = mm + nn;
-
-			// better be < 0...
-			if (d.exp < 0)
-				d.exp -= nn.length();
-
-			d.write(d_adr);
-			return 0;
-		}
-		else // s > 1
-		{
-
-			std::string mm;
-			std::string nn;
-
-			format_f(s, df.digits, mm, nn);
-
-			if (mm.empty() && nn.empty())
-			{
-				// very large 0.
-				d.sig = "0";
-				d.write(d_adr);
-				return 0;
-			}
-
-			// if nn is empty (or 0s), this is a large number,
-			// and we don't have to worry about the fraction.
-			if (nn.empty())
-			{
-				d.exp = 0;
-
-				if (df.style == decform::FIXEDDECIMAL) df.digits = 19;
-
-				// limit the length.
-				if (mm.length() > df.digits)
-				{
-					d.exp = mm.length() - df.digits;
-					mm.resize(df.digits);
-				}
-				d.sig = std::move(mm);
-
-			}
-			else
-			{
-				if (df.style == decform::FIXEDDECIMAL)
-				{
-					// digits is the total size, mm + nn
-					// re-format with new precision.
-					// this is getting repetitive...
-
-					if (mm.length())
-					{
-						int precision = df.digits - mm.length();
-						if (precision < 0) precision = 1;	
-
-						format_f(s, precision, mm, nn);					
-					}
-				}
-				// todo -- if mm is empty and nn has leading 0s, 
-				// drop the leading 0s and adjust the exponent
-				// accordingly.
-
-				d.sig = mm + nn;
-				d.exp = -nn.length();
-
-				if (d.sig.length() > 19)
-				{
-					d.exp += (d.sig.length() - 19);
-					d.sig.resize(19);
-				}
-			}
-
-
-			d.write(d_adr);
-			return 0;
-		}
+		decimal d = x2dec(s, df);
+		truncate(d, SIGDIGLEN);
+		write_decimal(d, d_adr);
+		return 0;
 	}
 
 
@@ -758,45 +557,16 @@ using its_complicated::signbit;
 
 		StackFrame<10>(decimalPtr, dest, op);
 
-		uint16_t sgn = memoryReadByte(decimalPtr);
-		int16_t exp = memoryReadWord(decimalPtr + 2);
-		std::string sig;
-		sig = ToolBox::ReadPString(decimalPtr + 4, false);
+		decimal d = read_decimal(decimalPtr);
+
 
 		Log("     %s({%c %s e%d}, %08x)\n",
 			name,
-			sgn ? '-' : ' ', sig.c_str(), exp,
+			d.sgn ? '-' : ' ', d.sig.c_str(), d.exp,
 			dest
 		);
 
-		extended tmp = 0;
-		if (sig.length())
-		{
-			if (sig[0] == 'I')
-			{
-				tmp = INFINITY;
-			}
-			else if (sig[0] == 'N')
-			{
-				tmp = NAN; // todo -- nan type
-			}
-			else
-			{
-				tmp = stold(sig);
-
-				while (exp > 0)
-				{
-					tmp = tmp * 10.0;
-					exp--;
-				}
-				while (exp < 0)
-				{
-					tmp = tmp / 10.0;
-					exp++;
-				}
-			}
-		}
-		if (sgn) tmp = -tmp;
+		extended tmp = dec2x(d);
 
 		writenum<DestType>((DestType)tmp, dest);
 
@@ -996,7 +766,7 @@ using its_complicated::signbit;
 			case 0x0000: return fadd<extended>("FADDX");
 			case 0x0800: return fadd<double>("FADDD");
 			case 0x1000: return fadd<float>("FADDS");
-			//case 0x3000: return fadd<complex>("FADDC");
+			//case 0x3000: return fadd<comp>("FADDC");
 			case 0x2000: return fadd<int16_t>("FADDI");
 			case 0x2800: return fadd<int32_t>("FADDL");
 
@@ -1004,7 +774,7 @@ using its_complicated::signbit;
 			case 0x0002: return fsub<extended>("FSUBX");
 			case 0x0802: return fsub<double>("FSUBD");
 			case 0x1002: return fsub<float>("FSUBS");
-			//case 0x3002: return fsub<complex>("FSUBC");
+			//case 0x3002: return fsub<comp>("FSUBC");
 			case 0x2002: return fsub<int16_t>("FSUBI");
 			case 0x2802: return fsub<int32_t>("FSUBL");
 
@@ -1012,7 +782,7 @@ using its_complicated::signbit;
 			case 0x0004: return fmul<extended>("FMULX");
 			case 0x0804: return fmul<double>("FMULD");
 			case 0x1004: return fmul<float>("FMULS");
-			//case 0x3004: return fmul<complex>("FMUlC");
+			//case 0x3004: return fmul<comp>("FMUlC");
 			case 0x2004: return fmul<int16_t>("FMULI");
 			case 0x2804: return fmul<int32_t>("FMULL");
 
@@ -1020,7 +790,7 @@ using its_complicated::signbit;
 			case 0x0006: return fdiv<extended>("FDIVX");
 			case 0x0806: return fdiv<double>("FDIVD");
 			case 0x1006: return fdiv<float>("FDIVS");
-			//case 0x3006: return fdiv<complex>("FDIVC");
+			//case 0x3006: return fdiv<comp>("FDIVC");
 			case 0x2006: return fdiv<int16_t>("FDIVI");
 			case 0x2806: return fdiv<int32_t>("FDIVL");
 
@@ -1028,14 +798,14 @@ using its_complicated::signbit;
 			case 0x0008: return fcmp<extended>("FCMPX");
 			case 0x0808: return fcmp<double>("FCMPD");
 			case 0x1008: return fcmp<float>("FCMPS");
-			//case 0x3008: return fcmp<complex>("FCMPC");
+			//case 0x3008: return fcmp<comp>("FCMPC");
 			case 0x2008: return fcmp<int16_t>("FCMPI");
 			case 0x2808: return fcmp<int32_t>("FCMPL");
 
 			case 0x000a: return fcmp<extended>("FCPXX");
 			case 0x080a: return fcmp<double>("FCPXD");
 			case 0x100a: return fcmp<float>("FCPXS");
-			//case 0x300a: return fcmp<complex>("FCPXC");
+			//case 0x300a: return fcmp<comp>("FCPXC");
 			case 0x200a: return fcmp<int16_t>("FCPXI");
 			case 0x280a: return fcmp<int32_t>("FCPXL");
 
@@ -1044,7 +814,7 @@ using its_complicated::signbit;
 			case 0x0010: return fconvert<extended, extended>("FX2X");
 			case 0x0810: return fconvert<extended, double>("FX2D");
 			case 0x1010: return fconvert<extended, float>("FX2S");
-			case 0x3010: return fconvert<extended, complex>("FX2C");
+			case 0x3010: return fconvert<extended, comp>("FX2C");
 			case 0x2010: return fconvert<extended, int16_t>("FX2I");
 			case 0x2810: return fconvert<extended, int32_t>("FX2L");
 
@@ -1052,7 +822,7 @@ using its_complicated::signbit;
 			case 0x000e: return fconvert<extended, extended>("FX2X");
 			case 0x080e: return fconvert<double, extended>("FD2X");
 			case 0x100e: return fconvert<float, extended>("FS2X");
-			case 0x300e: return fconvert<complex, extended>("FC2X");
+			case 0x300e: return fconvert<comp, extended>("FC2X");
 			case 0x200e: return fconvert<int16_t, extended>("FI2X");
 			case 0x280e: return fconvert<int32_t, extended>("FL2X");
 
@@ -1060,7 +830,7 @@ using its_complicated::signbit;
 			case 0x001c: return fclassify<extended>("FCLASSX");
 			case 0x081c: return fclassify<double>("FCLASSD");
 			case 0x101c: return fclassify<float>("FCLASSS");
-			case 0x301c: return fclassify<complex>("FCLASSC");
+			case 0x301c: return fclassify<comp>("FCLASSC");
 
 			case 0x0009:
 				// fdec2x
@@ -1159,22 +929,6 @@ using its_complicated::signbit;
 	{
 		// void str2dec(const char *s,short *ix,decimal *d,short *vp);
 
-#if 0
-#define SIGDIGLEN 20						/* significant decimal digits */
-#define DECSTROUTLEN 80 					/* max length for dec2str output */
-
-struct decimal {
-	char sgn;								/*sign 0 for +, 1 for -*/
-	char unused;
-	short exp;								/*decimal exponent*/
-	struct{
-		unsigned char length;
-		unsigned char text[SIGDIGLEN];		/*significant digits */
-		unsigned char unused;
-		}sig;
-};
-#endif
-
 		uint32_t stringPtr;
 		uint32_t indexPtr;
 		uint32_t decimalPtr;
@@ -1199,23 +953,13 @@ struct decimal {
 		str2dec(str, index, d, valid);
 		if (type == 'P') index++;
 
+		truncate(d, SIGDIGLEN);
+
+
 		memoryWriteWord(index, indexPtr);
 		memoryWriteWord(valid, validPtr);
 
-		if (d.sig.length() > 20)
-		{
-			// truncate and adjust the exponent
-			// 1234e0 -> 123e1 -> 12e2 -> 1e3
-			// 1234e-1 -> 123e-0 -> 12e1
-			int over = d.sig.length() - 20;
-			d.sig.resize(20);
-			d.exp += over;
-		}
-
-		memoryWriteByte(d.sgn, decimalPtr);
-		memoryWriteByte(0, decimalPtr + 1);
-		memoryWriteWord(d.exp, decimalPtr + 2);
-		ToolBox::WritePString(decimalPtr + 4, d.sig);
+		write_decimal(d, decimalPtr);
 
 		return 0;
 	}
@@ -1236,8 +980,8 @@ struct decimal {
 
 		Log("     FDEC2STR(%08x, %08x, %08x)\n", f_adr, d_adr, s_adr);
 
-		df = decform::read(f_adr);
-		d = decimal::read(d_adr);
+		df = read_decform(f_adr);
+		d = read_decimal(d_adr);
 
 		if (ToolBox::Trace)
 		{
@@ -1247,130 +991,9 @@ struct decimal {
 
 		std::string s;
 
-		if (df.digits < 0) df.digits = 0;
-		if (d.sig.empty()) d.sig = "0";
-
-		if (df.style == decform::FLOATDECIMAL)
-		{
-			// [-| m[.nnn]e[+|-]dddd
-
-			// - or space.
-			if (d.sgn) s.push_back('-');
-			else s.push_back(' ');
-
-			if (d.sig[0] == 'I')
-			{
-				s.append("INF");
-				ToolBox::WritePString(s_adr, s);
-				return 0;
-			}
-			if (d.sig[0] == 'N')
-			{
-				// todo -- include actual nan code.
-				s.append("NAN(000)");
-				ToolBox::WritePString(s_adr, s);
-				return 0;	
-			}
-
-			// 1 leading digit.
-			s.push_back(d.sig[0]);
-			if (d.sig.length() > 1)
-			{
-				s.push_back('.');
-				s.append(d.sig.substr(1));
-			}
-			s.push_back('e');
-			if (d.exp < 0)
-			{
-				// to_string() will include the -
-				s.append(std::to_string(d.exp));
-			}
-			else
-			{
-				s.push_back('+');
-				s.append(std::to_string(d.exp));
-			}
-
-
-			ToolBox::WritePString(s_adr, s);
-			return 0;
-		}
-		else
-		{
-			// [-] mmmm [. nnn]
-			if (d.sgn) s.push_back('-');
-
-			std::string mm;
-			std::string nn;
-
-			if (d.sig[0] == 'I')
-			{
-				s.append("INF");
-				ToolBox::WritePString(s_adr, s);
-				return 0;
-			}
-			if (d.sig[0] == 'N')
-			{
-				// todo -- include actual nan code.
-				// check how SANE format it (hex/dec)
-				s.append("NAN(000)");
-				ToolBox::WritePString(s_adr, s);
-				return 0;	
-			}
-
-			//
-			std::string tmp = std::move(d.sig);
-			if (d.exp >= 0)
-			{
-				// 0, 5 == 5
-				// 1, 12 = 120
-
-				mm = std::move(tmp);
-				mm.append(d.exp, '0');
-				tmp.clear();
-			}
-			else
-			{
-				// -1, 12 = 1.2
-				// -2, 12 = 0.12
-				// -3  12 = 0.012
-
-				int m = tmp.length() + d.exp;
-				if (m > 0)
-				{
-					mm = tmp.substr(0, m);
-					tmp.erase(0, m);
-					d.exp = 0;
-				}
-				else
-				{
-					mm = "0";
-				}
-			}
-
-			s.append(mm);
-
-			if (df.digits > 0)
-			{
-				s.push_back('.');
-
-				// if negative exp, need to put in leading 0s. 
-				// for a pathological case like -32768, this would
-				// be silly.
-
-				if (d.exp < 0)
-					nn.append(-d.exp, '0');
-				nn.append(tmp);
-				nn.resize(df.digits, '0'); // todo -- should round...
-				s.append(nn);
-			}
-
-			// if > 80 in length, return '?'
-			if (s.length() > 80) s = "?";
-			ToolBox::WritePString(s_adr, s);
-			return 0;
-		}
-
+		dec2str(df, d, s);
+		ToolBox::WritePString(s_adr, s);
+		return 0;
 
 	}
 
