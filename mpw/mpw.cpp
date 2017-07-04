@@ -33,6 +33,7 @@
 #include <cstring>
 #include <deque>
 #include <unordered_map>
+#include <algorithm>
 
 #include <cstdint>
 #include <cstdio>
@@ -40,9 +41,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <libgen.h>
-#include <sys/stat.h>
-#include <pwd.h>
+
 
 #include <cpu/defs.h>
 #include <cpu/fmem.h>
@@ -56,8 +55,15 @@
 
 #include <native/file.h>
 
-extern char **environ;
+#include <libgen.h>
 
+#include <filesystem>
+
+namespace fs = std::experimental::filesystem;
+
+#ifndef _WIN32
+extern char **environ;
+#endif
 
 namespace MPW {
 
@@ -77,108 +83,6 @@ namespace MPW
 	bool Trace = false;
 
 	const std::string RootDir();
-
-
-	static bool isdir(const std::string &path)
-	{
-		struct stat st;
-		if (stat(path.c_str(), &st) < 0) return false;
-		return S_ISDIR(st.st_mode);
-	}
-
-	std::string RootDirPathForFile(const std::string &file)
-	{
-		std::string dir(RootDir());
-		if (dir.length() && dir.back() != '/') dir.push_back('/');
-		dir.append(file);
-
-		return dir;
-	}
-
-	const std::string RootDir()
-	{
-		static bool initialized = false;
-		static std::string path;
-
-		static const std::string paths[] = {
-			"/usr/local/share/mpw",
-			"/usr/share/mpw",
-		};
-
-		char *cp;
-		struct passwd *pw;
-
-		if (initialized) return path;
-
-		initialized = true;
-
-		// check $MPW, $HOME/mpw, /usr/local/share/mpw/, /usr/share/mpw
-		// for a directory.
-
-		cp = getenv("MPW");
-		if (cp && *cp)
-		{
-			std::string s(cp);
-			if (isdir(s))
-			{
-				path = std::move(s);
-				return path;
-			}
-		}
-
-		// home/mpw
-		pw = getpwuid(getuid());
-		if (pw && pw->pw_dir && pw->pw_dir[0])
-		{
-			std::string s(pw->pw_dir);
-			if (s.back() != '/') s.push_back('/');
-			s.append("mpw");
-
-			if (isdir(s))
-			{
-				path = std::move(s);
-				return path;
-			}
-		}
-#if 0
-		// thread-safe
-		{
-			int size;
-
-			size = sysconf(_SC_GETPW_R_SIZE_MAX);
-			if (size >= 0)
-			{
-				struct passwd pwd, *result = nullptr;
-				char *buffer = alloca(size);
-
-				if (getpwuid_r(getuid(), &pwd, buffer, size, &result) == 0 && result)
-				{
-					std::string s(pwd.pw_dir);
-					if (s.back() != '/') s.push_back('/');
-					s.append("mpw");
-					if (isdir(s))
-					{
-						path = std::move(s);
-						return path;
-					}
-				}
-			}
-		}
-#endif
-		for (auto &iter : paths)
-		{
-			if (isdir(iter))
-			{
-				path = iter;
-				return path;
-			}
-
-		}
-
-
-
-		return path; // unknown.
-	}
 
 	uint16_t InitEnvironment(const std::vector<std::string> &defines)
 	{

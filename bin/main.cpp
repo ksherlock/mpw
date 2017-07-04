@@ -39,6 +39,7 @@
 #include <libgen.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <strings.h>
 
 #include <sys/stat.h>
 

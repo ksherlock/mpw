@@ -93,6 +93,10 @@ IF (ENABLE_DEBUGGER)
 
 ENDIF()
 
+if (MSVC)
+	target_link_libraries(mpw WINLIB_LIB)
+endif()
+
 target_link_libraries(mpw CPU_LIB)
 target_link_libraries(mpw TOOLBOX_LIB)
 target_link_libraries(mpw MPW_LIB)

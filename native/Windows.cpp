@@ -24,3 +24,48 @@
  *
  */
  
+
+#include <filesystem>
+#include <string>
+
+#include <Windows.h>
+#include <Shlobj.h>
+
+namespace fs = std::experimental::filesystem;
+
+namespace native {
+
+ 	static fs::path FindRoot() {
+		fs::path p;
+		std::error_code ec;
+
+		PWSTR tmp = nullptr;
+		auto ok = SHGetKnownFolderPath(
+			FOLDERID_Profile,
+			0,
+			nullptr,
+			&tmp
+		);
+		if ((ok == S_OK) && (tmp != nullptr)) {
+			p = tmp;
+			p /= "mpw";
+			if (fs::is_directory(p, ec)) return p;
+		}
+
+		p = "c:\\mpw\\";
+		if (!fs::is_directory(p, ec)) {
+			fprintf(stderr, "Warning: %ls does not exist\n", p.c_str());
+		}
+		return p;
+	}
+	fs::path RootPath() {
+		// todo -- do it.
+		static fs::path root;
+		if (root.empty()) {
+			root = FindRoot();
+		}
+		return root;
+	}
+
+
+}

@@ -33,8 +33,11 @@
 #include <sys/types.h>
 #include <limits.h>
 
-extern char **environ;
+#include "config.h"
 
+#ifndef _WIN32
+extern char **environ;
+#endif
 
 namespace _env_rl {
 #if __APPLE__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1050

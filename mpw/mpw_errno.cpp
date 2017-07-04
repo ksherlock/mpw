@@ -128,7 +128,9 @@ namespace MPW {
 			case kENOMEM: return ENOMEM;
 			case kEACCES: return EACCES;
 			case kEFAULT: return EFAULT;
+#ifdef ENOTBLK
 			case kENOTBLK: return ENOTBLK;
+#endif
 			case kEBUSY: return EBUSY;
 			case kEEXIST: return EEXIST;
 			case kEXDEV: return EXDEV;
@@ -193,7 +195,9 @@ namespace MPW {
 		case ENOMEM: return kENOMEM;
 		case EACCES: return kEACCES;
 		case EFAULT: return kEFAULT;
+#ifdef ENOTBLK
 		case ENOTBLK: return kENOTBLK;
+#endif
 		case EBUSY: return kEBUSY;
 		case EEXIST: return kEEXIST;
 		case EXDEV: return kEXDEV;

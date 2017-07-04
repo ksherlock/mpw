@@ -31,13 +31,14 @@ add_custom_command(
 
 
 
-
+if(NOT MSVC)
 set_source_files_properties(
 	environment.cpp # environ.cpp ep.cpp epv.cpp
 	PROPERTIES
 	COMPILE_FLAGS 
 	"${CMAKE_CXX_FLAGS} -Wno-unused-variable"
 )
+endif()
 
 add_library(MPW_LIB ${MPW_SRC})
 

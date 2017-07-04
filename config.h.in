@@ -17,6 +17,7 @@
 
 #ifdef _WIN32
 typedef long ssize_t;
+extern "C" int asprintf(char **, const char *, ...);
 #endif
 
 #endif

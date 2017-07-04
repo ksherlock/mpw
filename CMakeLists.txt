@@ -73,6 +73,10 @@ ENDIF()
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
 
 
+if (MSVC)
+	add_subdirectory(winclude)
+endif()
+
 add_subdirectory(bin)
 add_subdirectory(cpu)
 add_subdirectory(toolbox)
