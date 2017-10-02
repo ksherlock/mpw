@@ -35,7 +35,7 @@ namespace OS {
 		char *cp;
 
 		cp = getcwd(buffer, sizeof(buffer));
-		if (cp < 0) return 0;
+		if (cp == 0) return 0;
 
 		std::string path(cp);
 
