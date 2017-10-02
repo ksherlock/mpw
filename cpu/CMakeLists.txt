@@ -1,6 +1,7 @@
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-set(CMAKE_C_FLAGS " -Wall -Wno-unused-function -g")
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+	# Clang or AppleClang
+	set(CMAKE_CXX_FLAGS "-Wall -Wno-unused-function")
+endif()
 
 set(CPU_SRC 
 	CpuModule.c 

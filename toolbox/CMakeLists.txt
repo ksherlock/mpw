@@ -1,8 +1,10 @@
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wno-deprecated-declarations -g")
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+	# Clang or AppleClang
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+endif()
 
-add_definitions(-I ${CMAKE_SOURCE_DIR}/)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(TOOLBOX_SRC 
 	toolbox.cpp
