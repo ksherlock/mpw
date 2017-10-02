@@ -548,12 +548,21 @@ namespace OS { namespace Internal {
 		}
 
 		std::string xname = filename;
-		if (fork)
+		if (fork) {
 			xname.append(_PATH_RSRCFORKSPEC);
+			// O_RDWR should also O_CREAT
+		}
 
 		Log("     open(%s, %04x)\n", xname.c_str(), access);
 
 		fd = ::open(xname.c_str(), access);
+
+		if (fd < 0 && access == O_RDWR && errno == ENOENT && fork)
+		{
+			fd = ::open(xname.c_str(), O_RDWR | O_CREAT, 0666);
+		}
+
+
 		if (fd < 0 && ioPermission == fsCurPerm && errno == EACCES)
 		{
 			fd = ::open(xname.c_str(), O_RDONLY);
