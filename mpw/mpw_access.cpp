@@ -155,6 +155,46 @@ namespace MPW
 	}
 
 
+/*
+
+
+	MPW's open logic pseudo code:
+
+	if (flags & 0x1000) { // undocumented - use old tool calls
+		oserr = flags & O_RSRC ? PBOPENRF() : PBOPEN();
+	} else {
+		oserr = flags & O_RSRC ? PBHOPENRF() : PBHOPEN();
+	}
+	if (!oserr) {
+		if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL)) {
+			errno = EEXIST;
+			return;
+		}
+		return;
+	}
+	if (oserr == file not found) {
+		if (flags & O_CREAT) {
+			oserr = PBCreate();
+			if (!oserr) {
+				oserr = flag & O_RSRC ? PBOpenRF() : PBOpen();
+			} 
+	}
+
+	PBGETFCBINFO();
+	if (file size) {
+		if (flags & O_TRUNC) {
+			oserr = PBSetEOF();
+		}
+		if (!permission check) {
+			errno = EPERM;
+			PBClose();
+	}
+
+
+
+
+
+*/
 	uint32_t ftrap_open(uint32_t name, uint32_t parm)
 	{
 		uint32_t d0;
@@ -162,7 +202,7 @@ namespace MPW
 		std::string sname;
 
 		MPWFile f;
-		int nativeFlags;
+		int nativeFlags = 0;
 		std::memset(&f, 0, sizeof(f));
 
 		f.flags = memoryReadWord(parm);
@@ -194,15 +234,30 @@ namespace MPW
 
 		Log("     open(%s, %04x)\n", sname.c_str(), f.flags);
 
-		// TODO -- can you create a resource file like this?
 
-		if (f.flags & kO_RSRC)
-			sname.append(_PATH_RSRCFORKSPEC);
+		if (f.flags & kO_RSRC) {
 
-		if (f.flags & kO_CREAT)
+			// O_CREAT and O_EXCL apply to the file, not the fork.
+			int flags = O_RDONLY | (nativeFlags & (O_CREAT | O_EXCL));
+
+			int parent = ::open(sname.c_str(), flags, 0666);
+
+			fd = -1;
+			if (parent >= 0) {
+
+				sname.append(_PATH_RSRCFORKSPEC);
+
+				nativeFlags &= ~O_EXCL;
+				// APFS, etc - resource fork doesn't automatically exist so 
+				// need O_CREAT.
+				if ((nativeFlags & O_ACCMODE) != O_RDONLY) nativeFlags |= O_CREAT;
+				fd = ::open(sname.c_str(), nativeFlags, 0666);
+				close(parent);
+			}
+
+		} else {
 			fd = ::open(sname.c_str(), nativeFlags, 0666);
-		else
-			fd = ::open(sname.c_str(), nativeFlags);
+		}
 
 		if (fd < 0)
 		{
