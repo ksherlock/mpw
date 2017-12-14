@@ -253,6 +253,23 @@ void test_fxc2dec(void)
 	dump_decimal(&d);
 	// s/b -4 0
 
+	df.style = 1;
+	df.digits = 6;
+	num2dec(&df, 0.0625, &d);
+	dump_decimal(&d);
+	// s/b -6  62500
+
+	df.style = 1;
+	df.digits = 6;
+	num2dec(&df, 1.125, &d);
+	dump_decimal(&d);
+	// s/b -6 1125000
+
+	df.style = 1;
+	df.digits = 6;
+	num2dec(&df, 1.0625, &d);
+	dump_decimal(&d);
+	// s/b  -6 1062500
 }
 
 int main(int argc, char **argv)
