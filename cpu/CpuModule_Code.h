@@ -5231,7 +5231,7 @@ static void BTST_0110(ULO*opc_data)
 	ULO dstea = cpuEA02(opc_data[0]);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(8);
 }
 static void BTST_0118(ULO*opc_data)
 {
@@ -5239,7 +5239,7 @@ static void BTST_0118(ULO*opc_data)
 	ULO dstea = cpuEA03(opc_data[0], 1);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(8);
 }
 static void BTST_0120(ULO*opc_data)
 {
@@ -5247,7 +5247,7 @@ static void BTST_0120(ULO*opc_data)
 	ULO dstea = cpuEA04(opc_data[0], 1);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(12);
+	cpuSetInstructionTime(10);
 }
 static void BTST_0128(ULO*opc_data)
 {
@@ -5255,7 +5255,7 @@ static void BTST_0128(ULO*opc_data)
 	ULO dstea = cpuEA05(opc_data[0]);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(12);
 }
 static void BTST_0130(ULO*opc_data)
 {
@@ -5263,7 +5263,7 @@ static void BTST_0130(ULO*opc_data)
 	ULO dstea = cpuEA06(opc_data[0]);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(16);
+	cpuSetInstructionTime(14);
 }
 static void BTST_0138(ULO*opc_data)
 {
@@ -5271,7 +5271,7 @@ static void BTST_0138(ULO*opc_data)
 	ULO dstea = cpuEA70();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(12);
 }
 static void BTST_0139(ULO*opc_data)
 {
@@ -5279,7 +5279,7 @@ static void BTST_0139(ULO*opc_data)
 	ULO dstea = cpuEA71();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(18);
+	cpuSetInstructionTime(16);
 }
 static void BTST_013A(ULO*opc_data)
 {
@@ -5287,7 +5287,7 @@ static void BTST_013A(ULO*opc_data)
 	ULO dstea = cpuEA72();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(12);
 }
 static void BTST_013B(ULO*opc_data)
 {
@@ -5295,21 +5295,21 @@ static void BTST_013B(ULO*opc_data)
 	ULO dstea = cpuEA73();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(16);
+	cpuSetInstructionTime(14);
 }
 static void BTST_013C(ULO*opc_data)
 {
 	UBY src = cpuGetDRegByte(opc_data[1]);
 	UBY dst = (UBY)cpuGetNextWord();
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(8);
 }
 static void BTST_0100(ULO*opc_data)
 {
 	ULO src = cpuGetDReg(opc_data[1]);
 	ULO dst = cpuGetDReg(opc_data[0]);
 	cpuBtstL(dst, src);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(6);
 }
 static void BTST_0810(ULO*opc_data)
 {
@@ -5317,7 +5317,7 @@ static void BTST_0810(ULO*opc_data)
 	ULO dstea = cpuEA02(opc_data[0]);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(8);
+	cpuSetInstructionTime(12);
 }
 static void BTST_0818(ULO*opc_data)
 {
@@ -5325,7 +5325,7 @@ static void BTST_0818(ULO*opc_data)
 	ULO dstea = cpuEA03(opc_data[0], 1);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(8);
+	cpuSetInstructionTime(12);
 }
 static void BTST_0820(ULO*opc_data)
 {
@@ -5333,7 +5333,7 @@ static void BTST_0820(ULO*opc_data)
 	ULO dstea = cpuEA04(opc_data[0], 1);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(10);
+	cpuSetInstructionTime(14);
 }
 static void BTST_0828(ULO*opc_data)
 {
@@ -5341,7 +5341,7 @@ static void BTST_0828(ULO*opc_data)
 	ULO dstea = cpuEA05(opc_data[0]);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(12);
+	cpuSetInstructionTime(16);
 }
 static void BTST_0830(ULO*opc_data)
 {
@@ -5349,7 +5349,7 @@ static void BTST_0830(ULO*opc_data)
 	ULO dstea = cpuEA06(opc_data[0]);
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(18);
 }
 static void BTST_0838(ULO*opc_data)
 {
@@ -5357,7 +5357,7 @@ static void BTST_0838(ULO*opc_data)
 	ULO dstea = cpuEA70();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(12);
+	cpuSetInstructionTime(16);
 }
 static void BTST_0839(ULO*opc_data)
 {
@@ -5365,7 +5365,7 @@ static void BTST_0839(ULO*opc_data)
 	ULO dstea = cpuEA71();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(16);
+	cpuSetInstructionTime(20);
 }
 static void BTST_083A(ULO*opc_data)
 {
@@ -5373,7 +5373,7 @@ static void BTST_083A(ULO*opc_data)
 	ULO dstea = cpuEA72();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(12);
+	cpuSetInstructionTime(16);
 }
 static void BTST_083B(ULO*opc_data)
 {
@@ -5381,14 +5381,14 @@ static void BTST_083B(ULO*opc_data)
 	ULO dstea = cpuEA73();
 	UBY dst = memoryReadByte(dstea);
 	cpuBtstB(dst, src);
-	cpuSetInstructionTime(14);
+	cpuSetInstructionTime(18);
 }
 static void BTST_0800(ULO*opc_data)
 {
 	ULO src = (ULO)cpuGetNextWord();
 	ULO dst = cpuGetDReg(opc_data[0]);
 	cpuBtstL(dst, src);
-	cpuSetInstructionTime(8);
+	cpuSetInstructionTime(10);
 }
 static void LEA_41D0(ULO*opc_data)
 {
