@@ -583,7 +583,7 @@ void MidInstructionExceptionFunc()
 }
 
 
-#define MPW_VERSION "0.8.0"
+#define MPW_VERSION "0.8.2"
 void help()
 {
 	printf("MPW " MPW_VERSION "\n");
