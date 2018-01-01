@@ -11,7 +11,7 @@
 #include <cstddef>
 #include "debugger.h"
 
-#include <toolbox/MM.h>
+#include <toolbox/mm.h>
 
 using Debug::Token;
 

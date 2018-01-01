@@ -40,8 +40,8 @@
 #include "toolbox.h"
 #include "stackframe.h"
 
-#include "RM.h"
-#include "MM.h"
+#include "rm.h"
+#include "mm.h"
 
 #include <macos/sysequ.h>
 
