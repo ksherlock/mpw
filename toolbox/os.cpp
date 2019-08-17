@@ -511,7 +511,7 @@ namespace OS
 			memoryWriteLong(count, parm + 40);
 		}
 
-		if (count == 0)
+		if (count == 0 && ioReqCount > 0)
 		{
 			d0 = MacOS::eofErr;
 		}
