@@ -1095,6 +1095,10 @@ namespace ToolBox {
 				d0 = OS::OSDispatch(trap);
 				break;
 
+			case 0xa8b5:
+				d0 = Packages::ScriptUtil(trap);
+				break;
+
 			case 0xABFF:
 				d0 = Debug::DebugStr(trap);
 				break;

@@ -22,6 +22,7 @@ namespace Packages {
 	uint16_t Pack14(uint16_t);
 	uint16_t Pack15(uint16_t);
 
+	uint16_t ScriptUtil(uint16_t);
 }
 
 #endif
