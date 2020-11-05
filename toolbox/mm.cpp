@@ -154,7 +154,7 @@ namespace MM
 			}
 
 			// 2. check if it's contained in a pointer
-			for (const auto kv : PtrMap)
+			for (const auto &kv : PtrMap)
 			{
 				if (address < kv.first) continue;
 				if (address >= kv.first + kv.second) continue;
@@ -184,7 +184,7 @@ namespace MM
 
 			// 3. check if the address is within a handle.
 			{
-				for (const auto kv : HandleMap)
+				for (const auto &kv : HandleMap)
 				{
 					const HandleInfo &info = kv.second;
 
@@ -1145,7 +1145,7 @@ namespace MM
 		Log("%04x RecoverHandle(%08x)\n", trap, p);
 
 		uint16_t error = MacOS::memBCErr;
-		for (const auto kv : HandleMap)
+		for (const auto &kv : HandleMap)
 		{
 			const HandleInfo &info = kv.second;
 

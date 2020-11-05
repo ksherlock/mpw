@@ -1252,13 +1252,13 @@ void Shell()
 
 	// load the error code to error mnemonic
 	ErrorTableInvert.reserve(ErrorTable.size());
-	for (const auto kv : ErrorTable) {
+	for (const auto &kv : ErrorTable) {
 		ErrorTableInvert.emplace(std::make_pair(kv.second, kv.first));
 	}
 
 	// address to function name.
 	SymbolTableInvert.reserve(SymbolTable.size());
-	for (const auto kv : SymbolTable) {
+	for (const auto &kv : SymbolTable) {
 		SymbolTableInvert.emplace(std::make_pair(kv.second.first, kv.first));
 	}
 
