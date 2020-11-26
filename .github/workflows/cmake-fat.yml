@@ -18,6 +18,10 @@ jobs:
     - name: Brew
       run: brew install ragel lemon
 
+    - name: xcode 12.2
+      shell: bash
+      run: xcode-select -s /Applications/Xcode_12.2.app
+
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build
 
