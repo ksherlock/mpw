@@ -40,12 +40,12 @@
 
 #include "stackframe.h"
 
-
 #include <sane/floating_point.h>
 #include <sane/sane.h>
 #include <sane/comp.h>
 
 using ToolBox::Log;
+
 
 enum {
 	SIGDIGLEN = 20,
@@ -171,25 +171,17 @@ namespace fp = floating_point;
 	template<>
 	long double readnum<long double>(uint32_t address)
 	{
-		char buffer[16];
-
-		static_assert(sizeof(long double) == 16, "unexpected long double size");
-
-
-		// read and swap 10 bytes
-		// this is very much little endian.
+		uint8_t buffer[16];
+		long double ld;
 
 		for (unsigned i = 0; i < 10; ++i)
-		{
-			buffer[9 - i] = memoryReadByte(address + i);
-		}
-		// remainder are 0-filled.
-		for (unsigned i = 10; i < 16; ++i)
-			buffer[i] = 0;
+			buffer[i] = memoryReadByte(address + i);
 
-		// now cast...
+		fp::info fpi;
+		fpi.read(fp::format<10, endian::big>{}, buffer);
 
-		return *((long double *)buffer);
+		fpi.write(ld);
+		return ld;
 	}
 
 
@@ -239,16 +231,15 @@ namespace fp = floating_point;
 	template<>
 	void writenum<long double>(long double value, uint32_t address)
 	{
-		static_assert(sizeof(value) == 16, "unexpected long double size");
+		uint8_t buffer[16];
 
-		char buffer[16];
+		fp::info fpi;
+		fpi.read(value);
 
-		std::memcpy(buffer, &value, sizeof(value));
+		fpi.write(fp::format<10, endian::big>{}, buffer);
 
-		// copy 10 bytes over
-		// little-endian specific.
-		for(unsigned i = 0; i < 10; ++i)
-			memoryWriteByte(buffer[9 - i], address + i);
+		for (unsigned i = 0; i < 10; ++i)
+			memoryWriteByte(buffer[i], address + i);
 	}
 
 	decform read_decform(uint32_t address)
