@@ -33,7 +33,7 @@ jobs:
     - name: Build
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE
+      run: make mpw
       
     - name: Archive
       uses: actions/upload-artifact@v2
