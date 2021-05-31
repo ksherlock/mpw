@@ -773,7 +773,7 @@ namespace fp = floating_point;
 			case 0x0004: return fmul<extended>("FMULX");
 			case 0x0804: return fmul<double>("FMULD");
 			case 0x1004: return fmul<float>("FMULS");
-			//case 0x3004: return fmul<comp>("FMUlC");
+			//case 0x3004: return fmul<comp>("FMULC");
 			case 0x2004: return fmul<int16_t>("FMULI");
 			case 0x2804: return fmul<int32_t>("FMULL");
 
