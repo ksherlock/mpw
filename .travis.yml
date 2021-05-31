@@ -1,4 +1,8 @@
 os: osx
+osx_image:
+  - xcode11
+  - xcode12
+  - xcode12.5
 language: cpp
 compiler: clang
 before_script: 
