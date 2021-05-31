@@ -13,25 +13,30 @@ add_custom_command(
 	MAIN_DEPENDENCY lexer.rl 
 )
 
-add_custom_command(
-	OUTPUT parser.cpp parser.h
-	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
-	COMMAND lemon parser.lemon
-	COMMAND mv -f parser.c parser.cpp
-	MAIN_DEPENDENCY parser.lemon
-	DEPENDS debugger.h
-)
+find_program(LEMON NAMES lemon)
 
+if (LEMON)
 
-add_custom_command(
-	OUTPUT template_parser.cpp template_parser.h
-	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/template_parser.lemon" "template_parser.lemon"
-	COMMAND lemon template_parser.lemon
-	COMMAND mv -f template_parser.c template_parser.cpp
-	MAIN_DEPENDENCY template_parser.lemon
-	DEPENDS debugger.h
-)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/parser.cpp ${CMAKE_CURRENT_SOURCE_DIR}/parser.h
+		# COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
+		COMMAND lemon parser.lemon
+		COMMAND mv -f parser.c parser.cpp
+		MAIN_DEPENDENCY parser.lemon
+		DEPENDS debugger.h
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	)
 
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/template_parser.cpp ${CMAKE_CURRENT_SOURCE_DIR}/template_parser.h
+		# COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/template_parser.lemon" "template_parser.lemon"
+		COMMAND lemon template_parser.lemon
+		COMMAND mv -f template_parser.c template_parser.cpp
+		MAIN_DEPENDENCY template_parser.lemon
+		DEPENDS debugger.h
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	)
+endif()
 
 
 add_custom_command(
