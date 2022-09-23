@@ -27,10 +27,10 @@ is in the public domain.
 Compiling requires cmake, ragel, lemon, and a recent version of clang++ with 
 c++11 support.  It has only been built and tested with OS X 10.8+.
 
-mkdir build
-cd build
-cmake ..
-make
+    mkdir build
+    cd build
+    cmake ..
+    make
 
 This will generate `bin/mpw` and `bin/disasm`.
 
