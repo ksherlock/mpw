@@ -24,6 +24,11 @@ is in the public domain.
 
 ## Building
 
+First initialize and fetch submodules:
+
+    git submodule init
+    git submodule update
+
 Compiling requires cmake, ragel, lemon, and a recent version of clang++ with 
 c++11 support.  It has only been built and tested with OS X 10.8+.
 
