@@ -46,7 +46,7 @@ clean :
 # 	mpw Link $(LDFLAGS) -o $@ $^ $(LIBS) 
 
 test_sane: o/nan.o o/test_sane.o 
-	$(MPW) $(MPWFLAGS) Link $(LDFLAGS) -o $@ $^ $(LIBS) 
+	$(MPW) $(MPWFLAGS) Link $(LDFLAGS) -o $@ $^ $(LIBS) {CLibraries}CSANELib.o
 
 % : o/%.o
 	$(MPW) $(MPWFLAGS) Link $(LDFLAGS) -o $@ $^ $(LIBS) 

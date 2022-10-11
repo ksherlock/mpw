@@ -272,6 +272,87 @@ void test_fxc2dec(void)
 	// s/b  -6 1062500
 }
 
+pascal void fp68k_3(void *, void *, unsigned short) = 0xA9EB;
+
+void test_fx2l(void) {
+
+	long double x;
+	long int l;
+	int i;
+
+	static long double data[] = {
+		1.25,
+		1.5,
+		1.75,
+		2.25,
+		2.5,
+		2.75,
+		-1.25,
+		-1.5,
+		-1.75,
+		-2.25,
+		-2.5,
+		-2.75,
+	};
+
+
+
+
+	x = inf(); // 1.0 / 0.0;
+	fp68k_3(&x, &l, 0x2810);
+	printf("fx2l(inf) = %lx\n", l);
+
+
+	x = -inf(); // -1.0 / 0.0;
+	fp68k_3(&x, &l, 0x2810);
+	printf("fx2l(-inf) = %lx\n", l);
+
+	x = nan(1); // -1.0 / 0.0;
+	fp68k_3(&x, &l, 0x2810);
+	printf("fx2l(nan) = %lx\n", l);
+
+
+	x = 1e21;
+	fp68k_3(&x, &l, 0x2810);
+	printf("fx2l(1e21) = %lx\n", l);
+
+	x = -1e21;
+	fp68k_3(&x, &l, 0x2810);
+	printf("fx2l(-1e21) = %lx\n", l);
+
+
+
+	setround(UPWARD);
+	for (i = 0; i < 12; ++i) {
+		x = data[i];
+		fp68k_3(&x, &l, 0x2810);
+		printf("fx2l(%f) = %ld\n", x, l);
+	}
+	setround(DOWNWARD);
+	for (i = 0; i < 12; ++i) {
+		x = data[i];
+		fp68k_3(&x, &l, 0x2810);
+		printf("fx2l(%f) = %ld\n", x, l);
+	}
+
+	setround(TONEAREST);
+	for (i = 0; i < 12; ++i) {
+		x = data[i];
+		fp68k_3(&x, &l, 0x2810);
+		printf("fx2l(%f) = %ld\n", x, l);
+	}
+	setround(TOWARDZERO);
+	for (i = 0; i < 12; ++i) {
+		x = data[i];
+		fp68k_3(&x, &l, 0x2810);
+		printf("fx2l(%f) = %ld\n", x, l);
+	}
+
+
+
+
+}
+
 int main(int argc, char **argv)
 {
 	//extended x;
@@ -293,6 +374,7 @@ int main(int argc, char **argv)
 	test_nan();
 
 	test_fxc2dec();
+	test_fx2l();
 
 	return 0;
 }
