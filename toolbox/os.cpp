@@ -288,6 +288,11 @@ namespace OS
 				if (ext == "sym")
 					return true;
 				break;
+			case 'x':
+				// xcoff object file
+				if (ext == "x")
+					return true;
+				break;
 		}
 
 		return false;
