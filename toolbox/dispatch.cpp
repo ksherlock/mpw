@@ -42,6 +42,7 @@
 #include "mm.h"
 #include "os.h"
 #include "packages.h"
+#include "process.h"
 #include "qd.h"
 #include "rm.h"
 #include "sane.h"
@@ -329,6 +330,11 @@ namespace OS {
 			case 0x0020:
 				return MM::TempDisposeHandle();
 
+			case 0x0037:
+				return Process::GetCurrentProcess();
+
+			case 0x003a:
+				return Process::GetProcessInformation();
 
 			default:
 				fprintf(stderr, "OSDispatch: selector %04x not implemented\n",
