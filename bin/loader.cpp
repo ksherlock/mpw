@@ -583,7 +583,7 @@ void MidInstructionExceptionFunc()
 }
 
 
-#define MPW_VERSION "0.8.2"
+#define MPW_VERSION "0.8.3"
 void help()
 {
 	printf("MPW " MPW_VERSION "\n");
@@ -624,9 +624,9 @@ bool parse_number(const char *input, uint32_t *dest)
 	if (*end)
 	{
 		int old = value;
-		if (strcasecmp(end, "M") == 0)
+		if (strcasecmp(end, "M") == 0 || strcasecmp(end, "MB") == 0)
 			value *= 1024 * 1024;
-		else if (strcasecmp(end, "K") == 0)
+		else if (strcasecmp(end, "K") == 0 || strcasecmp(end, "KB") == 0)
 			value *= 1024;
 		else
 		{
