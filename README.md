@@ -90,7 +90,7 @@ or create a shell script (in `/usr/local/bin`, etc)
 
 `/usr/local/bin/AsmIIgs`:
 
-    #!/usr/bin/sh
+    #!/bin/sh
     
     exec mpw AsmIIgs $@
 
