@@ -505,7 +505,7 @@ namespace ToolBox {
 				 */
 
 				Push<4>(returnPC == 0 ? cpuGetPC() : returnPC);
-				Log("$04x *%s - $%08x", trap, TrapName(trap), address);
+				Log("$04x *%s - $%08x\n", trap, TrapName(trap), address);
 				cpuInitializeFromNewPC(address);
 				return;
 			}
