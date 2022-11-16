@@ -84,9 +84,9 @@ or create a shell script (in /usr/local/bin, etc)
 
 /usr/local/bin/AsmIIgs:
 
-#!/usr/bin/sh
+#!/bin/sh
 
-exec mpw AsmIIgs $@
+exec mpw AsmIIgs "$@"
 
 mpw looks in the current directory and then in the $MPW:Tools: directory
 for the command to run.  The MPW $Commands variable is not yet supported.

@@ -90,9 +90,9 @@ or create a shell script (in `/usr/local/bin`, etc)
 
 `/usr/local/bin/AsmIIgs`:
 
-    #!/usr/bin/sh
+    #!/bin/sh
     
-    exec mpw AsmIIgs $@
+    exec mpw AsmIIgs "$@"
 
 
 mpw uses the MPW `$Commands` variable to find the command, similar to `$PATH` on Unix.  If the `$Commands` variable
