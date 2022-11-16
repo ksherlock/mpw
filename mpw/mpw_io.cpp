@@ -74,7 +74,7 @@ namespace MPW
 		int fd = f.cookie;
 		ssize_t size;
 
-		Log("     read(%04x, %08x, %08x)", fd, f.buffer, f.count);
+		Log("     read(%04x, %08x, %08x)\n", fd, f.buffer, f.count);
 		size = OS::Internal::FDEntry::read(fd, memoryPointer(f.buffer), f.count);
 		//Log(" -> %ld\n", size);
 
