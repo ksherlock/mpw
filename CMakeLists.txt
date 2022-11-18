@@ -11,12 +11,12 @@ set(CMAKE_C_EXTENSIONS FALSE)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         # Clang or AppleClang
-        set(CMAKE_CXX_FLAGS "-Wall")
+        set(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
 endif()
 
 if ("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
 	# Clang or AppleClang
-	set(CMAKE_C_FLAGS "-Wall")
+	set(CMAKE_C_FLAGS "-Wall ${CMAKE_C_FLAGS}")
 endif()
 
 
