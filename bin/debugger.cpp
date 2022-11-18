@@ -43,6 +43,7 @@
 #include <bitset>
 
 #include <readline/readline.h>
+#include <readline/history.h>
 
 
 #include "loader.h"
@@ -1225,7 +1226,7 @@ namespace {
 	{
 		rl_readline_name = (char *)"mpw";
 		rl_attempted_completion_function = mpw_attempted_completion_function;
-		rl_completion_entry_function = (Function *)mpw_completion_entry_function;
+		rl_completion_entry_function = (rl_compentry_func_t *)mpw_completion_entry_function;
 	}
 }
 
