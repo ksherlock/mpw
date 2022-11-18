@@ -36,7 +36,7 @@ set(TOOLBOX_SRC
 
 add_custom_command(
 	OUTPUT pathnames.cpp
-	COMMAND ragel -p -G2 -o pathnames.cpp "${CMAKE_CURRENT_SOURCE_DIR}/pathnames.rl"
+	COMMAND "${RAGEL}" -p -G2 -o pathnames.cpp "${CMAKE_CURRENT_SOURCE_DIR}/pathnames.rl"
 	MAIN_DEPENDENCY pathnames.rl 
 )
 

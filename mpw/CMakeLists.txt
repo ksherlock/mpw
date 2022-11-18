@@ -7,7 +7,7 @@ set(MPW_SRC mpw.cpp mpw_io.cpp mpw_close.cpp mpw_access.cpp mpw_ioctl.cpp mpw_er
 
 add_custom_command(
 	OUTPUT environment.cpp
-	COMMAND ragel -p -G2 -o environment.cpp "${CMAKE_CURRENT_SOURCE_DIR}/environment.rl"
+	COMMAND "${RAGEL}" -p -G2 -o environment.cpp "${CMAKE_CURRENT_SOURCE_DIR}/environment.rl"
 	MAIN_DEPENDENCY environment.rl 
 )
 

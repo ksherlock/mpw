@@ -9,7 +9,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_custom_command(
 	OUTPUT lexer.cpp
-	COMMAND ragel -p -G2 -o lexer.cpp "${CMAKE_CURRENT_SOURCE_DIR}/lexer.rl"
+	COMMAND "${RAGEL}" -p -G2 -o lexer.cpp "${CMAKE_CURRENT_SOURCE_DIR}/lexer.rl"
 	MAIN_DEPENDENCY lexer.rl 
 )
 
@@ -20,7 +20,7 @@ if (LEMON)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/parser.cpp ${CMAKE_CURRENT_SOURCE_DIR}/parser.h
 		# COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/parser.lemon" "parser.lemon"
-		COMMAND lemon parser.lemon
+		COMMAND ${LEMON} parser.lemon
 		COMMAND mv -f parser.c parser.cpp
 		MAIN_DEPENDENCY parser.lemon
 		DEPENDS debugger.h
@@ -30,7 +30,7 @@ if (LEMON)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/template_parser.cpp ${CMAKE_CURRENT_SOURCE_DIR}/template_parser.h
 		# COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/template_parser.lemon" "template_parser.lemon"
-		COMMAND lemon template_parser.lemon
+		COMMAND ${LEMON} template_parser.lemon
 		COMMAND mv -f template_parser.c template_parser.cpp
 		MAIN_DEPENDENCY template_parser.lemon
 		DEPENDS debugger.h
@@ -41,7 +41,7 @@ endif()
 
 add_custom_command(
 	OUTPUT loadtrap.cpp
-	COMMAND ragel -p -G2 -o loadtrap.cpp "${CMAKE_CURRENT_SOURCE_DIR}/loadtrap.rl"
+	COMMAND "${RAGEL}" -p -G2 -o loadtrap.cpp "${CMAKE_CURRENT_SOURCE_DIR}/loadtrap.rl"
 	MAIN_DEPENDENCY loadtrap.rl 
 	DEPENDS debugger.h
 )
@@ -49,7 +49,7 @@ add_custom_command(
 
 add_custom_command(
 	OUTPUT template_loader.cpp
-	COMMAND ragel -p -G2 -o template_loader.cpp "${CMAKE_CURRENT_SOURCE_DIR}/template_loader.rl"
+	COMMAND "${RAGEL}" -p -G2 -o template_loader.cpp "${CMAKE_CURRENT_SOURCE_DIR}/template_loader.rl"
 	MAIN_DEPENDENCY template_loader.rl 
 	DEPENDS debugger.h template_parser.h
 )

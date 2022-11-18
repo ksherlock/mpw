@@ -16,6 +16,12 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 endif()
 
 
+find_program(RAGEL NAMES ragel)
+if (NOT RAGEL)
+	message(FATAL_ERROR "ragel (version 6) is required.")
+endif()
+
+
 include_directories("${CMAKE_SOURCE_DIR}")
 
 add_subdirectory(bin)
