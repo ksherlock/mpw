@@ -957,10 +957,19 @@ int main(int argc, char **argv)
 
 #ifdef LOADER_LOAD
 	uint16_t err = Loader::Native::LoadFile(command);
-	if (err) exit(EX_CONFIG);
+	if (err) {
+		const char *cp = ErrorName(err);
+		fprintf(stderr, "Unable to load command %s: ", command.c_str());
+		if (cp) printf("%s\n", cp);
+		else printf("%hd\n", err);
+		exit(EX_SOFTWARE);
+	}
 #else
 	uint32_t address = load(command.c_str());
-	if (!address) exit(EX_CONFIG);
+	if (!address) {
+		fprintf(stderr, "Unable to load command %s\n", command.c_str());
+		exit(EX_SOFTWARE);
+	}
 #endif
 	GlobalInit();
 
