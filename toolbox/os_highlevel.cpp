@@ -83,8 +83,8 @@ namespace OS {
 	{
 		char buffer[PATH_MAX + 1];
 
-		// FSSpecs are valid for non-existant files
-		// but not non-existant directories.
+		// FSSpecs are valid for non-existent files
+		// but not non-existent directories.
 		// realpath does not behave in such a manner.
 
 		// expand the path.  Also handles relative paths.
