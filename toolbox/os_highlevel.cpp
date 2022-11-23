@@ -394,17 +394,17 @@ namespace OS {
 		rv = ::stat(path.c_str(), &st);
 		if (rv < 0)
 		{
-			if (wasAliased) memoryWriteWord(0, wasAliased);
-			if (targetIsFolder) memoryWriteWord(0, targetIsFolder);
+			if (wasAliased) memoryWriteByte(0, wasAliased);
+			if (targetIsFolder) memoryWriteByte(0, targetIsFolder);
 
 			return macos_error_from_errno();
 		}
 
 		if (targetIsFolder)
-				memoryWriteWord(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
+				memoryWriteByte(S_ISDIR(st.st_mode) ? 1 : 0, targetIsFolder);
 
 		// don't bother pretending a soft link is an alias.
-		if (wasAliased) memoryWriteWord(0, wasAliased);
+		if (wasAliased) memoryWriteByte(0, wasAliased);
 
 		return 0;
 	}
