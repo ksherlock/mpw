@@ -1135,6 +1135,8 @@ namespace {
 	{
 		std::string s(text);
 
+		rl_attempted_completion_over = 1; // suppress filename completion if no results.
+
 		// returns iter to first element _not less_ than key
 		// ie, >= key.
 		auto iter = SymbolTable.lower_bound(s);
@@ -1213,19 +1215,11 @@ namespace {
 		return buffer;
 	}
 
-	// this is here to prevent filename tab completion, for now.
-	// state is 0 for first call, non-zero for subsequent calls.  It
-	// should return 1 match per invocation, NULL if no more matches.
-	char *mpw_completion_entry_function(const char *text, int state)
-	{
-		return NULL;
-	}
 
 	void readline_init()
 	{
 		rl_readline_name = (char *)"mpw";
 		rl_attempted_completion_function = mpw_attempted_completion_function;
-		rl_completion_entry_function = (Function *)mpw_completion_entry_function;
 	}
 }
 
