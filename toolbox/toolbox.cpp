@@ -199,6 +199,14 @@ namespace ToolBox {
 				d0 = OS::SetFPos(trap);
 				break;
 
+				// _RelString [,MARKS, CASE]
+			case 0xa050:
+			case 0xa250:
+			case 0xa450:
+			case 0xa650:
+				d0 = OS::RelString(trap);
+				break;
+
 			case 0xa051:
 				d0 = OS::ReadXPRam(trap);
 				break;

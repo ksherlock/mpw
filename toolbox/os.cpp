@@ -800,8 +800,8 @@ namespace OS
 		 *
 		 */
 
-		bool caseSens = trap & (1 << 9);
-		//bool diacSens = trap & (1 << 10); // ignore for now...
+		//bool diacSens = trap & (1 << 9); // ignore for now...
+		bool caseSens = trap & (1 << 10);
 
 		uint32_t aStr = cpuGetAReg(0);
 		uint32_t bStr = cpuGetAReg(1);
@@ -836,6 +836,55 @@ namespace OS
 
 		return eq ? 0 : 1;
 	}
+
+
+	uint16_t RelString(uint16_t trap)
+	{
+
+		/*
+		 * on entry:
+		 * A0 Pointer to first character of first string
+		 * A1 Pointer to first character of second string
+		 * D0 (high) length of first string
+		 * D0 (low) length of second string
+		 *
+		 * on exit:
+		 * D0 0 if strings equal, -1 if first < second, 1 if first > second
+		 *
+		 */
+
+		//bool diacSens = trap & (1 << 9); // ignore for now...
+		bool caseSens = trap & (1 << 10);
+
+		uint32_t aStr = cpuGetAReg(0);
+		uint32_t bStr = cpuGetAReg(1);
+
+		uint32_t length = cpuGetDReg(0);
+
+		uint32_t aLen = (length >> 16);
+		uint32_t bLen = (length & 0xffff);
+
+		std::string a = ToolBox::ReadString(aStr, aLen);
+		std::string b = ToolBox::ReadString(bStr, bLen);
+
+		Log("%04x RelString(%s, %s)\n", trap, a.c_str(), b.c_str());
+
+		if (aStr == bStr) return 0; // same ptr...
+
+		for (uint32_t i = 0; i < std::min(aLen, bLen); ++i) {
+			unsigned aa = a[i];
+			unsigned bb = b[i];
+			if (!caseSens) {
+				aa = toupper(aa);
+				bb = toupper(bb);
+			}
+			if (aa == bb) continue;
+			return aa < bb ? -1 : 1;
+		}
+		if (aLen == bLen) return 0;
+		return aLen < bLen ? -1 : 1;
+	}
+
 
 
 	#pragma mark - Time Utilities

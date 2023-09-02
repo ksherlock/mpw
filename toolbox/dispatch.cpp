@@ -835,6 +835,15 @@ namespace ToolBox {
 				d0 = OS::CmpString(trap);
 				break;
 
+			//_RelString [MARKS,CASE]
+			case 0xa050:
+			case 0xa250:
+			case 0xa450:
+			case 0xa650:
+				d0 = OS::RelString(trap);
+				break;
+
+
 			// NewPtr [Sys, Clear] (logicalSize: Size): Ptr;
 			case 0xa11e:
 			case 0xa31e:

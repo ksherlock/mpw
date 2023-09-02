@@ -71,6 +71,7 @@ namespace OS
 
 	#pragma mark String Utilities
 	uint16_t CmpString(uint16_t trap);
+	uint16_t RelString(uint16_t trap);
 
 
 	#pragma mark - Time Utilities
