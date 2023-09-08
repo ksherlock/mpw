@@ -848,7 +848,7 @@ namespace RM
 
 		if (nativeSize != info->size) {
 			// resize...
-			// chould get state / unlock / set state ... but that does nothing in OS X.
+			// could get state / unlock / set state ... but that does nothing in OS X.
 
 			::SetHandleSize(nativeHandle, info->size);
 			OSErr err = MemError();

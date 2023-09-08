@@ -257,8 +257,8 @@ struct VolumeParam {
   unsigned short      ioVNmFls;               /*number of files in directory*/
   unsigned short      ioVDirSt;               /*start block of file directory*/
   short               ioVBlLn;                /*GetVolInfo: length of dir in blocks*/
-  unsigned short      ioVNmAlBlks;            /*for compatibilty ioVNmAlBlks * ioVAlBlkSiz <= 2 GB*/
-  unsigned long       ioVAlBlkSiz;            /*for compatibilty ioVAlBlkSiz is <= $0000FE00 (65,024)*/
+  unsigned short      ioVNmAlBlks;            /*for compatibility ioVNmAlBlks * ioVAlBlkSiz <= 2 GB*/
+  unsigned long       ioVAlBlkSiz;            /*for compatibility ioVAlBlkSiz is <= $0000FE00 (65,024)*/
   unsigned long       ioVClpSiz;              /*GetVolInfo: bytes to allocate at a time*/
   unsigned short      ioAlBlSt;               /*starting disk(512-byte) block in block map*/
   unsigned long       ioVNxtFNum;             /*GetVolInfo: next free file number*/

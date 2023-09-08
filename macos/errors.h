@@ -107,7 +107,7 @@ enum macos_error {
     envVersTooBig = -5502,                          /*Version bigger than call can handle*/
     fontDecError = -64,                             /*error during font declaration*/
     fontNotDeclared = -65,                          /*font not declared*/
-    fontSubErr = -66,                               /*font substitution occured*/
+    fontSubErr = -66,                               /*font substitution occurred*/
     fontNotOutlineErr = -32615,                     /*bitmap font passed to routine that does outlines only*/
     firstDskErr = -84,                              /*I/O System Errors*/
     lastDskErr = -64,                               /*I/O System Errors*/
@@ -196,7 +196,7 @@ enum macos_error {
     rgnTooBigErr = -500,
     updPixMemErr = -125,                            /*insufficient memory to update a pixmap*/
     pictInfoVersionErr = -11000,                    /* wrong version of the PictInfo structure */
-    pictInfoIDErr = -11001,                         /* the internal consistancy check for the PictInfoID is wrong */
+    pictInfoIDErr = -11001,                         /* the internal consistency check for the PictInfoID is wrong */
     pictInfoVerbErr = -11002,                       /* the passed verb was invalid */
     cantLoadPickMethodErr = -11003,                 /* unable to load the custom pick proc */
     colorsRequestedErr = -11004,                    /* the number of colors requested was illegal */
@@ -249,7 +249,7 @@ enum macos_error {
     smEmptySlot = -300,                             /*No card in slot*/
     smCRCFail = -301,                               /*CRC check failed for declaration data*/
     smFormatErr = -302,                             /*FHeader Format is not Apple's*/
-    smRevisionErr = -303,                           /*Wrong revison level*/
+    smRevisionErr = -303,                           /*Wrong revision level*/
     smNoDir = -304,                                 /*Directory offset is Nil */
     smDisabledSlot = -305,                          /*This slot is disabled (-305 use to be smLWTstBad)*/
     smNosInfoArray = -306,                          /*No sInfoArray. Memory Mgr error.*/
@@ -258,14 +258,14 @@ enum macos_error {
     smResrvErr = -307,                              /*Fatal reserved error. Resreved field <> 0.*/
     smUnExBusErr = -308,                            /*Unexpected BusError*/
     smBLFieldBad = -309,                            /*ByteLanes field was bad.*/
-    smFHBlockRdErr = -310,                          /*Error occured during _sGetFHeader.*/
-    smFHBlkDispErr = -311,                          /*Error occured during _sDisposePtr (Dispose of FHeader block).*/
+    smFHBlockRdErr = -310,                          /*Error occurred during _sGetFHeader.*/
+    smFHBlkDispErr = -311,                          /*Error occurred during _sDisposePtr (Dispose of FHeader block).*/
     smDisposePErr = -312,                           /*_DisposePointer error*/
     smNoBoardSRsrc = -313,                          /*No Board sResource.*/
-    smGetPRErr = -314,                              /*Error occured during _sGetPRAMRec (See SIMStatus).*/
+    smGetPRErr = -314,                              /*Error occurred during _sGetPRAMRec (See SIMStatus).*/
     smNoBoardId = -315,                             /*No Board Id.*/
     smInitStatVErr = -316,                          /*The InitStatusV field was negative after primary or secondary init.*/
-    smInitTblVErr = -317,                           /*An error occured while trying to initialize the Slot Resource Table.*/
+    smInitTblVErr = -317,                           /*An error occurred while trying to initialize the Slot Resource Table.*/
     smNoJmpTbl = -318,                              /*SDM jump table could not be created.*/
     smBadBoardId = -319,                            /*BoardId was wrong; re-init the PRAM record.*/
     smBusErrTO = -320,                              /*BusError time out.*/
@@ -285,20 +285,20 @@ but a special error is needed to patch secondary inits.*/
 
     smCPUErr = -334,                                /*Code revision is wrong*/
     smsPointerNil = -335,                           /*LPointer is nil From sOffsetData. If this error occurs; check sInfo rec for more information.*/
-    smNilsBlockErr = -336,                          /*Nil sBlock error (Dont allocate and try to use a nil sBlock)*/
+    smNilsBlockErr = -336,                          /*Nil sBlock error (Don't allocate and try to use a nil sBlock)*/
     smSlotOOBErr = -337,                            /*Slot out of bounds error*/
     smSelOOBErr = -338,                             /*Selector out of bounds error*/
     smNewPErr = -339,                               /*_NewPtr error*/
     smBlkMoveErr = -340,                            /*_BlockMove error*/
     smCkStatusErr = -341,                           /*Status of slot = fail.*/
-    smGetDrvrNamErr = -342,                         /*Error occured during _sGetDrvrName.*/
-    smDisDrvrNamErr = -343,                         /*Error occured during _sDisDrvrName.*/
+    smGetDrvrNamErr = -342,                         /*Error occurred during _sGetDrvrName.*/
+    smDisDrvrNamErr = -343,                         /*Error occurred during _sDisDrvrName.*/
     smNoMoresRsrcs = -344,                          /*No more sResources*/
     smsGetDrvrErr = -345,                           /*Error occurred during _sGetDriver.*/
     smBadsPtrErr = -346,                            /*Bad pointer was passed to sCalcsPointer*/
     smByteLanesErr = -347,                          /*NumByteLanes was determined to be zero.*/
     smOffsetErr = -348,                             /*Offset was too big (temporary error*/
-    smNoGoodOpens = -349,                           /*No opens were successfull in the loop.*/
+    smNoGoodOpens = -349,                           /*No opens were successful in the loop.*/
     smSRTOvrFlErr = -350,                           /*SRT over flow.*/
     smRecNotFnd = -351,                             /*Record not found in the SRT.*/
     editionMgrInitErr = -450,                       /*edition manager not inited by this app*/
@@ -333,7 +333,7 @@ but a special error is needed to patch secondary inits.*/
 
     interruptsMaskedErr = -624,                     /*don't call with interrupts masked*/
     cannotDeferErr = -625,                          /*unable to defer additional functions*/
-    ddpSktErr = -91,                                /*error in soket number*/
+    ddpSktErr = -91,                                /*error in socket number*/
     ddpLenErr = -92,                                /*data length too big*/
     noBridgeErr = -93,                              /*no network bridge for non-local send*/
     lapProtErr = -94,                               /*error in attaching/detaching protocol*/
@@ -453,7 +453,7 @@ but a special error is needed to patch secondary inits.*/
     noDefaultUserErr = -922,                        /* user hasn't typed in owners name in Network Setup Control Pannel */
     notLoggedInErr = -923,                          /* The default userRefNum does not yet exist */
     noUserRefErr = -924,                            /* unable to create a new userRefNum */
-    networkErr = -925,                              /* An error has occured in the network, not too likely */
+    networkErr = -925,                              /* An error has occurred in the network, not too likely */
     noInformErr = -926,                             /* PPCStart failed because destination did not have inform pending */
     authFailErr = -927,                             /* unable to authenticate user at destination */
     noUserRecErr = -928,                            /* Invalid user reference number */

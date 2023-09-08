@@ -1047,7 +1047,7 @@ enum {
 };
 
 enum {
-  _ALMDispatch                  = 0xAAA4 /* Apple Location Manger*/
+  _ALMDispatch                  = 0xAAA4 /* Apple Location Manager*/
 };
 
 enum {
