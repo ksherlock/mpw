@@ -1394,7 +1394,7 @@ static ULO cpuDisMovec(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   case 0x002:    /* CACR, Cache control register XX2346 */
     strcat(soperands, "CACR");
     break;
-  case 0x802:    /* CAAR, Cache adress register XX2346 */
+  case 0x802:    /* CAAR, Cache address register XX2346 */
     strcat(soperands, "CAAR");
     break;
   case 0x803:    /* MSP, Master stack pointer XX234X */

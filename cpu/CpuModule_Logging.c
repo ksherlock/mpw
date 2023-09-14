@@ -28,7 +28,7 @@
 
 #ifdef CPU_INSTRUCTION_LOGGING
 
-/* Function for logging the intruction execution */
+/* Function for logging the instruction execution */
 static cpuInstructionLoggingFunc cpu_instruction_logging_func;
 static cpuExceptionLoggingFunc cpu_exception_logging_func;
 static cpuInterruptLoggingFunc cpu_interrupt_logging_func;

@@ -60,7 +60,7 @@ enum {
     SMGlobals = 0x0CC4,             /* (long) pointer to Sound Manager Globals*/
     TheGDevice = 0x0CC8,            /*[GLOBAL VAR]  (long) the current graphics device*/
     CQDGlobals = 0x0CCC,            /* (long) quickDraw global extensions*/
-    ADBBase = 0x0CF8,               /*[GLOBAL VAR]  (long) pointer to Front Desk Buss Variables*/
+    ADBBase = 0x0CF8,               /*[GLOBAL VAR]  (long) pointer to Front Desk Bus Variables*/
     WarmStart = 0x0CFC,             /*[GLOBAL VAR]  (long) flag to indicate it is a warm start*/
     TimeDBRA = 0x0D00,              /*[GLOBAL VAR]  (word) number of iterations of DBRA per millisecond*/
     TimeSCCDB = 0x0D02,             /*[GLOBAL VAR]  (word) number of iter's of SCC access & DBRA.*/

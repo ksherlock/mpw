@@ -1203,7 +1203,7 @@ namespace MM
 
 		const auto &info = iter->second;
 
-		// resouce not yet supported...
+		// resource not yet supported...
 		// would need extra field and support in RM:: when
 		// creating.
 		// see HSetRBit, HClrRBit

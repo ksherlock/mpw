@@ -285,7 +285,7 @@ const STR *memory_kickimage_versionstrings[14] = {
   /*============================================================================*/
   /* Set read and write stubs for a bank, as well as a direct pointer to        */
   /* its memory. NULL pointer is passed when the memory must always be          */
-  /* read through the stubs, like in a bank of regsters where writing           */
+  /* read through the stubs, like in a bank of registers where writing           */
   /* or reading the value generates side-effects.                               */
   /* Datadirect is TRUE when data accesses can be made through a pointer        */
   /*============================================================================*/
@@ -1246,7 +1246,7 @@ const STR *memory_kickimage_versionstrings[14] = {
   }
 
   /*============================================================================*/
-  /* An error occured during loading a kickstart file. Uses GUI to display      */
+  /* An error occurred during loading a kickstart file. Uses GUI to display      */
   /* an errorstring.                                                            */
   /*============================================================================*/
 

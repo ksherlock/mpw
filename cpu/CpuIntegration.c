@@ -152,7 +152,7 @@ ULO cpuIntegrationGetChipInterruptNumber(void)
 }
 
 // A wrapper for cpuSetIrqLevel that restarts the
-// scheduling of cpu events if the cpu was stoppped
+// scheduling of cpu events if the cpu was stopped
 void cpuIntegrationSetIrqLevel(ULO new_interrupt_level, ULO chip_interrupt_number)
 {
   if (cpuSetIrqLevel(new_interrupt_level))

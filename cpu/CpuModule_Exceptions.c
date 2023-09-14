@@ -165,7 +165,7 @@ void cpuThrowException(ULO vector_offset, ULO pc, BOOLE executejmp)
 void cpuThrowPrivilegeViolationException(void)
 {
   // The saved pc points to the instruction causing the violation
-  // (And the kickstart excpects pc in the stack frame to be the opcode PC.)
+  // (And the kickstart expects pc in the stack frame to be the opcode PC.)
   cpuThrowException(0x20, cpuGetOriginalPC(), FALSE);
 }
 
