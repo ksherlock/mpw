@@ -1,7 +1,5 @@
-#ifndef CPUMODULE_PROFILE_H
-#define CPUMODULE_PROFILE_H
+#pragma once
 
 void cpuProfileWrite(void)
 {
 }
-#endif

@@ -8,14 +8,14 @@
 /*============================================================================*/
 
 BOOLE memory_fault_read = FALSE;                       /* TRUE - read / FALSE - write */
-ULO memory_fault_address = 0;
+uint32_t memory_fault_address = 0;
 
 /*==============================================================================
 Raises exception 3 when a word or long is accessing an odd address
 and the CPU is < 020
 ==============================================================================*/
 
-static void memoryOddRead(ULO address)
+static void memoryOddRead(uint32_t address)
 {
 	if (address & 1)
 	{
@@ -28,7 +28,7 @@ static void memoryOddRead(ULO address)
 	}
 }
 
-static void memoryOddWrite(ULO address)
+static void memoryOddWrite(uint32_t address)
 {
 	if (address & 1)
 	{
@@ -75,7 +75,7 @@ uint8_t *memoryPointer(uint32_t address)
 
 // memory read of 0xffffffff not handled correctly
 // since the unsigned compare overflows.
-UBY memoryReadByte(ULO address)
+uint8_t memoryReadByte(uint32_t address)
 {
 
 	if (MemoryLoggingFunc)
@@ -88,7 +88,7 @@ UBY memoryReadByte(ULO address)
 	return 0;
 }
 
-UWO memoryReadWord(ULO address)
+uint16_t memoryReadWord(uint32_t address)
 {
 
 	if (MemoryLoggingFunc)
@@ -103,7 +103,7 @@ UWO memoryReadWord(ULO address)
 	return 0;
 }
 
-ULO memoryReadLong(ULO address)
+uint32_t memoryReadLong(uint32_t address)
 {
 
 	if (MemoryLoggingFunc)
@@ -121,7 +121,7 @@ ULO memoryReadLong(ULO address)
 }
 
 
-uint64_t memoryReadLongLong(ULO address)
+uint64_t memoryReadLongLong(uint32_t address)
 {
 	uint64_t tmp;
 
@@ -132,7 +132,7 @@ uint64_t memoryReadLongLong(ULO address)
 	return tmp;
 }
 
-void memoryWriteByte(UBY data, ULO address)
+void memoryWriteByte(uint8_t data, uint32_t address)
 {
 
 	if (MemoryLoggingFunc)
@@ -144,7 +144,7 @@ void memoryWriteByte(UBY data, ULO address)
 	}
 }
 
-void memoryWriteWord(UWO data, ULO address)
+void memoryWriteWord(uint16_t data, uint32_t address)
 {
 
 	if (MemoryLoggingFunc)
@@ -159,7 +159,7 @@ void memoryWriteWord(UWO data, ULO address)
 	}
 }
 
-void memoryWriteLong(ULO data, ULO address)
+void memoryWriteLong(uint32_t data, uint32_t address)
 {
 
 	if (MemoryLoggingFunc)
@@ -178,7 +178,7 @@ void memoryWriteLong(ULO data, ULO address)
 }
 
 
-void memoryWriteLongLong(uint64_t data, ULO address)
+void memoryWriteLongLong(uint64_t data, uint32_t address)
 {
 
 	if (address & 0x01) memoryOddWrite(address);

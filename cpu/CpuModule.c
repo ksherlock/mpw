@@ -1,4 +1,3 @@
-/* @(#) $Id: CpuModule.c,v 1.7 2012-08-12 16:51:02 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* Initialization of 68000 core                                            */
@@ -29,10 +28,8 @@
 
 void cpuClearEverything(void)
 {
-  ULO i,j;
-
-  for (j = 0; j < 2; j++)
-    for (i = 0; i < 8; i++)
+  for (uint32_t j = 0; j < 2; j++)
+    for (uint32_t i = 0; i < 8; i++)
       cpuSetReg(j, i, 0);
 
   cpuSetUspDirect(0);
@@ -47,7 +44,6 @@ void cpuClearEverything(void)
   cpuSetSfc(0);
   cpuSetDfc(0);
   cpuSetIrqLevel(0);
-  cpuSetRaiseInterrupt(FALSE);
   cpuSetStop(FALSE);
   cpuSetInstructionTime(0);
   cpuSetOriginalPC(0);

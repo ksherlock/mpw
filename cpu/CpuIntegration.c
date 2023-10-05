@@ -1,8 +1,7 @@
-/* @(#) $Id: CpuIntegration.c,v 1.10 2013-01-08 19:17:33 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* Initialization of 68000 core                                            */
-/* Integrates the 68k emulation with custom chips			   */
+/* Integrates the 68k emulation with custom chips                          */
 /*                                                                         */
 /* Author: Petter Schau                                                    */
 /*                                                                         */
@@ -34,47 +33,47 @@
 #include "interrupt.h"
 
 jmp_buf cpu_integration_exception_buffer;
-ULO cpu_integration_chip_interrupt_number;
+uint32_t cpu_integration_chip_interrupt_number;
 
 /* Cycles spent by chips (Blitter) as a result of an instruction */
-static ULO cpu_integration_chip_cycles;
-static ULO cpu_integration_chip_slowdown;
+static uint32_t cpu_integration_chip_cycles;
+static uint32_t cpu_integration_chip_slowdown;
 
 /*===========================================================================*/
 /* CPU properties                                                            */
 /*===========================================================================*/
 
-ULO cpu_integration_speed; // The speed as expressed in the fellow configuration settings
-ULO cpu_integration_speed_multiplier; // The cycle multiplier used to adjust the cpu-speed, calculated from cpu_integration_speed
+uint32_t cpu_integration_speed; // The speed as expressed in the fellow configuration settings
+uint32_t cpu_integration_speed_multiplier; // The cycle multiplier used to adjust the cpu-speed, calculated from cpu_integration_speed
 cpu_integration_models cpu_integration_model; // The cpu model as expressed in the fellow configuration settings
 
 /*===========================================================================*/
 /* CPU properties                                                            */
 /*===========================================================================*/
 
-void cpuIntegrationSetSpeed(ULO speed)
+void cpuIntegrationSetSpeed(uint32_t speed)
 {
   cpu_integration_speed = speed;
 }
 
-ULO cpuIntegrationGetSpeed(void)
+uint32_t cpuIntegrationGetSpeed(void)
 {
   return cpu_integration_speed;
 }
 
-static void cpuIntegrationSetSpeedMultiplier(ULO multiplier)
+static void cpuIntegrationSetSpeedMultiplier(uint32_t multiplier)
 {
   cpu_integration_speed_multiplier = multiplier;
 }
 
-static ULO cpuIntegrationGetSpeedMultiplier(void)
+static uint32_t cpuIntegrationGetSpeedMultiplier(void)
 {
   return cpu_integration_speed_multiplier;
 }
 
 void cpuIntegrationCalculateMultiplier(void)
 {
-  ULO multiplier = 12;
+  uint32_t multiplier = 12;
 
   switch (cpuGetModelMajor())
   {
@@ -121,39 +120,39 @@ cpu_integration_models cpuIntegrationGetModel(void)
   return cpu_integration_model;
 }
 
-void cpuIntegrationSetChipCycles(ULO chip_cycles)
+void cpuIntegrationSetChipCycles(uint32_t chip_cycles)
 {
   cpu_integration_chip_cycles = chip_cycles;
 }
 
-ULO cpuIntegrationGetChipCycles(void)
+uint32_t cpuIntegrationGetChipCycles(void)
 {
   return cpu_integration_chip_cycles;
 }
 
-void cpuIntegrationSetChipSlowdown(ULO chip_slowdown)
+void cpuIntegrationSetChipSlowdown(uint32_t chip_slowdown)
 {
   cpu_integration_chip_slowdown = chip_slowdown;
 }
 
-ULO cpuIntegrationGetChipSlowdown(void)
+uint32_t cpuIntegrationGetChipSlowdown(void)
 {
   return cpu_integration_chip_slowdown;
 }
 
-void cpuIntegrationSetChipInterruptNumber(ULO chip_interrupt_number)
+void cpuIntegrationSetChipInterruptNumber(uint32_t chip_interrupt_number)
 {
   cpu_integration_chip_interrupt_number = chip_interrupt_number;
 }
 
-ULO cpuIntegrationGetChipInterruptNumber(void)
+uint32_t cpuIntegrationGetChipInterruptNumber(void)
 {
   return cpu_integration_chip_interrupt_number;
 }
 
 // A wrapper for cpuSetIrqLevel that restarts the
-// scheduling of cpu events if the cpu was stopped
-void cpuIntegrationSetIrqLevel(ULO new_interrupt_level, ULO chip_interrupt_number)
+// scheduling of cpu events if the cpu was stoppped
+void cpuIntegrationSetIrqLevel(uint32_t new_interrupt_level, uint32_t chip_interrupt_number)
 {
   if (cpuSetIrqLevel(new_interrupt_level))
   {
@@ -241,7 +240,7 @@ void cpuIntegrationInstructionLogging(void)
   fprintf(CPUINSTRUCTIONLOG, "SSP:%.6X USP:%.6X SP:%.4X %s %s\t%s\t%s\n", cpuGetSspDirect(), cpuGetUspDirect(), cpuGetSR(), saddress, sdata, sinstruction, soperands);
 }
 
-void cpuIntegrationExceptionLogging(STR *description, ULO original_pc, UWO opcode)
+void cpuIntegrationExceptionLogging(char *description, uint32_t original_pc, uint16_t opcode)
 {
   if (cpu_disable_instruction_log) return;
   cpuInstructionLogOpen();
@@ -250,7 +249,7 @@ void cpuIntegrationExceptionLogging(STR *description, ULO original_pc, UWO opcod
   fprintf(CPUINSTRUCTIONLOG, "%s for opcode %.4X at PC %.8X from PC %.8X\n", description, opcode, original_pc, cpuGetPC());
 }
 
-void cpuIntegrationInterruptLogging(ULO level, ULO vector_address)
+void cpuIntegrationInterruptLogging(uint32_t level, uint32_t vector_address)
 {
   if (cpu_disable_instruction_log) return;
   cpuInstructionLogOpen();
@@ -263,8 +262,7 @@ void cpuIntegrationInterruptLogging(ULO level, ULO vector_address)
 
 void cpuIntegrationExecuteInstructionEventHandler68000Fast(void)
 {
-  ULO cycles;
-  cycles = cpuExecuteInstruction();
+  uint32_t cycles = cpuExecuteInstruction();
 
   if (cpuGetStop())
   {
@@ -279,8 +277,8 @@ void cpuIntegrationExecuteInstructionEventHandler68000Fast(void)
 
 void cpuIntegrationExecuteInstructionEventHandler68000General(void)
 {
-  ULO cycles = 0;
-  ULO time_used = 0;
+  uint32_t cycles = 0;
+  uint32_t time_used = 0;
 
   do
   {
@@ -303,7 +301,7 @@ void cpuIntegrationExecuteInstructionEventHandler68000General(void)
 
 void cpuIntegrationExecuteInstructionEventHandler68020(void)
 {
-  ULO time_used = 0;
+  uint32_t time_used = 0;
   do
   {
     cpuExecuteInstruction();

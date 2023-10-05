@@ -1,4 +1,3 @@
-/* @(#) $Id: CpuModule_Disassembler.c,v 1.2 2009/07/26 22:56:07 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* CPU disassembly                                                         */
@@ -27,46 +26,46 @@
 #include "CpuModule.h"
 #include "CpuModule_DisassemblerFunc.h"
 
-typedef ULO (*cpuDisFunc)(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands);  
+typedef uint32_t (*cpuDisFunc)(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands);  
 
-static ULO cpuDisGetSourceMode(UWO opcode)
+static uint32_t cpuDisGetSourceMode(uint16_t opcode)
 {
-  return (ULO) (opcode >> 3) & 7;
+  return (uint32_t) (opcode >> 3) & 7;
 }
 
-static ULO cpuDisGetDestinationMode(UWO opcode)
+static uint32_t cpuDisGetDestinationMode(uint16_t opcode)
 {
-  return (ULO) (opcode >> 6) & 7;
+  return (uint32_t) (opcode >> 6) & 7;
 }
 
-static ULO cpuDisGetSourceRegister(UWO opcode)
+static uint32_t cpuDisGetSourceRegister(uint16_t opcode)
 {
-  return (ULO) (opcode & 7);
+  return (uint32_t) (opcode & 7);
 }
 
-static ULO cpuDisGetDestinationRegister(UWO opcode)
+static uint32_t cpuDisGetDestinationRegister(uint16_t opcode)
 {
-  return (ULO) (opcode >> 9) & 7;
+  return (uint32_t) (opcode >> 9) & 7;
 }
 
-static ULO cpuDisGetEaNo(ULO eamode, ULO eareg)
+static uint32_t cpuDisGetEaNo(uint32_t eamode, uint32_t eareg)
 {
   return (eamode < 7) ? eamode : (eamode + eareg);
 }
 
-static ULO cpuDisGetBit(UWO opcode, ULO bit)
+static uint32_t cpuDisGetBit(uint16_t opcode, uint32_t bit)
 {
-  return (ULO) ((opcode >> bit) & 1);
+  return (uint32_t) ((opcode >> bit) & 1);
 }
 
-static LON cpuDisGetLowByteSignExtend(UWO opc)
+static int32_t cpuDisGetLowByteSignExtend(uint16_t opc)
 {
-  return (LON)(BYT)opc;
+  return (int32_t)(int8_t)opc;
 }
 
-static ULO cpuDisGetSize(UWO opcode)
+static uint32_t cpuDisGetSize(uint16_t opcode)
 {
-  ULO result = 0;
+  uint32_t result = 0;
   switch ((opcode >> 6) & 3)
   {
   case 0: result = 8; break;
@@ -77,9 +76,9 @@ static ULO cpuDisGetSize(UWO opcode)
   return result;
 }
 
-static ULO cpuDisGetSize2(UWO opcode)
+static uint32_t cpuDisGetSize2(uint16_t opcode)
 {
-  ULO result = 0;
+  uint32_t result = 0;
   switch ((opcode >> 8) & 1)
   {
   case 0: result = 16; break;
@@ -87,29 +86,29 @@ static ULO cpuDisGetSize2(UWO opcode)
   }
   return result;
 }
-static ULO cpuDisGetSize3(UWO opc)
+static uint32_t cpuDisGetSize3(uint16_t opc)
 {
   if ((opc & 0x3000) == 0x1000) return 8;
   else if ((opc & 0x3000) == 0x3000) return 16;
   return 32;
 }
 
-static ULO cpuDisGetSize4(UWO opc)
+static uint32_t cpuDisGetSize4(uint16_t opc)
 {
   if ((opc & 0x600) == 0x200) return 8;
   else if ((opc & 0x600) == 0x400) return 16;
   return 32;
 }
 
-static STR cpuDisSizeChar(ULO size)
+static char cpuDisSizeChar(uint32_t size)
 {
-  return (STR) ((size == 8) ? 'B' : ((size == 16) ? 'W' : 'L'));
+  return (char) ((size == 8) ? 'B' : ((size == 16) ? 'W' : 'L'));
 }
 
-static STR *cpu_dis_btab[16] = {"RA", "SR", "HI", "LS", "CC", "CS", "NE", "EQ", "VC", "VS",
+static char *cpu_dis_btab[16] = {"RA", "SR", "HI", "LS", "CC", "CS", "NE", "EQ", "VC", "VS",
 "PL", "MI", "GE", "LT", "GT", "LE"};
 
-static ULO cpuDisGetBranchType(UWO opc)
+static uint32_t cpuDisGetBranchType(uint16_t opc)
 {
   return (opc >> 8) & 0xf;
 }
@@ -117,51 +116,51 @@ static ULO cpuDisGetBranchType(UWO opc)
 /*===========================================================================
 Disassembly of the address-modes
 Parameters:
-ULO reg  - The register used in the address-mode
-ULO pcp  - The address of the next byte not used.
-STR *st - The string to write the dissassembly to.
-ULO *pos - The position in the string where the hex-words used are written
+uint32_t reg  - The register used in the address-mode
+uint32_t pcp  - The address of the next byte not used.
+char *st - The string to write the dissassembly to.
+uint32_t *pos - The position in the string where the hex-words used are written
 Returnvalue:
 PC after possible extension words
 ===========================================================================*/
 
-static STR* cpuDisEoS(STR *s)
+static char* cpuDisEoS(char *s)
 {
   return s + strlen(s);
 }
 
-static void cpuDisCommaAppend(STR *s)
+static void cpuDisCommaAppend(char *s)
 {
   strcat(s, ",");
 }
 
-static void cpuDisWordAppend(ULO data, STR *sdata)
+static void cpuDisWordAppend(uint32_t data, char *sdata)
 {
   sprintf(cpuDisEoS(sdata), " %.4X", data);
 }  
 
-static void cpuDisLongAppend(ULO data, STR *sdata)
+static void cpuDisLongAppend(uint32_t data, char *sdata)
 {
   sprintf(cpuDisEoS(sdata), " %.8X", data);
 }  
 
-static ULO cpuDis05(ULO regno, ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis05(uint32_t regno, uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO disp = memoryReadWord(pcp);
+  uint32_t disp = memoryReadWord(pcp);
 
   cpuDisWordAppend(disp, sdata);
   sprintf(cpuDisEoS(soperands), "$%.4X(A%1u)", disp, regno);
   return pcp + 2;
 }
 
-static ULO cpuDis06Brief(ULO regno, ULO pcp, ULO ext, BOOLE is_pc_indirect, STR *sdata, STR *soperands)
+static uint32_t cpuDis06Brief(uint32_t regno, uint32_t pcp, uint32_t ext, BOOLE is_pc_indirect, char *sdata, char *soperands)
 {
-  STR *scale[4] = {"", "*2", "*4", "*8"};
-  STR indexregtype = (STR) ((ext & 0x8000) ? 'A' : 'D');
-  STR indexsize = (STR) ((ext & 0x0800) ? 'L' : 'W');
-  ULO indexregno = (ext >> 12) & 7;
-  ULO offset = ext & 0xff;
-  ULO scalefactor = (ext >> 9) & 3;
+  char *scale[4] = {"", "*2", "*4", "*8"};
+  char indexregtype = (char) ((ext & 0x8000) ? 'A' : 'D');
+  char indexsize = (char) ((ext & 0x0800) ? 'L' : 'W');
+  uint32_t indexregno = (ext >> 12) & 7;
+  uint32_t offset = ext & 0xff;
+  uint32_t scalefactor = (ext >> 9) & 3;
 
   cpuDisWordAppend(ext, sdata);
   if (cpuGetModelMajor() < 2)
@@ -189,9 +188,9 @@ static ULO cpuDis06Brief(ULO regno, ULO pcp, ULO ext, BOOLE is_pc_indirect, STR 
   return pcp;
 }
 
-static ULO cpuDis06Od(ULO pcp, BOOLE wordsize, STR *sdata, STR *soperands)
+static uint32_t cpuDis06Od(uint32_t pcp, BOOLE wordsize, char *sdata, char *soperands)
 {
-  ULO od;
+  uint32_t od;
 
   if (wordsize)
   {
@@ -210,22 +209,22 @@ static ULO cpuDis06Od(ULO pcp, BOOLE wordsize, STR *sdata, STR *soperands)
   return pcp;
 }
 
-static ULO cpuDis06Extended(ULO regno, ULO pcp, ULO ext, BOOLE is_pc_indirect, STR *sdata, STR *soperands)
+static uint32_t cpuDis06Extended(uint32_t regno, uint32_t pcp, uint32_t ext, BOOLE is_pc_indirect, char *sdata, char *soperands)
 {
-  STR *scale[4] = {"", "*2", "*4", "*8"};
-  STR indexregtype = (STR) ((ext & 0x8000) ? 'A' : 'D');
-  STR indexsize = (STR)((ext & 0x0800) ? 'L' : 'W');
-  ULO indexregno = (ext >> 12) & 7;
-  ULO scalefactor = (ext >> 9) & 3;
-  ULO iis = ext & 0x0007;
-  ULO bdsize = (ext >> 4) & 3;
-  ULO bd;
+  char *scale[4] = {"", "*2", "*4", "*8"};
+  char indexregtype = (char) ((ext & 0x8000) ? 'A' : 'D');
+  char indexsize = (char)((ext & 0x0800) ? 'L' : 'W');
+  uint32_t indexregno = (ext >> 12) & 7;
+  uint32_t scalefactor = (ext >> 9) & 3;
+  uint32_t iis = ext & 0x0007;
+  uint32_t bdsize = (ext >> 4) & 3;
+  uint32_t bd;
   BOOLE is = !!(ext & 0x0040);
   BOOLE bs = !!(ext & 0x0080);
-  STR baseregstr[32];
-  STR indexstr[32];
-  STR basedispstr[32];
-  STR outerdispstr[32];
+  char baseregstr[32];
+  char indexstr[32];
+  char basedispstr[32];
+  char outerdispstr[32];
 
   baseregstr[0] = '\0';
   indexstr[0] = '\0';
@@ -342,9 +341,9 @@ static ULO cpuDis06Extended(ULO regno, ULO pcp, ULO ext, BOOLE is_pc_indirect, S
 }
 
 
-static ULO cpuDis06(ULO regno, ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis06(uint32_t regno, uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO ext = memoryReadWord(pcp);
+  uint32_t ext = memoryReadWord(pcp);
 
   if (cpuGetModelMajor() < 2 || !(ext & 0x0100))
     return cpuDis06Brief(regno, pcp + 2, ext, FALSE, sdata, soperands);
@@ -352,36 +351,36 @@ static ULO cpuDis06(ULO regno, ULO pcp, STR *sdata, STR *soperands)
     return cpuDis06Extended(regno, pcp + 2, ext, FALSE, sdata, soperands);
 }
 
-static ULO cpuDis70(ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis70(uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO absadr = memoryReadWord(pcp);
+  uint32_t absadr = memoryReadWord(pcp);
 
   cpuDisWordAppend(absadr, sdata);
   sprintf(cpuDisEoS(soperands), "$%.4X", absadr);
   return pcp + 2;
 }
 
-static ULO cpuDis71(ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis71(uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO absadr = memoryReadLong(pcp);
+  uint32_t absadr = memoryReadLong(pcp);
 
   cpuDisLongAppend(absadr, sdata);
   sprintf(cpuDisEoS(soperands), "$%.8X", absadr);
   return pcp + 4;
 }
 
-static ULO cpuDis72(ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis72(uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO disp = memoryReadWord(pcp);
+  uint32_t disp = memoryReadWord(pcp);
 
   cpuDisWordAppend(disp, sdata);
   sprintf(cpuDisEoS(soperands), "$%.4X(PC)", disp);
   return pcp + 2;
 }
 
-static ULO cpuDis73(ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis73(uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO ext = memoryReadWord(pcp);
+  uint32_t ext = memoryReadWord(pcp);
 
   if (cpuGetModelMajor() < 2 || !(ext & 0x0100))
     return cpuDis06Brief(0, pcp + 2, ext, TRUE, sdata, soperands);
@@ -389,9 +388,9 @@ static ULO cpuDis73(ULO pcp, STR *sdata, STR *soperands)
     return cpuDis06Extended(0, pcp + 2, ext, TRUE, sdata, soperands);
 }
 
-static ULO cpuDis74(ULO size, ULO pcp, STR *sdata, STR *soperands)
+static uint32_t cpuDis74(uint32_t size, uint32_t pcp, char *sdata, char *soperands)
 {
-  ULO imm;
+  uint32_t imm;
 
   if (size == 8)
   {
@@ -416,29 +415,29 @@ static ULO cpuDis74(ULO size, ULO pcp, STR *sdata, STR *soperands)
   }
 }
 
-static void cpuDisRegCat(BOOLE is_datareg, ULO regno, STR *soperands)
+static void cpuDisRegCat(BOOLE is_datareg, uint32_t regno, char *soperands)
 {
   size_t i = strlen(soperands);
 
-  soperands[i++] = (STR) ((is_datareg) ? 'D' : 'A');
-  soperands[i++] = (STR) (regno + 0x30);
+  soperands[i++] = (char) ((is_datareg) ? 'D' : 'A');
+  soperands[i++] = (char) (regno + 0x30);
   soperands[i] = '\0';
 }
 
-static void cpuDisIndRegCat(ULO mode, ULO regno, STR *soperands)
+static void cpuDisIndRegCat(uint32_t mode, uint32_t regno, char *soperands)
 {
   size_t i = strlen(soperands);
 
   if (mode == 4) soperands[i++] = '-';
   soperands[i++] = '(';
   soperands[i++] = 'A';
-  soperands[i++] = (STR) (regno + 0x30);
+  soperands[i++] = (char) (regno + 0x30);
   soperands[i++] = ')';
   if (mode == 3) soperands[i++] = '+';
   soperands[i] = '\0';
 }
 
-static ULO cpuDisAdrMode(ULO eamode, ULO earegno, ULO pcp, ULO size, STR *sdata, STR *soperands)
+static uint32_t cpuDisAdrMode(uint32_t eamode, uint32_t earegno, uint32_t pcp, uint32_t size, char *sdata, char *soperands)
 {
   switch (eamode)
   {
@@ -465,21 +464,21 @@ static ULO cpuDisAdrMode(ULO eamode, ULO earegno, ULO pcp, ULO size, STR *sdata,
 
 /* Common disassembly for BCHG, BCLR, BSET, BTST */
 
-static ULO cpu_dis_btX_trans[4] = {3, 0, 1, 2};
-static STR *cpu_dis_bnr[4] = {"CHG","CLR","SET","TST"};
+static uint32_t cpu_dis_btX_trans[4] = {3, 0, 1, 2};
+static char *cpu_dis_bnr[4] = {"CHG","CLR","SET","TST"};
 
-static ULO cpuDisBtX(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisBtX(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   BOOLE is_reg = cpuDisGetBit(opc, 8);
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO bitreg = cpuDisGetDestinationRegister(opc);
-  STR sizech = (eamode == 0) ? 'L' : 'B';
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t bitreg = cpuDisGetDestinationRegister(opc);
+  char sizech = (eamode == 0) ? 'L' : 'B';
 
   sprintf(sinstruction, "B%s.%c", cpu_dis_bnr[cpu_dis_btX_trans[(opc >> 6) & 3]], sizech);
   if (!is_reg)
   {
-    ULO imm = memoryReadWord(prc + 2);
+    uint32_t imm = memoryReadWord(prc + 2);
     cpuDisWordAppend(imm, sdata);
     sprintf(soperands, "#$%.4X,", imm & ((eamode == 0) ? 0x1f : 7));
     prc += 2;
@@ -493,15 +492,15 @@ static ULO cpuDisBtX(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soper
 
 /* Common disassembly for ADD, SUB, CMP, AND, EOR, OR */
 
-static STR *cpu_dis_anr[6] = {"ADD","SUB","CMP","AND","EOR","OR"};
+static char *cpu_dis_anr[6] = {"ADD","SUB","CMP","AND","EOR","OR"};
 
-static ULO cpuDisArith1(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisArith1(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO dreg = cpuDisGetDestinationRegister(opc);
-  ULO o = cpuDisGetBit(opc, 8);
-  ULO size = cpuDisGetSize(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t dreg = cpuDisGetDestinationRegister(opc);
+  uint32_t o = cpuDisGetBit(opc, 8);
+  uint32_t size = cpuDisGetSize(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
 
   sprintf(sinstruction, "%s.%c", cpu_dis_anr[nr], cpuDisSizeChar(size));
   prc = cpuDisAdrMode((o) ? 0 : eamode, (o) ? dreg : eareg, prc + 2, size, sdata, soperands);
@@ -512,12 +511,12 @@ static ULO cpuDisArith1(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction,
 
 /* Common disassembly for ADDA, SUBA, CMPA */
 
-static ULO cpuDisArith2(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisArith2(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO dreg = cpuDisGetDestinationRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size = cpuDisGetSize2(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t dreg = cpuDisGetDestinationRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t size = cpuDisGetSize2(opc);
 
   sprintf(sinstruction, "%sA.%c", cpu_dis_anr[nr], cpuDisSizeChar(size));
   prc = cpuDisAdrMode(eamode, eareg, prc + 2, size, sdata, soperands);
@@ -528,11 +527,11 @@ static ULO cpuDisArith2(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction,
 
 /* Common disassembly for ADDI, SUBI, CMPI, ANDI, EORI, ORI */
 
-static ULO cpuDisArith3(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisArith3(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size = cpuDisGetSize(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t size = cpuDisGetSize(opc);
 
   sprintf(sinstruction, "%sI.%c", cpu_dis_anr[nr], cpuDisSizeChar(size));
   prc = cpuDisAdrMode(11, 4, prc + 2, size, sdata, soperands);
@@ -550,12 +549,12 @@ static ULO cpuDisArith3(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction,
 
 /* Common disassembly for ADDQ, SUBQ */
 
-static ULO cpuDisArith4(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisArith4(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size = cpuDisGetSize(opc);
-  ULO imm = cpuDisGetDestinationRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t size = cpuDisGetSize(opc);
+  uint32_t imm = cpuDisGetDestinationRegister(opc);
   if (imm == 0)
   {
     imm = 8;
@@ -567,13 +566,13 @@ static ULO cpuDisArith4(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction,
 
 /* Common disassembly for ADDX, SUBX, ABCD, SBCD, CMPM */
 
-static STR *cpu_dis_a5nr[5] = {"ADDX","SUBX","ABCD","SBCD","CMPM"};
+static char *cpu_dis_a5nr[5] = {"ADDX","SUBX","ABCD","SBCD","CMPM"};
 
-static ULO cpuDisArith5(ULO prc, UWO opc, ULO nr, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisArith5(uint32_t prc, uint16_t opc, uint32_t nr, char *sinstruction, char *soperands)
 {
-  ULO bit3 = cpuDisGetBit(opc, 3);
-  STR *minus = ((nr == 4) || !bit3) ? "" : "-";
-  STR *plus = ((nr == 4) && !bit3) ? "+" : "";
+  uint32_t bit3 = cpuDisGetBit(opc, 3);
+  char *minus = ((nr == 4) || !bit3) ? "" : "-";
+  char *plus = ((nr == 4) && !bit3) ? "+" : "";
 
   sprintf(sinstruction, "%s.%c", cpu_dis_a5nr[nr], cpuDisSizeChar(cpuDisGetSize(opc)));
   sprintf(soperands,
@@ -591,14 +590,14 @@ static ULO cpuDisArith5(ULO prc, UWO opc, ULO nr, STR *sinstruction, STR *sopera
 
 /* Common disassembly for ASX, LSX, ROX, ROXX */
 
-static STR *cpu_dis_shnr[4] = {"AS", "LS", "RO", "ROX"};
+static char *cpu_dis_shnr[4] = {"AS", "LS", "RO", "ROX"};
 
-static ULO cpuDisShift(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisShift(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size = cpuDisGetSize(opc);
-  STR rl = (STR) ((cpuDisGetBit(opc, 8)) ? 'L' : 'R');
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t size = cpuDisGetSize(opc);
+  char rl = (char) ((cpuDisGetBit(opc, 8)) ? 'L' : 'R');
 
   if (size == 64)
   {
@@ -608,8 +607,8 @@ static ULO cpuDisShift(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, 
   }
   else
   {
-    STR sc = cpuDisSizeChar(size);
-    ULO dreg = cpuDisGetDestinationRegister(opc);
+    char sc = cpuDisSizeChar(size);
+    uint32_t dreg = cpuDisGetDestinationRegister(opc);
     if (!cpuDisGetBit(opc, 5))
     {
       if (dreg == 0)
@@ -631,13 +630,13 @@ static ULO cpuDisShift(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, 
 
 /* Common disassembly for CLR, NEG, NOT, TST, JMP, JSR, PEA, NBCD, NEGX */
 
-static STR *cpu_dis_unanr[10] = {"CLR","NEG","NOT","TST","JMP","JSR","PEA","TAS","NCBD","NEGX"};
+static char *cpu_dis_unanr[10] = {"CLR","NEG","NOT","TST","JMP","JSR","PEA","TAS","NCBD","NEGX"};
 
-static ULO cpuDisUnary(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisUnary(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size = cpuDisGetSize(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t size = cpuDisGetSize(opc);
   if (nr < 4 || nr > 7)
   {
     sprintf(sinstruction, "%s.%c", cpu_dis_unanr[nr], cpuDisSizeChar(size));
@@ -651,9 +650,9 @@ static ULO cpuDisUnary(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, 
 
 /* Common disassembly for NOP, RESET, RTE, RTR, RTS, TRAPV */
 
-static STR *cpu_dis_singnr[6] = {"NOP","RESET","RTE","RTR","RTS","TRAPV"};
+static char *cpu_dis_singnr[6] = {"NOP","RESET","RTE","RTR","RTS","TRAPV"};
 
-static ULO cpuDisSingle(ULO prc, ULO nr, STR *sinstruction)
+static uint32_t cpuDisSingle(uint32_t prc, uint32_t nr, char *sinstruction)
 {
   sprintf(sinstruction, "%s", cpu_dis_singnr[nr]);
   return prc + 2;
@@ -661,13 +660,13 @@ static ULO cpuDisSingle(ULO prc, ULO nr, STR *sinstruction)
 
 /* Common disassembly for CHK, DIVS, DIVU, LEA, MULS, MULU */
 
-static STR *cpu_dis_var1nr[6] = {"CHK","DIVS","DIVU","LEA","MULS","MULU"};
+static char *cpu_dis_var1nr[6] = {"CHK","DIVS","DIVU","LEA","MULS","MULU"};
 
-static ULO cpuDisVarious1(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisVarious1(uint32_t prc, uint16_t opc, uint32_t nr, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO dreg = cpuDisGetDestinationRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t dreg = cpuDisGetDestinationRegister(opc);
 
   sprintf(sinstruction, "%s.%c", cpu_dis_var1nr[nr], (nr == 3) ? 'L' : 'W');
   prc = cpuDisAdrMode(eamode, eareg, prc + 2, 16, sdata, soperands);
@@ -677,72 +676,72 @@ static ULO cpuDisVarious1(ULO prc, UWO opc, ULO nr, STR *sdata, STR *sinstructio
 
 /* Common disassembly for SWAP, UNLK */
 
-static STR *cpu_dis_var2nr[2] = {"SWAP","UNLK"};
+static char *cpu_dis_var2nr[2] = {"SWAP","UNLK"};
 
-static ULO cpuDisVarious2(ULO prc, UWO opc, ULO nr, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisVarious2(uint32_t prc, uint16_t opc, uint32_t nr, char *sinstruction, char *soperands)
 {
-  STR regtype = (STR) ((nr == 0) ? 'D' : 'A');
+  char regtype = (char) ((nr == 0) ? 'D' : 'A');
   sprintf(sinstruction, "%s", cpu_dis_var2nr[nr]);
   sprintf(soperands, "%c%1X", regtype, cpuDisGetSourceRegister(opc));
   return prc + 2;
 }
 
-static ULO cpuDisIllegal(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisIllegal(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "ILLEGAL");
   return prc + 2;
 }
 
-static ULO cpuDisAbcd(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAbcd(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith5(prc, opc, 2, sinstruction, soperands);
 }
 
-static ULO cpuDisAdd(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAdd(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith1(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisAdda(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAdda(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith2(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisAddi(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAddi(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith3(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisAddq(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAddq(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith4(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisAddx(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAddx(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith5(prc, opc, 0, sinstruction, soperands);
 }
 
-static ULO cpuDisAnd(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAnd(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith1(prc, opc, 3, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisAndi(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAndi(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith3(prc, opc, 3, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisAsx(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisAsx(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisShift(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisBcc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisBcc(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO disp2;
-  ULO adr;
-  LON disp = cpuDisGetLowByteSignExtend(opc);
+  uint32_t disp2;
+  uint32_t adr;
+  int32_t disp = cpuDisGetLowByteSignExtend(opc);
 
   sprintf(sinstruction, "B%s.%c", cpu_dis_btab[cpuDisGetBranchType(opc)], (disp == -1) ? 'L' : ((disp == 0) ? 'W' : 'B'));
   if (disp == 0)
@@ -768,110 +767,108 @@ static ULO cpuDisBcc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soper
   return prc + 2;
 }
 
-static ULO cpuDisBt(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisBt(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisBtX(prc, opc, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisChk(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisChk(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious1(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisClr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisClr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 0, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisCmp(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisCmp(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith1(prc, opc, 2, sdata, sinstruction, soperands);
 }  
 
-static ULO cpuDisCmpa(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisCmpa(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith2(prc, opc, 2, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisCmpi(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisCmpi(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith3(prc, opc, 2, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisCmpm(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisCmpm(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith5(prc, opc, 4, sinstruction, soperands);
 }
 
-static ULO cpuDisDBcc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisDBcc(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO offset;
-  ULO adr;
-  ULO bratype = cpuDisGetBranchType(opc);
+  uint32_t bratype = cpuDisGetBranchType(opc);
 
   prc += 2;
-  offset = memoryReadWord(prc);
-  adr = (offset > 32767) ? (prc + offset - 65536) : (prc + offset);
+  uint32_t offset = memoryReadWord(prc);
+  uint32_t adr = (offset > 32767) ? (prc + offset - 65536) : (prc + offset);
   cpuDisWordAppend(offset, sdata);
   sprintf(sinstruction, "DB%s", (bratype == 0) ? "T" : ((bratype == 1) ? "F" : cpu_dis_btab[bratype]));
   sprintf(soperands, "D%1u,$%6.6X", cpuDisGetSourceRegister(opc), adr);
   return prc + 2;
 }
 
-static ULO cpuDisDivs(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisDivs(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious1(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisDivu(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisDivu(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious1(prc, opc, 2, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisEor(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisEor(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith1(prc, opc, 4, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisEori(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisEori(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith3(prc, opc, 4, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisExg(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisExg(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO o = (opc & 0x00f8) >> 3;
+  uint32_t o = (opc & 0x00f8) >> 3;
 
   sprintf(sinstruction, "EXG.L");
   sprintf(soperands, (o == 8) ? "D%d,D%d" : ((o == 9) ? "A%d,A%d" : "A%d,D%d"), cpuDisGetSourceRegister(opc), cpuDisGetDestinationRegister(opc));
   return prc + 2;
 }
 
-static ULO cpuDisExt(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisExt(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "EXT.%c", (cpuDisGetBit(opc, 6) == 0) ? 'W' : 'L');
   sprintf(soperands, "D%u", cpuDisGetSourceRegister(opc));
   return prc + 2;
 }
 
-static ULO cpuDisJmp(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisJmp(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 4, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisJsr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisJsr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 5, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisLea(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisLea(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious1(prc, opc, 3, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisLink(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisLink(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO imm = memoryReadWord(prc + 2);
+  uint32_t imm = memoryReadWord(prc + 2);
 
   cpuDisWordAppend(imm, sdata);
   sprintf(sinstruction, "LINK");
@@ -879,18 +876,18 @@ static ULO cpuDisLink(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return prc + 4;
 }
 
-static ULO cpuDisLsx(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisLsx(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisShift(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisMove(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMove(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO srcreg = cpuDisGetSourceRegister(opc);
-  ULO srcmode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), srcreg);
-  ULO dstreg = cpuDisGetDestinationRegister(opc);
-  ULO dstmode = cpuDisGetEaNo(cpuDisGetDestinationMode(opc), dstreg);
-  ULO size = cpuDisGetSize3(opc);
+  uint32_t srcreg = cpuDisGetSourceRegister(opc);
+  uint32_t srcmode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), srcreg);
+  uint32_t dstreg = cpuDisGetDestinationRegister(opc);
+  uint32_t dstmode = cpuDisGetEaNo(cpuDisGetDestinationMode(opc), dstreg);
+  uint32_t size = cpuDisGetSize3(opc);
 
   sprintf(sinstruction, "MOVE.%c", cpuDisSizeChar(size)); 
   prc = cpuDisAdrMode(srcmode, srcreg, prc + 2, size, sdata, soperands);
@@ -898,9 +895,9 @@ static ULO cpuDisMove(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return cpuDisAdrMode(dstmode, dstreg, prc, size, sdata, soperands);
 }
 
-static ULO cpuDisMoveToCcr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoveToCcr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
 
   sprintf(sinstruction, "MOVE.B"); 
   prc = cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 2, 8, sdata, soperands);
@@ -908,9 +905,9 @@ static ULO cpuDisMoveToCcr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR 
   return prc;
 }
 
-static ULO cpuDisMoveToSr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoveToSr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
 
   sprintf(sinstruction, "MOVE.W"); 
   prc = cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 2, 16, sdata, soperands);
@@ -918,9 +915,9 @@ static ULO cpuDisMoveToSr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *
   return prc;
 }
 
-static ULO cpuDisMoveFromSr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoveFromSr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
 
   sprintf(sinstruction, "MOVE.W");
   sprintf(soperands, "SR,");
@@ -928,19 +925,19 @@ static ULO cpuDisMoveFromSr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR
   return prc;
 }
 
-static ULO cpuDisMoveUsp(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoveUsp(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "MOVE.L");
   sprintf(soperands, (cpuDisGetBit(opc, 3)) ? "USP,A%1d" : "A%1d,USP", cpuDisGetSourceRegister(opc));
   return prc + 2;
 }
 
-static ULO cpuDisMovea(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMovea(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO dreg = cpuDisGetDestinationRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size = cpuDisGetSize3(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t dreg = cpuDisGetDestinationRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t size = cpuDisGetSize3(opc);
 
   sprintf(sinstruction, "MOVEA.%c", cpuDisSizeChar(size));
   prc = cpuDisAdrMode(eamode, eareg, prc + 2, size, sdata, soperands);
@@ -948,20 +945,18 @@ static ULO cpuDisMovea(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   return cpuDisAdrMode(1, dreg, prc, size, sdata, soperands);
 }
 
-static void cpuDisMovemRegmaskStrCat(ULO regmask, STR *s, BOOLE predec)
+static void cpuDisMovemRegmaskStrCat(uint32_t regmask, char *s, BOOLE predec)
 {
-  ULO i, j;
-  STR tmp[2][16];
-  STR *tmpp;
+  char tmp[2][16];
 
-  for (j = 0; j < 2; j++)
+  for (uint32_t j = 0; j < 2; j++)
   {
-    tmpp = tmp[j];
-    for (i = (8*j); i < (8 + (8*j)); i++)
+    char* tmpp = tmp[j];
+    for (uint32_t i = (8 * j); i < (8 + (8*j)); i++)
     {
       if (regmask & (1<<i))
       {
-	*tmpp++ = (STR) (0x30 + ((predec) ? ((7 + 8*j) - i) : (i - j*8)));
+	*tmpp++ = (char) (0x30 + ((predec) ? ((7 + 8*j) - i) : (i - j*8)));
       }
     }
     *tmpp = '\0';
@@ -978,16 +973,14 @@ static void cpuDisMovemRegmaskStrCat(ULO regmask, STR *s, BOOLE predec)
   }
 }
 
-static ULO cpuDisMovem(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMovem(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO size;
-  ULO dir = cpuDisGetBit(opc, 10);
-  ULO regmask;
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t dir = cpuDisGetBit(opc, 10);
 
-  size = (!cpuDisGetBit(opc, 6)) ? 16 : 32;
-  regmask = memoryReadWord(prc + 2);
+  uint32_t size = (!cpuDisGetBit(opc, 6)) ? 16 : 32;
+  uint32_t regmask = memoryReadWord(prc + 2);
   cpuDisWordAppend(regmask, sdata);
   sprintf(sinstruction, "MOVEM.%c", (size == 16) ? 'W' : 'L');
   if (dir == 0 && eamode == 4)
@@ -1011,14 +1004,14 @@ static ULO cpuDisMovem(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   return prc;
 }
 
-static ULO cpuDisMovep(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMovep(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO adrregno = cpuDisGetSourceRegister(opc);
-  ULO dataregno = cpuDisGetDestinationRegister(opc);
-  ULO opmode = cpuDisGetDestinationMode(opc);
-  STR sizech = (opmode & 1) ? 'L' : 'W';
+  uint32_t adrregno = cpuDisGetSourceRegister(opc);
+  uint32_t dataregno = cpuDisGetDestinationRegister(opc);
+  uint32_t opmode = cpuDisGetDestinationMode(opc);
+  char sizech = (opmode & 1) ? 'L' : 'W';
   BOOLE to_mem = (opmode & 2);
-  ULO disp = memoryReadWord(prc + 2);
+  uint32_t disp = memoryReadWord(prc + 2);
 
   cpuDisWordAppend(disp, sdata);
   sprintf(sinstruction, "MOVEP.%c", sizech);
@@ -1033,191 +1026,191 @@ static ULO cpuDisMovep(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   return prc + 4;
 }
 
-static ULO cpuDisMoveq(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoveq(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "MOVEQ.L");
   sprintf(soperands, "#$%8.8X,D%u", cpuDisGetLowByteSignExtend(opc), cpuDisGetDestinationRegister(opc));
   return prc + 2;
 }
 
-static ULO cpuDisMuls(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMuls(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious1(prc, opc, 4, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisMulu(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMulu(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious1(prc, opc, 5, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisNbcd(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisNbcd(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 8, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisNeg(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisNeg(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisNegx(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisNegx(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 9, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisNop(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisNop(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisSingle(prc, 0, sinstruction);
 }
 
-static ULO cpuDisNot(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisNot(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 2, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisOr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisOr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith1(prc, opc, 5, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisOri(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisOri(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith3(prc, opc, 5, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisPea(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisPea(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 6, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisReset(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisReset(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisSingle(prc, 1, sinstruction);
 }
 
-static ULO cpuDisRox(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRox(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisShift(prc, opc, 2, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisRoxx(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRoxx(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisShift(prc, opc, 3, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisRte(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRte(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisSingle(prc, 2, sinstruction);
 }
 
-static ULO cpuDisRtr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRtr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisSingle(prc, 3, sinstruction);
 }
 
-static ULO cpuDisRts(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRts(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisSingle(prc, 4, sinstruction);
 }
 
-static ULO cpuDisSbcd(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSbcd(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith5(prc, opc, 3, sinstruction, soperands);
 }
 
-static ULO cpuDisScc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisScc(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO bratype = cpuDisGetBranchType(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t bratype = cpuDisGetBranchType(opc);
 
   sprintf(sinstruction, "S%s.B", (bratype == 0) ? "T" : ((bratype == 1) ? "F" : cpu_dis_btab[bratype]));
   return cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 2, 8, sdata, soperands);
 }
 
-static ULO cpuDisStop(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisStop(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO imm = memoryReadWord(prc + 2);
+  uint32_t imm = memoryReadWord(prc + 2);
   cpuDisWordAppend(imm, sdata);
   sprintf(sinstruction, "STOP");
   sprintf(soperands, "#$%.4X", imm);
   return prc + 4;
 }
 
-static ULO cpuDisSub(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSub(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith1(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisSuba(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSuba(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith2(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisSubi(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSubi(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith3(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisSubq(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSubq(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith4(prc, opc, 1, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisSubx(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSubx(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisArith5(prc, opc, 1, sinstruction, soperands);
 }
 
-static ULO cpuDisSwap(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisSwap(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious2(prc, opc, 0, sinstruction, soperands);
 }
 
-static ULO cpuDisTas(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisTas(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 7, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisTrap(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisTrap(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "TRAP");
   sprintf(soperands, "#$%1X", opc & 0xf);
   return prc + 2;
 }
 
-static ULO cpuDisTrapv(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisTrapv(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisSingle(prc, 5, sinstruction);
 }
 
-static ULO cpuDisTst(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisTst(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisUnary(prc, opc, 3, sdata, sinstruction, soperands);
 }
 
-static ULO cpuDisUnlk(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisUnlk(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   return cpuDisVarious2(prc, opc, 1, sinstruction, soperands);
 }
 
-static ULO cpuDisBkpt(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisBkpt(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "BKPT");
   sprintf(soperands, "#$%1X", cpuDisGetSourceRegister(opc));
   return prc + 2;
 }
 
-static STR *cpu_dis_bftxt[8] = {"TST ","EXTU","CHG ","EXTS","CLR ","FFO ","SET ","INS "};
+static char *cpu_dis_bftxt[8] = {"TST ","EXTU","CHG ","EXTS","CLR ","FFO ","SET ","INS "};
 
-static ULO cpuDisBf(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisBf(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO n = (opc >> 8) & 7;
-  ULO offset = (ext & 0x7c0) >> 6;
-  ULO width = ext & 0x1f;
-  STR stmp[16];
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t ext = memoryReadWord(prc + 2);
+  uint32_t n = (opc >> 8) & 7;
+  uint32_t offset = (ext & 0x7c0) >> 6;
+  uint32_t width = ext & 0x1f;
+  char stmp[16];
 
   cpuDisWordAppend(ext, sdata);
   sprintf(sinstruction, "BF%s", cpu_dis_bftxt[n]);
@@ -1253,16 +1246,16 @@ static ULO cpuDisBf(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sopera
   return prc;
 }
 
-static ULO cpuDisCas(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisCas(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO size = cpuDisGetSize4(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t ext = memoryReadWord(prc + 2);
+  uint32_t size = cpuDisGetSize4(opc);
 
   cpuDisWordAppend(ext, sdata);
   if ((opc & 0x3f) == 0x3c)
   { /* CAS2 */
-    ULO ext2 = memoryReadWord(prc + 4);
+    uint32_t ext2 = memoryReadWord(prc + 4);
     cpuDisWordAppend(ext2, sdata);
     sprintf(sinstruction, "CAS2.%c", cpuDisSizeChar(size));
 
@@ -1287,9 +1280,9 @@ static ULO cpuDisCas(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soper
   return prc;
 }
 
-static ULO cpuDisChkl(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisChkl(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
 
   sprintf(sinstruction, "CHK.L");
   prc = cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 2, 32, sdata, soperands);
@@ -1297,12 +1290,12 @@ static ULO cpuDisChkl(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return cpuDisAdrMode(0, cpuDisGetDestinationRegister(opc), prc + 2, 32, sdata, soperands);
 }
 
-static ULO cpuDisChk2(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisChk2(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO size = cpuDisGetSize4(opc);
-  STR stmp[16];
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t ext = memoryReadWord(prc + 2);
+  uint32_t size = cpuDisGetSize4(opc);
+  char stmp[16];
 
   cpuDisWordAppend(ext, sdata);
   sprintf(sinstruction, "%s.%c", (ext & 0x800) ? "CHK2" : "CMP2", cpuDisSizeChar(size));
@@ -1312,17 +1305,15 @@ static ULO cpuDisChk2(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return prc;
 }
 
-static ULO cpuDisDivl(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisDivl(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO dq;
-  ULO dr;
-  STR stmp[16];
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t ext = memoryReadWord(prc + 2);
+  char stmp[16];
 
   cpuDisWordAppend(ext, sdata);
-  dq = (ext >> 12) & 7;
-  dr = ext & 7;
+  uint32_t dq = (ext >> 12) & 7;
+  uint32_t dr = ext & 7;
   sprintf(sinstruction, "DIV%c%s.L ", (ext & 0x800) ? 'S' : 'U', (ext & 0x400) ? "L" : "");
   prc = cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 4, 32, sdata, soperands);
   if (ext & 0x400)
@@ -1337,35 +1328,34 @@ static ULO cpuDisDivl(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return prc;
 }
 
-static ULO cpuDisExtb(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisExtb(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "EXTB.L");
   sprintf(soperands, "D%u", cpuDisGetSourceRegister(opc));
   return prc + 2;
 }
 
-static ULO cpuDisLinkl(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisLinkl(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO disp = memoryReadLong(prc + 2);
+  uint32_t disp = memoryReadLong(prc + 2);
   cpuDisLongAppend(disp, sdata);
   sprintf(sinstruction, "LINK.L");
   sprintf(soperands, "A%u, #$%.8X", cpuDisGetSourceRegister(opc), disp);
   return prc + 6;
 }
 
-static ULO cpuDisMoveFromCcr(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoveFromCcr(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
   sprintf(sinstruction, "MOVE.W");
   sprintf(soperands, "CCR,");
   return cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 2, 16, sdata, soperands);
 }
 
-static ULO cpuDisMovec(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMovec(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO creg;
-  ULO extw = memoryReadWord(prc + 2);
-  STR stmp[16];
+  uint32_t extw = memoryReadWord(prc + 2);
+  char stmp[16];
 
   cpuDisWordAppend(extw, sdata);
   sprintf(sinstruction, "MOVEC.L");
@@ -1374,7 +1364,7 @@ static ULO cpuDisMovec(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
     sprintf(stmp, "%s%u,", (extw & 0x8000) ? "A" : "D", (extw>>12) & 7); 
     strcat(soperands, stmp);
   }
-  creg = extw & 0xfff;
+  uint32_t creg = extw & 0xfff;
   if (cpuGetModelMajor() == 1 && ((creg != 0) && (creg != 1) && (creg != 0x800) &&
     (creg != 0x801))) creg = 0xfff;
   switch (creg)
@@ -1394,7 +1384,7 @@ static ULO cpuDisMovec(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   case 0x002:    /* CACR, Cache control register XX2346 */
     strcat(soperands, "CACR");
     break;
-  case 0x802:    /* CAAR, Cache address register XX2346 */
+  case 0x802:    /* CAAR, Cache adress register XX2346 */
     strcat(soperands, "CAAR");
     break;
   case 0x803:    /* MSP, Master stack pointer XX234X */
@@ -1415,12 +1405,12 @@ static ULO cpuDisMovec(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   return prc + 4;
 }
 
-static ULO cpuDisMoves(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMoves(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO size = cpuDisGetSize(opc);
-  STR stmp[16];
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t ext = memoryReadWord(prc + 2);
+  uint32_t size = cpuDisGetSize(opc);
+  char stmp[16];
 
   cpuDisWordAppend(ext, sdata);
   sprintf(sinstruction, "MOVES.%c", cpuDisSizeChar(size));
@@ -1438,16 +1428,14 @@ static ULO cpuDisMoves(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sop
   return prc;
 }
 
-static ULO cpuDisMull(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisMull(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO dl;
-  ULO dh;
-  STR stmp[16];
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t ext = memoryReadWord(prc + 2);
+  char stmp[16];
 
-  dl = (ext>>12) & 7;
-  dh = ext & 7;
+  uint32_t dl = (ext >> 12) & 7;
+  uint32_t dh = ext & 7;
   cpuDisWordAppend(ext, sdata);
   sprintf(sinstruction, "MUL%c.L", (ext & 0x800) ? 'S' : 'U');
   prc = cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 4, 32, sdata, soperands);
@@ -1463,13 +1451,13 @@ static ULO cpuDisMull(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return prc;
 }
 
-static ULO cpuDisPack(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisPack(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO sreg = cpuDisGetSourceRegister(opc);
-  ULO dreg = cpuDisGetDestinationRegister(opc);
-  ULO mode = (opc & 8)>>1;
-  ULO adjw = memoryReadWord(prc + 2);
-  STR tmp[16];
+  uint32_t sreg = cpuDisGetSourceRegister(opc);
+  uint32_t dreg = cpuDisGetDestinationRegister(opc);
+  uint32_t mode = (opc & 8)>>1;
+  uint32_t adjw = memoryReadWord(prc + 2);
+  char tmp[16];
 
   cpuDisWordAppend(adjw, sdata);
   sprintf(sinstruction, "PACK");
@@ -1483,9 +1471,9 @@ static ULO cpuDisPack(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
 
 /* Disassemble for 030 */
 
-static void cpuDisPflush030PrintFc(STR *soperands, ULO fcode)
+static void cpuDisPflush030PrintFc(char *soperands, uint32_t fcode)
 {
-  STR stmp[16];
+  char stmp[16];
   if (fcode == 0) strcat(soperands, "SFC,");
   else if (fcode == 1) strcat(soperands, "DFC,");
   else if ((fcode & 0x18) == 8)
@@ -1500,16 +1488,16 @@ static void cpuDisPflush030PrintFc(STR *soperands, ULO fcode)
   }
 }
 
-static ULO cpuDisPflush030(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisPflush030(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
-  ULO ext = memoryReadWord(prc + 2);
-  ULO mode = (ext >> 10) & 7;
-  ULO fcode = ext & 0x1f;
-  ULO mask = ext & 0x1f;
-  ULO op = (ext >> 13) & 7;
-  STR stmp[16]; 
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t eamode = cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg);
+  uint32_t ext = memoryReadWord(prc + 2);
+  uint32_t mode = (ext >> 10) & 7;
+  uint32_t fcode = ext & 0x1f;
+  uint32_t mask = ext & 0x1f;
+  uint32_t op = (ext >> 13) & 7;
+  char stmp[16]; 
 
   cpuDisWordAppend(ext, sdata);
   if (op == 0x1)
@@ -1556,10 +1544,10 @@ static ULO cpuDisPflush030(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR 
 
 /* PFLUSH disassemble for 68040 */
 
-static ULO cpuDisPflush040(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisPflush040(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO reg = cpuDisGetSourceRegister(opc);
-  ULO opmode = (opc & 0x18)>>3;
+  uint32_t reg = cpuDisGetSourceRegister(opc);
+  uint32_t opmode = (opc & 0x18)>>3;
 
   switch (opmode)
   {
@@ -1583,30 +1571,30 @@ static ULO cpuDisPflush040(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR 
 
 /* PTEST disassemble on 68040 */
 
-static ULO cpuDisPtest040(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisPtest040(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO reg = cpuDisGetSourceRegister(opc);
-  ULO rw = cpuDisGetBit(opc, 5);
+  uint32_t reg = cpuDisGetSourceRegister(opc);
+  uint32_t rw = cpuDisGetBit(opc, 5);
 
   sprintf(sinstruction, "PTEST%c", (rw) ? 'R' : 'W');
   sprintf(soperands, "(A%u)", reg);
   return prc + 2;
 }
 
-static ULO cpuDisRtd(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRtd(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO extw = memoryReadWord(prc + 2);
+  uint32_t extw = memoryReadWord(prc + 2);
   cpuDisWordAppend(extw, sdata);
   sprintf(sinstruction, "RTD");
   sprintf(soperands, "#%.4X", extw);
   return prc + 4;
 }
 
-static ULO cpuDisTrapcc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisTrapcc(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO bratype = cpuDisGetBranchType(opc);
-  ULO ext = 0;
-  ULO op = (opc & 7) - 2;
+  uint32_t bratype = cpuDisGetBranchType(opc);
+  uint32_t ext = 0;
+  uint32_t op = (opc & 7) - 2;
 
   sprintf(sinstruction, "TRAP%s", (bratype == 0) ? "T" : ((bratype == 1) ? "F" : cpu_dis_btab[bratype]));
   if (op == 0)
@@ -1628,13 +1616,13 @@ static ULO cpuDisTrapcc(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *so
   return prc + 2;
 }
 
-static ULO cpuDisUnpk(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisUnpk(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO sreg = cpuDisGetSourceRegister(opc);
-  ULO dreg = cpuDisGetDestinationRegister(opc);
-  ULO mode = (opc & 8)>>1;
-  ULO adjw = memoryReadWord(prc + 2);
-  STR tmp[16];
+  uint32_t sreg = cpuDisGetSourceRegister(opc);
+  uint32_t dreg = cpuDisGetDestinationRegister(opc);
+  uint32_t mode = (opc & 8)>>1;
+  uint32_t adjw = memoryReadWord(prc + 2);
+  char tmp[16];
 
   cpuDisWordAppend(adjw, sdata);
   sprintf(sinstruction, "UNPK");
@@ -1646,16 +1634,16 @@ static ULO cpuDisUnpk(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *sope
   return prc;
 }
 
-static ULO cpuDisCallm(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisCallm(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
-  ULO eareg = cpuDisGetSourceRegister(opc);
-  ULO ext = memoryReadWord(prc + 2);
+  uint32_t eareg = cpuDisGetSourceRegister(opc);
+  uint32_t ext = memoryReadWord(prc + 2);
   cpuDisWordAppend(ext, sdata);
   sprintf(soperands, "#%u,", ext & 0xff);
   return cpuDisAdrMode(cpuDisGetEaNo(cpuDisGetSourceMode(opc), eareg), eareg, prc + 4, 16, sdata, soperands);
 }
 
-static ULO cpuDisRtm(ULO prc, UWO opc, STR *sdata, STR *sinstruction, STR *soperands)
+static uint32_t cpuDisRtm(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands)
 {
   sprintf(sinstruction, "RTM");
   sprintf(soperands, "%c%u", (opc & 8) ? 'A':'D', cpuDisGetSourceRegister(opc));
@@ -1756,9 +1744,9 @@ static cpuDisFunc cpu_dis_index[100] =
   cpuDisUnpk	  // 89
 };
 
-ULO cpuDisOpcode(ULO disasm_pc, STR *saddress, STR *sdata, STR *sinstruction, STR *soperands)
+uint32_t cpuDisOpcode(uint32_t disasm_pc, char *saddress, char *sdata, char *sinstruction, char *soperands)
 {
-  UWO opcode = (UWO) memoryReadWord(disasm_pc);
+  uint16_t opcode = (uint16_t) memoryReadWord(disasm_pc);
   sprintf(saddress, "$%.8X", disasm_pc);
   sprintf(sdata, "%.4X", opcode);
   return cpu_dis_index[cpu_dis_func_tab[opcode]](disasm_pc, opcode, sdata, sinstruction, soperands);

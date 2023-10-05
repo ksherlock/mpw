@@ -56,7 +56,7 @@
 
 
 // yuck.  TST.W d0
-extern "C" void cpuSetFlagsNZ00NewW(UWO res);
+extern "C" void cpuSetFlagsNZ00NewW(uint16_t res);
 
 
 

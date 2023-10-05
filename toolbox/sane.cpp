@@ -736,7 +736,7 @@ namespace fp = floating_point;
 		return 0;
 	}
 
-	extern "C" void cpuSetFlagsAbs(UWO f);
+	extern "C" void cpuSetFlagsAbs(uint16_t f);
 	uint16_t fp68k(uint16_t trap)
 	{
 		uint16_t op;

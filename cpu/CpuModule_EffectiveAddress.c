@@ -1,4 +1,3 @@
-/* @(#) $Id: CpuModule_EffectiveAddress.c,v 1.3 2012-07-15 22:20:35 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* CPU 68k effective address calculation functions                         */
@@ -30,22 +29,22 @@
 #include "CpuModule_Internal.h"
 
 /* Calculates EA for (Ax). */
-ULO cpuEA02(ULO regno)
+uint32_t cpuEA02(uint32_t regno)
 {
   return cpuGetAReg(regno);
 }
 
 /* Calculates EA for (Ax)+ */
-ULO cpuEA03(ULO regno, ULO size)
+uint32_t cpuEA03(uint32_t regno, uint32_t size)
 {
-  ULO tmp = cpuGetAReg(regno);
+  uint32_t tmp = cpuGetAReg(regno);
   if (regno == 7 && size == 1) size++;
   cpuSetAReg(regno, tmp + size);
   return tmp;
 }
 
 /* Calculates EA for -(Ax) */
-ULO cpuEA04(ULO regno, ULO size)
+uint32_t cpuEA04(uint32_t regno, uint32_t size)
 {
   if (regno == 7 && size == 1) size++;
   cpuSetAReg(regno, cpuGetAReg(regno) - size);
@@ -53,20 +52,20 @@ ULO cpuEA04(ULO regno, ULO size)
 }
 
 /* Calculates EA for disp16(Ax) */
-ULO cpuEA05(ULO regno)
+uint32_t cpuEA05(uint32_t regno)
 {
   return cpuGetAReg(regno) + cpuGetNextWordSignExt();
 }
 
 /* Calculates EA for disp8(Ax,Ri.size) with 68020 extended modes. */
-static ULO cpuEA06Ext(UWO ext, ULO base_reg_value, ULO index_value)
+static uint32_t cpuEA06Ext(uint16_t ext, uint32_t base_reg_value, uint32_t index_value)
 {
-  ULO base_displacement;
-  ULO outer_displacement;
+  uint32_t base_displacement;
+  uint32_t outer_displacement;
   BOOLE index_register_suppressed = (ext & 0x0040);
   BOOLE base_register_suppressed = (ext & 0x0080);
-  ULO base_displacement_size = (ext >> 4) & 3;
-  ULO memory_indirect_action = (ext & 7);
+  uint32_t base_displacement_size = (ext >> 4) & 3;
+  uint32_t memory_indirect_action = (ext & 7);
 
   if (memory_indirect_action == 4 
       || (memory_indirect_action > 4 && index_register_suppressed))
@@ -126,14 +125,14 @@ static ULO cpuEA06Ext(UWO ext, ULO base_reg_value, ULO index_value)
 }
 
 /* Calculates EA for disp8(Ax,Ri.size), calls cpuEA06Ext() for 68020 extended modes. */
-ULO cpuEA06(ULO regno)
+uint32_t cpuEA06(uint32_t regno)
 {
-  ULO reg_value = cpuGetAReg(regno);
-  UWO ext = cpuGetNextWord();
-  ULO index_value = cpuGetReg(ext >> 15, (ext >> 12) & 7);
+  uint32_t reg_value = cpuGetAReg(regno);
+  uint16_t ext = cpuGetNextWord();
+  uint32_t index_value = cpuGetReg(ext >> 15, (ext >> 12) & 7);
   if (!(ext & 0x0800))
   {
-    index_value = cpuSignExtWordToLong((UWO)index_value);
+    index_value = cpuSignExtWordToLong((uint16_t)index_value);
   }
   if (cpuGetModelMajor() >= 2)
   {
@@ -143,17 +142,17 @@ ULO cpuEA06(ULO regno)
       return cpuEA06Ext(ext, reg_value, index_value);
     }
   }
-  return reg_value + index_value + cpuSignExtByteToLong((UBY)ext);
+  return reg_value + index_value + cpuSignExtByteToLong((uint8_t)ext);
 }
 
 /* Calculates EA for xxxx.W */
-ULO cpuEA70(void)
+uint32_t cpuEA70()
 {
   return cpuGetNextWordSignExt();
 }
 
 /* Calculates EA for xxxxxxxx.L */
-ULO cpuEA71(void)
+uint32_t cpuEA71()
 {
   return cpuGetNextLong();
 }
@@ -162,9 +161,9 @@ ULO cpuEA71(void)
 /// Calculates EA for disp16(PC)
 /// </summary>
 /// <returns>Address</returns>
-ULO cpuEA72(void)
+uint32_t cpuEA72()
 {
-  ULO pc_tmp = cpuGetPC();
+  uint32_t pc_tmp = cpuGetPC();
   return pc_tmp + cpuGetNextWordSignExt();
 }
 
@@ -172,14 +171,14 @@ ULO cpuEA72(void)
 /// Calculates EA for disp8(PC,Ri.size). Calls cpuEA06Ext() to calculate extended 68020 modes.
 /// </summary>
 /// <returns>Address</returns>
-ULO cpuEA73(void)
+uint32_t cpuEA73()
 {
-  ULO reg_value = cpuGetPC();
-  UWO ext = cpuGetNextWord();
-  ULO index_value = cpuGetReg(ext >> 15, (ext >> 12) & 0x7);
+  uint32_t reg_value = cpuGetPC();
+  uint16_t ext = cpuGetNextWord();
+  uint32_t index_value = cpuGetReg(ext >> 15, (ext >> 12) & 0x7);
   if (!(ext & 0x0800))
   {
-    index_value = cpuSignExtWordToLong((UWO)index_value);
+    index_value = cpuSignExtWordToLong((uint16_t)index_value);
   }
   if (cpuGetModelMajor() >= 2)
   {
@@ -189,5 +188,5 @@ ULO cpuEA73(void)
       return cpuEA06Ext(ext, reg_value, index_value);
     }
   }
-  return reg_value + index_value + cpuSignExtByteToLong((UBY)ext);
+  return reg_value + index_value + cpuSignExtByteToLong((uint8_t)ext);
 }

@@ -1,14 +1,10 @@
-#ifndef DEFS_H
-#define DEFS_H
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* Maximum values for memory, don't change */
 
@@ -17,27 +13,19 @@ extern "C" {
 #define BOGOMEM 0x1c0000
 #define KICKMEM 0x080000
 
-/* Fellow types to ensure correct sizes */
-
-typedef uint8_t UBY;
-typedef uint16_t UWO;
-typedef uint32_t ULO;
-typedef uint64_t ULL;
-typedef int8_t BYT;
-typedef int16_t WOR;
-typedef int32_t LON;
-typedef int64_t LLO;
 typedef int BOOLE;
+
 #define FALSE 0
 #define TRUE  1
-typedef char STR;
 
 /*
 #ifndef X64
-#define PTR_TO_INT(i) ((ULO)i)
+#define PTR_TO_INT(i) ((uint32_t)i)
+#define PTR_TO_INT_MASK_TYPE(i) ((uint32_t)i)
 #endif
 #ifdef X64
-#define PTR_TO_INT(i) ((ULL)i)
+#define PTR_TO_INT(i) ((uint64_t)i)
+#define PTR_TO_INT_MASK_TYPE(i) ((uint64_t)i)
 #endif
 */
 
@@ -49,17 +37,17 @@ typedef char STR;
 /* The decode routines have this type */
 /*------------------------------------*/
 
-typedef void (*decoderoutinetype)(ULO,ULO);
+typedef void (*decoderoutinetype)(uint32_t, uint32_t);
 
-extern UBY configromname[];
+extern uint8_t configromname[];
 
 typedef union {
-          ULO *lptr;
-          UWO *wptr;
-          UBY *bptr;
-          ULO lval;
-          UWO wval[2];
-          UBY bval[4];
+          uint32_t *lptr;
+          uint16_t *wptr;
+          uint8_t *bptr;
+          uint32_t lval;
+          uint16_t wval[2];
+          uint8_t bval[4];
           } ptunion;
 
 typedef void (*planar2chunkyroutine)(void);
@@ -69,13 +57,3 @@ typedef void (*sound_before_emu_routine)(void);
 typedef void (*sound_after_emu_routine)(void);
 
 typedef void (*buseventfunc)(void);
-
-#define FELLOWVERSION        "WinFellow alpha v0.5.0 build 0 (CVS)"
-#define FELLOWLONGVERSION    "WinFellow Amiga Emulator alpha v0.5.0 - CVS" 
-#define FELLOWNUMERICVERSION "0.5.0.0"
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

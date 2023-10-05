@@ -1,41 +1,50 @@
-#ifndef FMEM_H
-#define FMEM_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// new functions
-
+// MPW
 extern void memorySetMemory(uint8_t *memory, uint32_t size);
 extern void memorySetGlobalLog(uint32_t globalLog);
 extern uint8_t *memoryPointer(uint32_t address);
 
+
+/* Access for chipset emulation that already have validated addresses */
+
+#define chipmemReadByte(address) (memory_chip[address])
+#define chipmemReadWord(address) ((((uint16_t) memory_chip[address]) << 8) | ((uint16_t) memory_chip[address + 1]))
+#define chipmemWriteWord(data, address) \
+  memory_chip[address] = (uint8_t) (data >> 8); \
+  memory_chip[address + 1] = (uint8_t) data
+
 /* Memory access functions */
 
-extern UBY memoryReadByte(ULO address);
-extern UWO memoryReadWord(ULO address);
-extern ULO memoryReadLong(ULO address);
-extern uint64_t memoryReadLongLong(ULO address);
-extern void memoryWriteByte(UBY data, ULO address);
-extern void memoryWriteWord(UWO data, ULO address);
-extern void memoryWriteLong(ULO data, ULO address);
-extern void memoryWriteLongLong(uint64_t data, ULO address);
+extern uint8_t memoryReadByte(uint32_t address);
+extern uint16_t memoryReadWord(uint32_t address);
+extern uint32_t memoryReadLong(uint32_t address);
+extern uint64_t memoryReadLongLong(uint32_t address);
+extern void memoryWriteByte(uint8_t data, uint32_t address);
+extern void memoryWriteWord(uint16_t data, uint32_t address);
+extern void memoryWriteLong(uint32_t data, uint32_t address);
+extern void memoryWriteLongLong(uint64_t data, uint32_t address);
 
-extern UWO memoryChipReadWord(ULO address);
-extern void memoryChipWriteWord(UWO data, ULO address);
+extern uint16_t memoryChipReadWord(uint32_t address);
+extern void memoryChipWriteWord(uint16_t data, uint32_t address);
 
 #define memoryReadByteFromPointer(address) (address[0])
 #define memoryReadWordFromPointer(address) ((address[0] << 8) | address[1])
 #define memoryReadLongFromPointer(address) ((address[0] << 24) | (address[1] << 16) | (address[2] << 8) | address[3])
 
+extern void memoryWriteLongToPointer(uint32_t data, uint8_t *address);
+
 /* IO Bank functions */
 
-typedef UWO (*memoryIoReadFunc)(ULO address);
-typedef void (*memoryIoWriteFunc)(UWO data, ULO address);
+typedef uint16_t (*memoryIoReadFunc)(uint32_t address);
+typedef void (*memoryIoWriteFunc)(uint16_t data, uint32_t address);
 
-extern void memorySetIoReadStub(ULO index, memoryIoReadFunc ioreadfunction);
-extern void memorySetIoWriteStub(ULO index, memoryIoWriteFunc iowritefunction);
+extern void memorySetIoReadStub(uint32_t index, memoryIoReadFunc ioreadfunction);
+extern void memorySetIoWriteStub(uint32_t index, memoryIoWriteFunc iowritefunction);
 
 /* For the copper */
 extern memoryIoWriteFunc memory_iobank_write[257];
@@ -43,23 +52,24 @@ extern memoryIoWriteFunc memory_iobank_write[257];
 /* Expansion card functions */
 
 typedef void (*memoryEmemCardInitFunc)(void);
-typedef void (*memoryEmemCardMapFunc)(ULO);
+typedef void (*memoryEmemCardMapFunc)(uint32_t);
 
 extern void memoryEmemClear(void);
 extern void memoryEmemCardAdd(memoryEmemCardInitFunc cardinit,
 			      memoryEmemCardMapFunc cardmap);
-extern void memoryEmemSet(ULO index, ULO data);
-extern void memoryEmemMirror(ULO emem_offset, UBY *src, ULO size);
+extern void memoryEmemSet(uint32_t index, uint32_t data);
+extern void memoryEmemMirror(uint32_t emem_offset, uint8_t *src, uint32_t size);
 
 /* Device memory functions. fhfile is using these. */
 
-extern void memoryDmemSetByte(UBY data);
-extern void memoryDmemSetWord(UWO data);
-extern void memoryDmemSetLong(ULO data);
-extern void memoryDmemSetLongNoCounter(ULO data, ULO offset);
-extern void memoryDmemSetString(STR *data);
-extern void memoryDmemSetCounter(ULO val);
-extern ULO memoryDmemGetCounter(void);
+extern void memoryDmemSetByte(uint8_t data);
+extern void memoryDmemSetWord(uint16_t data);
+extern void memoryDmemSetLong(uint32_t data);
+extern void memoryDmemSetLongNoCounter(uint32_t data, uint32_t offset);
+extern void memoryDmemSetString(const char *data);
+extern void memoryDmemSetCounter(uint32_t val);
+extern uint32_t memoryDmemGetCounter(void);
+extern uint32_t memoryDmemGetCounterWithoutOffset(void);
 extern void memoryDmemClear(void);
 
 /* Module management functions */
@@ -76,12 +86,12 @@ extern void memoryShutdown(void);
 
 /* Memory bank functions */
 
-typedef UBY (*memoryReadByteFunc)(ULO address);
-typedef UWO (*memoryReadWordFunc)(ULO address);
-typedef ULO (*memoryReadLongFunc)(ULO address);
-typedef void (*memoryWriteByteFunc)(UBY data, ULO address);
-typedef void (*memoryWriteWordFunc)(UWO data, ULO address);
-typedef void (*memoryWriteLongFunc)(ULO data, ULO address);
+typedef uint8_t (*memoryReadByteFunc)(uint32_t address);
+typedef uint16_t (*memoryReadWordFunc)(uint32_t address);
+typedef uint32_t (*memoryReadLongFunc)(uint32_t address);
+typedef void (*memoryWriteByteFunc)(uint8_t data, uint32_t address);
+typedef void (*memoryWriteWordFunc)(uint16_t data, uint32_t address);
+typedef void (*memoryWriteLongFunc)(uint32_t data, uint32_t address);
 
 extern memoryReadByteFunc memory_bank_readbyte[65536];
 extern memoryReadWordFunc memory_bank_readword[65536];
@@ -90,8 +100,8 @@ extern memoryWriteByteFunc memory_bank_writebyte[65536];
 extern memoryWriteWordFunc memory_bank_writeword[65536];
 extern memoryWriteLongFunc memory_bank_writelong[65536];
 
-extern UBY *memory_bank_pointer[65536];
-extern UBY *memory_bank_datapointer[65536];
+extern uint8_t *memory_bank_pointer[65536];
+extern uint8_t *memory_bank_datapointer[65536];
 
 extern void memoryBankSet(memoryReadByteFunc rb,
 			  memoryReadWordFunc rw,
@@ -99,39 +109,43 @@ extern void memoryBankSet(memoryReadByteFunc rb,
 			  memoryWriteByteFunc wb,
 			  memoryWriteWordFunc ww,
 			  memoryWriteLongFunc wl,
-			  UBY *basep,
-			  ULO bank, 
-			  ULO basebank,
+			  uint8_t *basep,
+			  uint32_t bank, 
+			  uint32_t basebank,
 			  BOOLE pointer_can_write);
-extern UBY *memoryAddressToPtr(ULO address);
-extern void memoryChipMap(BOOLE overlay);
+extern uint8_t *memoryAddressToPtr(uint32_t address);
+extern void memoryChipMap(bool overlay);
 
 /* Memory configuration properties */
 
-extern BOOLE memorySetChipSize(ULO chipsize);
-extern ULO memoryGetChipSize(void);
-extern BOOLE memorySetFastSize(ULO fastsize);
-extern ULO memoryGetFastSize(void);
-extern void memorySetFastAllocatedSize(ULO fastallocatedsize);
-extern ULO memoryGetFastAllocatedSize(void);
-extern BOOLE memorySetSlowSize(ULO bogosize);
-extern ULO memoryGetSlowSize(void);
-extern BOOLE memorySetUseAutoconfig(BOOLE useautoconfig);
-extern BOOLE memoryGetUseAutoconfig(void);
+extern BOOLE memorySetChipSize(uint32_t chipsize);
+extern uint32_t memoryGetChipSize(void);
+extern BOOLE memorySetFastSize(uint32_t fastsize);
+extern uint32_t memoryGetFastSize(void);
+extern void memorySetFastAllocatedSize(uint32_t fastallocatedsize);
+extern uint32_t memoryGetFastAllocatedSize(void);
+extern BOOLE memorySetSlowSize(uint32_t bogosize);
+extern uint32_t memoryGetSlowSize(void);
+extern bool memorySetUseAutoconfig(bool useautoconfig);
+extern bool memoryGetUseAutoconfig(void);
 extern BOOLE memorySetAddress32Bit(BOOLE address32bit);
 extern BOOLE memoryGetAddress32Bit(void);
-extern BOOLE memorySetKickImage(STR *kickimage);
-extern STR *memoryGetKickImage(void);
-extern void memorySetKey(STR *key);
-extern STR *memoryGetKey(void);
+extern BOOLE memorySetKickImage(char *kickimage);
+extern BOOLE memorySetKickImageExtended(char *kickimageext);
+extern char *memoryGetKickImage(void);
+extern void memorySetKey(char *key);
+extern char *memoryGetKey(void);
 extern BOOLE memoryGetKickImageOK(void);
 
 /* Derived from memory configuration */
 
-extern ULO memoryGetKickImageBaseBank(void);
-extern ULO memoryGetKickImageVersion(void);
-extern ULO memoryInitialPC(void);
-extern ULO memoryInitialSP(void);
+extern uint32_t memoryGetKickImageBaseBank(void);
+extern uint32_t memoryGetKickImageVersion(void);
+extern uint32_t memoryInitialPC(void);
+extern uint32_t memoryInitialSP(void);
+
+/* Kickstart decryption */
+extern int memoryKickLoadAF2(char *filename, FILE *F, uint8_t *memory_kick, const bool);
 
 /* Kickstart load error handling */
 
@@ -148,21 +162,19 @@ extern ULO memoryInitialSP(void);
 
 /* Global variables */
 
-extern UBY memory_chip[];
-extern UBY *memory_fast;
-extern UBY memory_slow[];
-extern UBY memory_kick[];
-extern ULO memory_chipsize;
-extern UBY memory_emem[];
+extern uint8_t memory_chip[];
+extern uint8_t *memory_fast;
+extern uint8_t memory_slow[];
+extern uint8_t memory_kick[];
+extern uint32_t memory_chipsize;
+extern uint8_t memory_emem[];
 
-extern ULO intenar,intena,intreq;
-extern ULO potgor;
+extern uint32_t potgor;
 
-extern ULO memory_fault_address;
+extern uint32_t memory_fault_address;
 extern BOOLE memory_fault_read;
+
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

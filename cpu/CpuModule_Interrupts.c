@@ -1,4 +1,3 @@
-/* @(#) $Id: CpuModule_Interrupts.c,v 1.5 2012-08-12 16:51:02 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* 68000 interrupt handling                                                */
@@ -32,7 +31,7 @@ cpuCheckPendingInterruptsFunc cpu_check_pending_interrupts_func;
 void cpuCheckPendingInterrupts(void)
 {
   if (cpuGetRaiseInterrupt()) return;
-  if (cpu_check_pending_interrupts_func) cpu_check_pending_interrupts_func();
+  cpu_check_pending_interrupts_func();
 }
 
 void cpuSetCheckPendingInterruptsFunc(cpuCheckPendingInterruptsFunc func)
@@ -40,9 +39,9 @@ void cpuSetCheckPendingInterruptsFunc(cpuCheckPendingInterruptsFunc func)
   cpu_check_pending_interrupts_func = func;
 }
 
-ULO cpuActivateSSP(void)
+uint32_t cpuActivateSSP(void)
 {
-  ULO currentSP = cpuGetAReg(7);
+  uint32_t currentSP = cpuGetAReg(7);
 
   // check supervisor bit number (bit 13) within the system byte of the status register
   if (!cpuGetFlagSupervisor())
@@ -66,7 +65,7 @@ ULO cpuActivateSSP(void)
 // Retrns TRUE if the CPU is in the stopped state,
 // this allows our scheduling queue to start
 // scheduling CPU events again.
-BOOLE cpuSetIrqLevel(ULO new_interrupt_level)
+BOOLE cpuSetIrqLevel(uint32_t new_interrupt_level)
 {
   cpuSetRaiseInterrupt(TRUE);
   cpuSetRaiseInterruptLevel(new_interrupt_level);
@@ -83,10 +82,10 @@ BOOLE cpuSetIrqLevel(ULO new_interrupt_level)
   Transfers control to an interrupt routine
   ============================================================*/
 
-void cpuSetUpInterrupt(ULO new_interrupt_level)
+void cpuSetUpInterrupt(uint32_t new_interrupt_level)
 {
-  UWO vector_offset = (UWO) (0x60 + new_interrupt_level*4);
-  ULO vector_address = memoryReadLong(cpuGetVbr() + vector_offset);
+  uint16_t vector_offset = (uint16_t) (0x60 + new_interrupt_level*4);
+  uint32_t vector_address = memoryReadLong(cpuGetVbr() + vector_offset);
 
   cpuActivateSSP(); // Switch to using ssp or msp. Loads a7 and preserves usp if we came from user-mode.
 
@@ -94,7 +93,7 @@ void cpuSetUpInterrupt(ULO new_interrupt_level)
 
   cpuSetSR(cpuGetSR() & 0x38ff);  // Clear interrupt level
   cpuSetSR(cpuGetSR() | 0x2000);  // Set supervisor mode
-  cpuSetSR(cpuGetSR() | (UWO)(new_interrupt_level << 8)); // Set interrupt level
+  cpuSetSR(cpuGetSR() | (uint16_t)(new_interrupt_level << 8)); // Set interrupt level
 
 #ifdef CPU_INSTRUCTION_LOGGING
   cpuCallInterruptLoggingFunc(new_interrupt_level, vector_address);
@@ -104,7 +103,7 @@ void cpuSetUpInterrupt(ULO new_interrupt_level)
   {
     if (cpuGetFlagMaster())
     { // If the cpu was in master mode, preserve msp, and switch to using ssp (isp) in a7.
-      ULO oldA7 = cpuGetAReg(7);
+      uint32_t oldA7 = cpuGetAReg(7);
       cpuSetMspDirect(oldA7);
       cpuSetAReg(7, cpuGetSspDirect());
       cpuFrame1(vector_offset, cpuGetPC());   // Make the throwaway frame on ssp/isp

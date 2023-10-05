@@ -1,4 +1,3 @@
-/* @(#) $Id: CpuModule_Instructions.c,v 1.12 2013-01-08 18:55:48 peschau Exp $ */
 /*=========================================================================*/
 /* Fellow                                                                  */
 /* CPU 68k functions                                                       */
@@ -29,29 +28,15 @@
 #include "CpuModule_Internal.h"
 
 
-static cpuLineExceptionFunc cpu_a_line_exception_func = NULL;
-static cpuLineExceptionFunc cpu_f_line_exception_func = NULL;
-
-void cpuSetALineExceptionFunc(cpuLineExceptionFunc func)
-{
-  cpu_a_line_exception_func = func;
-}
-
-void cpuSetFLineExceptionFunc(cpuLineExceptionFunc func)
-{
-  cpu_f_line_exception_func = func;
-}
-
 /*============================================================================*/
 /* profiling help functions                                                   */
 /*============================================================================*/
 
-
 #if 0
 #ifndef X64
-static __inline void cpuTscBefore(LLO* a)
+static __inline void cpuTscBefore(int64_t* a)
 {
-  LLO local_a = *a;
+  int64_t local_a = *a;
   __asm 
   {
       push    eax
@@ -68,11 +53,11 @@ static __inline void cpuTscBefore(LLO* a)
   *a = local_a;
 }
 
-static __inline void cpuTscAfter(LLO* a, LLO* b, LON* c)
+static __inline void cpuTscAfter(int64_t* a, int64_t* b, int32_t* c)
 {
-  LLO local_a = *a;
-  LLO local_b = *b;
-  ULO local_c = *c;
+  int64_t local_a = *a;
+  int64_t local_b = *b;
+  uint32_t local_c = *c;
 
   __asm 
   {
@@ -99,7 +84,7 @@ static __inline void cpuTscAfter(LLO* a, LLO* b, LON* c)
 
 /* Maintains the integrity of the super/user state */
 
-void cpuUpdateSr(ULO new_sr)
+void cpuUpdateSr(uint32_t new_sr)
 {
   BOOLE supermode_was_set = cpuGetFlagSupervisor();
   BOOLE master_was_set = (cpuGetModelMajor() >= 2) && cpuGetFlagMaster();
@@ -107,8 +92,8 @@ void cpuUpdateSr(ULO new_sr)
   BOOLE supermode_is_set = !!(new_sr & 0x2000);
   BOOLE master_is_set = (cpuGetModelMajor() >= 2) && !!(new_sr & 0x1000);
 
-  ULO runlevel_old = (cpuGetSR() >> 8) & 7;
-  ULO runlevel_new = (new_sr >> 8) & 7;
+  uint32_t runlevel_old = (cpuGetSR() >> 8) & 7;
+  uint32_t runlevel_new = (new_sr >> 8) & 7;
 
   if (!supermode_was_set)
   {
@@ -136,6 +121,15 @@ void cpuUpdateSr(ULO new_sr)
     cpuSetAReg(7, cpuGetSspDirect());
   }
 
+  if (cpuGetModelMajor() < 2)
+  {
+    new_sr &= 0xa71f;
+  }
+  else
+  {
+    new_sr &= 0xf71f;
+  }
+
   cpuSetSR(new_sr);
 
   if (runlevel_old != runlevel_new)
@@ -146,21 +140,12 @@ void cpuUpdateSr(ULO new_sr)
 
 static void cpuIllegal(void)
 {
-  UWO opcode = memoryReadWord(cpuGetPC() - 2);
+  uint16_t opcode = memoryReadWord(cpuGetPC() - 2);
   if ((opcode & 0xf000) == 0xf000)
   {
-    if (cpu_f_line_exception_func)
-    {
-      cpu_f_line_exception_func(opcode);
-      cpuInitializeFromNewPC(cpuGetPC());
-      cpuSetInstructionTime(512);
-    }
-    else
-    {
     cpuThrowFLineException();
   }
-	}
-  else if ((opcode & 0xa000) == 0xa000)
+  else if ((opcode & 0xf000) == 0xa000)
   {
     #if 0
     if ((cpuGetPC() & 0xff0000) == 0xf00000)
@@ -169,18 +154,13 @@ static void cpuIllegal(void)
       cpuInitializeFromNewPC(cpuGetPC());
       cpuSetInstructionTime(512);
     }
-    #else
-    if (cpu_a_line_exception_func)
-    {
-      cpu_a_line_exception_func(opcode);
-      cpuInitializeFromNewPC(cpuGetPC());
-      cpuSetInstructionTime(512);
-    }
-    #endif
     else
     {
       cpuThrowALineException();
     }
+    #endif
+    // MPW - always do a-line exception (tool traps).
+    cpuThrowALineException();
   }
   else
   {
@@ -191,7 +171,7 @@ static void cpuIllegal(void)
 /// <summary>
 /// Illegal instruction handler.
 /// </summary>
-static void cpuIllegalInstruction(ULO *opcode_data)
+static void cpuIllegalInstruction(uint32_t *opcode_data)
 {
   cpuIllegal(); 
 }
@@ -199,18 +179,18 @@ static void cpuIllegalInstruction(ULO *opcode_data)
 /// <summary>
 /// BKPT
 /// </summary>
-static void cpuBkpt(ULO vector)
+static void cpuBkpt(uint32_t vector)
 {
-  cpuIllegal();
+  cpuThrowIllegalInstructionExceptionFromBreakpoint();
 }
 
 /// <summary>
 /// Adds bytes src1 to src2. Sets all flags.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuAddB(UBY src2, UBY src1)
+static uint8_t cpuAddB(uint8_t src2, uint8_t src1)
 {
-  UBY res = src2 + src1;
+  uint8_t res = src2 + src1;
   cpuSetFlagsAdd(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(src2), cpuMsbB(src1));
   return res;
 }
@@ -219,9 +199,9 @@ static UBY cpuAddB(UBY src2, UBY src1)
 /// Adds words src1 to src2. Sets all flags.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuAddW(UWO src2, UWO src1)
+static uint16_t cpuAddW(uint16_t src2, uint16_t src1)
 {
-  UWO res = src2 + src1;
+  uint16_t res = src2 + src1;
   cpuSetFlagsAdd(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(src2), cpuMsbW(src1));
   return res;
 }
@@ -230,9 +210,9 @@ static UWO cpuAddW(UWO src2, UWO src1)
 /// Adds dwords src1 to src2. Sets all flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuAddL(ULO src2, ULO src1)
+static uint32_t cpuAddL(uint32_t src2, uint32_t src1)
 {
-  ULO res = src2 + src1;
+  uint32_t res = src2 + src1;
   cpuSetFlagsAdd(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(src2), cpuMsbL(src1));
   return res;
 }
@@ -241,7 +221,7 @@ static ULO cpuAddL(ULO src2, ULO src1)
 /// Adds src1 to src2 (For address registers). No flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuAddaW(ULO src2, ULO src1)
+static uint32_t cpuAddaW(uint32_t src2, uint32_t src1)
 {
   return src2 + src1;
 }
@@ -250,7 +230,7 @@ static ULO cpuAddaW(ULO src2, ULO src1)
 /// Adds src1 to src2 (For address registers). No flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuAddaL(ULO src2, ULO src1)
+static uint32_t cpuAddaL(uint32_t src2, uint32_t src1)
 {
   return src2 + src1;
 }
@@ -259,9 +239,9 @@ static ULO cpuAddaL(ULO src2, ULO src1)
 /// Subtracts src1 from src2. Sets all flags.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuSubB(UBY src2, UBY src1)
+static uint8_t cpuSubB(uint8_t src2, uint8_t src1)
 {
-  UBY res = src2 - src1;
+  uint8_t res = src2 - src1;
   cpuSetFlagsSub(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(src2), cpuMsbB(src1));
   return res;
 }
@@ -270,9 +250,9 @@ static UBY cpuSubB(UBY src2, UBY src1)
 /// Subtracts src1 from src2. Sets all flags.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuSubW(UWO src2, UWO src1)
+static uint16_t cpuSubW(uint16_t src2, uint16_t src1)
 {
-  UWO res = src2 - src1;
+  uint16_t res = src2 - src1;
   cpuSetFlagsSub(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(src2), cpuMsbW(src1));
   return res;
 }
@@ -281,9 +261,9 @@ static UWO cpuSubW(UWO src2, UWO src1)
 /// Subtracts src1 from src2. Sets all flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuSubL(ULO src2, ULO src1)
+static uint32_t cpuSubL(uint32_t src2, uint32_t src1)
 {
-  ULO res = src2 - src1;
+  uint32_t res = src2 - src1;
   cpuSetFlagsSub(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(src2), cpuMsbL(src1));
   return res;
 }
@@ -292,7 +272,7 @@ static ULO cpuSubL(ULO src2, ULO src1)
 /// Subtracts src1 from src2 (For address registers). No flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuSubaW(ULO src2, ULO src1)
+static uint32_t cpuSubaW(uint32_t src2, uint32_t src1)
 {
   return src2 - src1;
 }
@@ -301,7 +281,7 @@ static ULO cpuSubaW(ULO src2, ULO src1)
 /// Subtracts src1 from src2 (For address registers). No flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuSubaL(ULO src2, ULO src1)
+static uint32_t cpuSubaL(uint32_t src2, uint32_t src1)
 {
   return src2 - src1;
 }
@@ -309,27 +289,27 @@ static ULO cpuSubaL(ULO src2, ULO src1)
 /// <summary>
 /// Subtracts src1 from src2. Sets all flags.
 /// </summary>
-static void cpuCmpB(UBY src2, UBY src1)
+static void cpuCmpB(uint8_t src2, uint8_t src1)
 {
-  UBY res = src2 - src1;
+  uint8_t res = src2 - src1;
   cpuSetFlagsCmp(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(src2), cpuMsbB(src1));
 }
 
 /// <summary>
 /// Subtracts src1 from src2. Sets all flags.
 /// </summary>
-static void cpuCmpW(UWO src2, UWO src1)
+static void cpuCmpW(uint16_t src2, uint16_t src1)
 {
-  UWO res = src2 - src1;
+  uint16_t res = src2 - src1;
   cpuSetFlagsCmp(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(src2), cpuMsbW(src1));
 }
 
 /// <summary>
 /// Subtracts src1 from src2. Sets all flags.
 /// </summary>
-static void cpuCmpL(ULO src2, ULO src1)
+static void cpuCmpL(uint32_t src2, uint32_t src1)
 {
-  ULO res = src2 - src1;
+  uint32_t res = src2 - src1;
   cpuSetFlagsCmp(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(src2), cpuMsbL(src1));
 }
 
@@ -337,9 +317,9 @@ static void cpuCmpL(ULO src2, ULO src1)
 /// Ands src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuAndB(UBY src2, UBY src1)
+static uint8_t cpuAndB(uint8_t src2, uint8_t src1)
 {
-  UBY res = src2 & src1;
+  uint8_t res = src2 & src1;
   cpuSetFlagsNZ00NewB(res);
   return res;
 }
@@ -348,9 +328,9 @@ static UBY cpuAndB(UBY src2, UBY src1)
 /// Ands src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuAndW(UWO src2, UWO src1)
+static uint16_t cpuAndW(uint16_t src2, uint16_t src1)
 {
-  UWO res = src2 & src1;
+  uint16_t res = src2 & src1;
   cpuSetFlagsNZ00NewW(res);
   return res;
 }
@@ -359,9 +339,9 @@ static UWO cpuAndW(UWO src2, UWO src1)
 /// Ands src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuAndL(ULO src2, ULO src1)
+static uint32_t cpuAndL(uint32_t src2, uint32_t src1)
 {
-  ULO res = src2 & src1;
+  uint32_t res = src2 & src1;
   cpuSetFlagsNZ00NewL(res);
   return res;
 }
@@ -370,9 +350,9 @@ static ULO cpuAndL(ULO src2, ULO src1)
 /// Eors src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuEorB(UBY src2, UBY src1)
+static uint8_t cpuEorB(uint8_t src2, uint8_t src1)
 {
-  UBY res = src2 ^ src1;
+  uint8_t res = src2 ^ src1;
   cpuSetFlagsNZ00NewB(res);
   return res;
 }
@@ -381,9 +361,9 @@ static UBY cpuEorB(UBY src2, UBY src1)
 /// Eors src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuEorW(UWO src2, UWO src1)
+static uint16_t cpuEorW(uint16_t src2, uint16_t src1)
 {
-  UWO res = src2 ^ src1;
+  uint16_t res = src2 ^ src1;
   cpuSetFlagsNZ00NewW(res);
   return res;
 }
@@ -392,9 +372,9 @@ static UWO cpuEorW(UWO src2, UWO src1)
 /// Eors src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuEorL(ULO src2, ULO src1)
+static uint32_t cpuEorL(uint32_t src2, uint32_t src1)
 {
-  ULO res = src2 ^ src1;
+  uint32_t res = src2 ^ src1;
   cpuSetFlagsNZ00NewL(res);
   return res;
 }
@@ -403,9 +383,9 @@ static ULO cpuEorL(ULO src2, ULO src1)
 /// Ors src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuOrB(UBY src2, UBY src1)
+static uint8_t cpuOrB(uint8_t src2, uint8_t src1)
 {
-  UBY res = src2 | src1;
+  uint8_t res = src2 | src1;
   cpuSetFlagsNZ00NewB(res);
   return res;
 }
@@ -414,9 +394,9 @@ static UBY cpuOrB(UBY src2, UBY src1)
 /// Ors src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuOrW(UWO src2, UWO src1)
+static uint16_t cpuOrW(uint16_t src2, uint16_t src1)
 {
-  UWO res = src2 | src1;
+  uint16_t res = src2 | src1;
   cpuSetFlagsNZ00NewW(res);
   return res;
 }
@@ -425,9 +405,9 @@ static UWO cpuOrW(UWO src2, UWO src1)
 /// Ors src1 to src2. Sets NZ00 flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuOrL(ULO src2, ULO src1)
+static uint32_t cpuOrL(uint32_t src2, uint32_t src1)
 {
-  ULO res = src2 | src1;
+  uint32_t res = src2 | src1;
   cpuSetFlagsNZ00NewL(res);
   return res;
 }
@@ -436,9 +416,9 @@ static ULO cpuOrL(ULO src2, ULO src1)
 /// Changes bit in src. Sets Z flag.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuBchgB(UBY src, UBY bit)
+static uint8_t cpuBchgB(uint8_t src, uint8_t bit)
 {
-  UBY bit_mask = 1 << (bit & 7);
+  uint8_t bit_mask = 1 << (bit & 7);
   cpuSetZFlagBitOpsB(src & bit_mask);
   return src ^ bit_mask;
 }
@@ -447,9 +427,9 @@ static UBY cpuBchgB(UBY src, UBY bit)
 /// Changes bit in src. Sets Z flag.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuBchgL(ULO src, ULO bit)
+static uint32_t cpuBchgL(uint32_t src, uint32_t bit)
 {
-  ULO bit_mask = 1 << (bit & 31);
+  uint32_t bit_mask = 1 << (bit & 31);
   cpuSetZFlagBitOpsL(src & bit_mask);
   return src ^ bit_mask;
 }
@@ -458,9 +438,9 @@ static ULO cpuBchgL(ULO src, ULO bit)
 /// Clears bit in src. Sets Z flag.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuBclrB(UBY src, UBY bit)
+static uint8_t cpuBclrB(uint8_t src, uint8_t bit)
 {
-  UBY bit_mask = 1 << (bit & 7);
+  uint8_t bit_mask = 1 << (bit & 7);
   cpuSetZFlagBitOpsB(src & bit_mask);
   return src & ~bit_mask;
 }
@@ -469,9 +449,9 @@ static UBY cpuBclrB(UBY src, UBY bit)
 /// Clears bit in src. Sets Z flag.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuBclrL(ULO src, ULO bit)
+static uint32_t cpuBclrL(uint32_t src, uint32_t bit)
 {
-  ULO bit_mask = 1 << (bit & 31);
+  uint32_t bit_mask = 1 << (bit & 31);
   cpuSetZFlagBitOpsL(src & bit_mask);
   return src & ~bit_mask;
 }
@@ -480,9 +460,9 @@ static ULO cpuBclrL(ULO src, ULO bit)
 /// Sets bit in src. Sets Z flag.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuBsetB(UBY src, UBY bit)
+static uint8_t cpuBsetB(uint8_t src, uint8_t bit)
 {
-  UBY bit_mask = 1 << (bit & 7);
+  uint8_t bit_mask = 1 << (bit & 7);
   cpuSetZFlagBitOpsB(src & bit_mask);
   return src | bit_mask;
 }
@@ -491,9 +471,9 @@ static UBY cpuBsetB(UBY src, UBY bit)
 /// Sets bit in src. Sets Z flag.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuBsetL(ULO src, ULO bit)
+static uint32_t cpuBsetL(uint32_t src, uint32_t bit)
 {
-  ULO bit_mask = 1 << (bit & 31);
+  uint32_t bit_mask = 1 << (bit & 31);
   cpuSetZFlagBitOpsL(src & bit_mask);
   return src | bit_mask;
 }
@@ -501,25 +481,25 @@ static ULO cpuBsetL(ULO src, ULO bit)
 /// <summary>
 /// Tests bit in src. Sets Z flag.
 /// </summary>
-static void cpuBtstB(UBY src, UBY bit)
+static void cpuBtstB(uint8_t src, uint8_t bit)
 {
-  UBY bit_mask = 1 << (bit & 7);
+  uint8_t bit_mask = 1 << (bit & 7);
   cpuSetZFlagBitOpsB(src & bit_mask);
 }
 
 /// <summary>
 /// Tests bit in src. Sets Z flag.
 /// </summary>
-static void cpuBtstL(ULO src, ULO bit)
+static void cpuBtstL(uint32_t src, uint32_t bit)
 {
-  ULO bit_mask = 1 << (bit & 31);
+  uint32_t bit_mask = 1 << (bit & 31);
   cpuSetZFlagBitOpsL(src & bit_mask);
 }
 
 /// <summary>
 /// Set flags for clr operation.  X0100.
 /// </summary>
-static void cpuClr()
+static void cpuClr(void)
 {
   cpuSetFlags0100();
 }
@@ -528,9 +508,9 @@ static void cpuClr()
 /// Neg src1. Sets sub flags.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuNegB(UBY src1)
+static uint8_t cpuNegB(uint8_t src1)
 {
-  UBY res = (UBY)-(BYT)src1;
+  uint8_t res = (uint8_t)-(int8_t)src1;
   cpuSetFlagsNeg(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(src1));
   return res;
 }
@@ -539,9 +519,9 @@ static UBY cpuNegB(UBY src1)
 /// Neg src1. Sets sub flags.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuNegW(UWO src1)
+static uint16_t cpuNegW(uint16_t src1)
 {
-  UWO res = (UWO)-(WOR)src1;
+  uint16_t res = (uint16_t)-(int16_t)src1;
   cpuSetFlagsNeg(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(src1));
   return res;
 }
@@ -550,9 +530,9 @@ static UWO cpuNegW(UWO src1)
 /// Neg src1. Sets sub flags.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuNegL(ULO src1)
+static uint32_t cpuNegL(uint32_t src1)
 {
-  ULO res = (ULO)-(LON)src1;
+  uint32_t res = (uint32_t)-(int32_t)src1;
   cpuSetFlagsNeg(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(src1));
   return res;
 }
@@ -561,10 +541,10 @@ static ULO cpuNegL(ULO src1)
 /// Negx src1.
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuNegxB(UBY src1)
+static uint8_t cpuNegxB(uint8_t src1)
 {
-  BYT x = (cpuGetFlagX()) ? 1 : 0;
-  UBY res = (UBY)-(BYT)src1 - x;
+  int8_t x = (cpuGetFlagX()) ? 1 : 0;
+  uint8_t res = (uint8_t)-(int8_t)src1 - x;
   cpuSetFlagsNegx(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(src1));
   return res;
 }
@@ -573,10 +553,10 @@ static UBY cpuNegxB(UBY src1)
 /// Negx src1.
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuNegxW(UWO src1)
+static uint16_t cpuNegxW(uint16_t src1)
 {
-  WOR x = (cpuGetFlagX()) ? 1 : 0;
-  UWO res = (UWO)-(WOR)src1 - x;
+  int16_t x = (cpuGetFlagX()) ? 1 : 0;
+  uint16_t res = (uint16_t)-(int16_t)src1 - x;
   cpuSetFlagsNegx(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(src1));
   return res;
 }
@@ -585,10 +565,10 @@ static UWO cpuNegxW(UWO src1)
 /// Negx src1.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuNegxL(ULO src1)
+static uint32_t cpuNegxL(uint32_t src1)
 {
-  LON x = (cpuGetFlagX()) ? 1 : 0;
-  ULO res = (ULO)-(LON)src1 - x;
+  int32_t x = (cpuGetFlagX()) ? 1 : 0;
+  uint32_t res = (uint32_t)-(int32_t)src1 - x;
   cpuSetFlagsNegx(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(src1));
   return res;
 }
@@ -597,9 +577,9 @@ static ULO cpuNegxL(ULO src1)
 /// Not src1. 
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuNotB(UBY src1)
+static uint8_t cpuNotB(uint8_t src1)
 {
-  UBY res = ~src1;
+  uint8_t res = ~src1;
   cpuSetFlagsNZ00NewB(res);
   return res;
 }
@@ -608,9 +588,9 @@ static UBY cpuNotB(UBY src1)
 /// Not src1. 
 /// </summary>
 /// <returns>The result</returns>
-static UWO cpuNotW(UWO src1)
+static uint16_t cpuNotW(uint16_t src1)
 {
-  UWO res = ~src1;
+  uint16_t res = ~src1;
   cpuSetFlagsNZ00NewW(res);
   return res;
 }
@@ -619,9 +599,9 @@ static UWO cpuNotW(UWO src1)
 /// Not src.
 /// </summary>
 /// <returns>The result</returns>
-static ULO cpuNotL(ULO src)
+static uint32_t cpuNotL(uint32_t src)
 {
-  ULO res = ~src;
+  uint32_t res = ~src;
   cpuSetFlagsNZ00NewL(res);
   return res;
 }
@@ -630,7 +610,7 @@ static ULO cpuNotL(ULO src)
 /// Tas src. 
 /// </summary>
 /// <returns>The result</returns>
-static UBY cpuTas(UBY src)
+static uint8_t cpuTas(uint8_t src)
 {
   cpuSetFlagsNZ00NewB(src);
   return src | 0x80;
@@ -639,7 +619,7 @@ static UBY cpuTas(UBY src)
 /// <summary>
 /// Tst res. 
 /// </summary>
-static void cpuTestB(UBY res)
+static void cpuTestB(uint8_t res)
 {
   cpuSetFlagsNZ00NewB(res);
 }
@@ -647,7 +627,7 @@ static void cpuTestB(UBY res)
 /// <summary>
 /// Tst res. 
 /// </summary>
-static void cpuTestW(UWO res)
+static void cpuTestW(uint16_t res)
 {
   cpuSetFlagsNZ00NewW(res);
 }
@@ -655,7 +635,7 @@ static void cpuTestW(UWO res)
 /// <summary>
 /// Tst res. 
 /// </summary>
-static void cpuTestL(ULO res)
+static void cpuTestL(uint32_t res)
 {
   cpuSetFlagsNZ00NewL(res);
 }
@@ -663,7 +643,7 @@ static void cpuTestL(ULO res)
 /// <summary>
 /// PEA ea. 
 /// </summary>
-static void cpuPeaL(ULO ea)
+static void cpuPeaL(uint32_t ea)
 {
   cpuSetAReg(7, cpuGetAReg(7) - 4);
   memoryWriteLong(ea, cpuGetAReg(7));
@@ -672,7 +652,7 @@ static void cpuPeaL(ULO ea)
 /// <summary>
 /// JMP ea. 
 /// </summary>
-static void cpuJmp(ULO ea)
+static void cpuJmp(uint32_t ea)
 {
   cpuInitializeFromNewPC(ea);
 }
@@ -680,7 +660,7 @@ static void cpuJmp(ULO ea)
 /// <summary>
 /// JSR ea. 
 /// </summary>
-static void cpuJsr(ULO ea)
+static void cpuJsr(uint32_t ea)
 {
   cpuSetAReg(7, cpuGetAReg(7) - 4);
   memoryWriteLong(cpuGetPC(), cpuGetAReg(7));
@@ -691,7 +671,7 @@ static void cpuJsr(ULO ea)
 /// Move res
 /// </summary>
 /// <returns>The result</returns>
-static void cpuMoveB(UBY res)
+static void cpuMoveB(uint8_t res)
 {
   cpuSetFlagsNZ00NewB(res);
 }
@@ -700,7 +680,7 @@ static void cpuMoveB(UBY res)
 /// Move res
 /// </summary>
 /// <returns>The result</returns>
-static void cpuMoveW(UWO res)
+static void cpuMoveW(uint16_t res)
 {
   cpuSetFlagsNZ00NewW(res);
 }
@@ -709,7 +689,7 @@ static void cpuMoveW(UWO res)
 /// Move res 
 /// </summary>
 /// <returns>The result</returns>
-static void cpuMoveL(ULO res)
+static void cpuMoveL(uint32_t res)
 {
   cpuSetFlagsNZ00NewL(res);
 }
@@ -717,7 +697,7 @@ static void cpuMoveL(ULO res)
 /// <summary>
 /// Bra byte offset. 
 /// </summary>
-static void cpuBraB(ULO offset)
+static void cpuBraB(uint32_t offset)
 {
   cpuInitializeFromNewPC(cpuGetPC() + offset);
   cpuSetInstructionTime(10);
@@ -726,9 +706,9 @@ static void cpuBraB(ULO offset)
 /// <summary>
 /// Bra word offset. 
 /// </summary>
-static void cpuBraW()
+static void cpuBraW(void)
 {
-  ULO tmp_pc = cpuGetPC();
+  uint32_t tmp_pc = cpuGetPC();
   cpuInitializeFromNewPC(tmp_pc + cpuGetNextWordSignExt());
   cpuSetInstructionTime(10);
 }
@@ -736,12 +716,12 @@ static void cpuBraW()
 /// <summary>
 /// Bra long offset. 
 /// </summary>
-static void cpuBraL()
+static void cpuBraL(void)
 {
   if (cpuGetModelMajor() < 2) cpuBraB(0xffffffff);
   else
   {
-    ULO tmp_pc = cpuGetPC();
+    uint32_t tmp_pc = cpuGetPC();
     cpuInitializeFromNewPC(tmp_pc + cpuGetNextLong());
     cpuSetInstructionTime(4);
   }
@@ -750,7 +730,7 @@ static void cpuBraL()
 /// <summary>
 /// Bsr byte offset. 
 /// </summary>
-static void cpuBsrB(ULO offset)
+static void cpuBsrB(uint32_t offset)
 {
   cpuSetAReg(7, cpuGetAReg(7) - 4);
   memoryWriteLong(cpuGetPC(), cpuGetAReg(7));
@@ -761,10 +741,10 @@ static void cpuBsrB(ULO offset)
 /// <summary>
 /// Bsr word offset. 
 /// </summary>
-static void cpuBsrW()
+static void cpuBsrW(void)
 {
-  ULO tmp_pc = cpuGetPC();
-  ULO offset = cpuGetNextWordSignExt();
+  uint32_t tmp_pc = cpuGetPC();
+  uint32_t offset = cpuGetNextWordSignExt();
   cpuSetAReg(7, cpuGetAReg(7) - 4);
   memoryWriteLong(cpuGetPC(), cpuGetAReg(7));
   cpuInitializeFromNewPC(tmp_pc + offset);
@@ -774,13 +754,13 @@ static void cpuBsrW()
 /// <summary>
 /// Bsr long offset. (020+) 
 /// </summary>
-static void cpuBsrL()
+static void cpuBsrL(void)
 {
   if (cpuGetModelMajor() < 2) cpuBsrB(0xffffffff);
   else
   {
-    ULO tmp_pc = cpuGetPC();
-    ULO offset = cpuGetNextLong();
+    uint32_t tmp_pc = cpuGetPC();
+    uint32_t offset = cpuGetNextLong();
     cpuSetAReg(7, cpuGetAReg(7) - 4);
     memoryWriteLong(cpuGetPC(), cpuGetAReg(7));
     cpuInitializeFromNewPC(tmp_pc + offset);
@@ -791,7 +771,7 @@ static void cpuBsrL()
 /// <summary>
 /// Bcc byte offset. 
 /// </summary>
-static void cpuBccB(BOOLE cc, ULO offset)
+static void cpuBccB(BOOLE cc, uint32_t offset)
 {
   if (cc)
   {
@@ -811,7 +791,7 @@ static void cpuBccW(BOOLE cc)
 {
   if (cc)
   {
-    ULO tmp_pc = cpuGetPC();
+    uint32_t tmp_pc = cpuGetPC();
     cpuInitializeFromNewPC(tmp_pc + cpuGetNextWordSignExt());
     cpuSetInstructionTime(10);
   }
@@ -832,7 +812,7 @@ static void cpuBccL(BOOLE cc)
   {
     if (cc)
     {
-      ULO tmp_pc = cpuGetPC();
+      uint32_t tmp_pc = cpuGetPC();
       cpuInitializeFromNewPC(tmp_pc + cpuGetNextLong());
     }
     else
@@ -846,16 +826,16 @@ static void cpuBccL(BOOLE cc)
 /// <summary>
 /// DBcc word offset. 
 /// </summary>
-static void cpuDbcc(BOOLE cc, ULO reg)
+static void cpuDbcc(BOOLE cc, uint32_t reg)
 {
   if (!cc)
   {
-    WOR val = (WOR)cpuGetDRegWord(reg);
+    int16_t val = (int16_t)cpuGetDRegWord(reg);
     val--;
     cpuSetDRegWord(reg, val);
     if (val != -1)
     {
-      ULO tmp_pc = cpuGetPC();
+      uint32_t tmp_pc = cpuGetPC();
       cpuInitializeFromNewPC(tmp_pc + cpuGetNextWordSignExt());
       cpuSetInstructionTime(10);
     }
@@ -875,21 +855,23 @@ static void cpuDbcc(BOOLE cc, ULO reg)
 /// <summary>
 /// And #imm, ccr 
 /// </summary>
-static void cpuAndCcrB()
+static void cpuAndCcrB(void)
 {
-  UWO imm = cpuGetNextWord();
+  uint16_t imm = cpuGetNextWord();
   cpuSetSR(cpuGetSR() & (0xffe0 | (imm & 0x1f)));
+  cpuSetInstructionTime(20);
 }
 
 /// <summary>
 /// And #imm, sr 
 /// </summary>
-static void cpuAndSrW()
+static void cpuAndSrW(void)
 {
   if (cpuGetFlagSupervisor())
   {
-    UWO imm = cpuGetNextWord();
+    uint16_t imm = cpuGetNextWord();
     cpuUpdateSr(cpuGetSR() & imm);
+    cpuSetInstructionTime(20);
   }
   else
   {
@@ -900,21 +882,23 @@ static void cpuAndSrW()
 /// <summary>
 /// Or #imm, ccr 
 /// </summary>
-static void cpuOrCcrB()
+static void cpuOrCcrB(void)
 {
-  UWO imm = cpuGetNextWord();
+  uint16_t imm = cpuGetNextWord();
   cpuSetSR(cpuGetSR() | (imm & 0x1f));
+  cpuSetInstructionTime(20);
 }
 
 /// <summary>
 /// Or #imm, sr 
 /// </summary>
-static void cpuOrSrW()
+static void cpuOrSrW(void)
 {
   if (cpuGetFlagSupervisor())
   {
-    UWO imm = cpuGetNextWord();
+    uint16_t imm = cpuGetNextWord();
     cpuUpdateSr(cpuGetSR() | imm);
+    cpuSetInstructionTime(20);
   }
   else
   {
@@ -925,21 +909,23 @@ static void cpuOrSrW()
 /// <summary>
 /// Eor #imm, ccr 
 /// </summary>
-static void cpuEorCcrB()
+static void cpuEorCcrB(void)
 {
-  UWO imm = cpuGetNextWord();
+  uint16_t imm = cpuGetNextWord();
   cpuSetSR(cpuGetSR() ^ (imm & 0x1f));
+  cpuSetInstructionTime(20);
 }
 
 /// <summary>
 /// Eor #imm, sr 
 /// </summary>
-static void cpuEorSrW()
+static void cpuEorSrW(void)
 {
   if (cpuGetFlagSupervisor())
   {
-    UWO imm = cpuGetNextWord();
+    uint16_t imm = cpuGetNextWord();
     cpuUpdateSr(cpuGetSR() ^ imm);
+    cpuSetInstructionTime(20);
   }
   else
   {
@@ -950,7 +936,7 @@ static void cpuEorSrW()
 /// <summary>
 /// Move ea, ccr 
 /// </summary>
-static void cpuMoveToCcr(UWO src)
+static void cpuMoveToCcr(uint16_t src)
 {
   cpuSetSR((cpuGetSR() & 0xff00) | (src & 0x1f));
 }
@@ -958,22 +944,16 @@ static void cpuMoveToCcr(UWO src)
 /// <summary>
 /// Move <ea>, sr 
 /// </summary>
-static void cpuMoveToSr(UWO src)
+static void cpuMoveToSr(uint16_t src)
 {
-  if (cpuGetFlagSupervisor())
-  {
-    cpuUpdateSr(src);
-  }
-  else
-  {
-    cpuThrowPrivilegeViolationException();
-  }
+  // Supervisor privilege for move to sr is checked in the instruction wrappers
+  cpuUpdateSr(src);
 }
 
 /// <summary>
 /// Move ccr, ea 
 /// </summary>
-static UWO cpuMoveFromCcr()
+static uint16_t cpuMoveFromCcr(void)
 {
   return cpuGetSR() & 0x1f;
 }
@@ -981,23 +961,16 @@ static UWO cpuMoveFromCcr()
 /// <summary>
 /// Move <ea>, sr 
 /// </summary>
-static UWO cpuMoveFromSr()
+static uint16_t cpuMoveFromSr(void)
 {
-  if (cpuGetModelMajor() == 0 || (cpuGetModelMajor() > 0 && cpuGetFlagSupervisor()))
-  {
-    return (UWO) cpuGetSR();
-  }
-  else
-  {
-    cpuThrowPrivilegeViolationException();
-  } 
-  return 0;
+  // Supervisor privilege for move from sr is checked in the instruction wrappers, privileged on 010+
+  return (uint16_t) cpuGetSR();
 }
 
 /// <summary>
-/// Scc byte. 
+/// Scc byte.
 /// </summary>
-static UBY cpuScc(ULO cc)
+static uint8_t cpuScc(uint32_t cc)
 {
   return (cpuCalculateConditionCode(cc)) ? 0xff : 0;
 }
@@ -1005,7 +978,7 @@ static UBY cpuScc(ULO cc)
 /// <summary>
 /// Rts 
 /// </summary>
-static void cpuRts()
+static void cpuRts(void)
 {
   cpuInitializeFromNewPC(memoryReadLong(cpuGetAReg(7)));
   cpuSetAReg(7, cpuGetAReg(7) + 4);
@@ -1015,7 +988,7 @@ static void cpuRts()
 /// <summary>
 /// Rtr 
 /// </summary>
-static void cpuRtr()
+static void cpuRtr(void)
 {
   cpuSetSR((cpuGetSR() & 0xffe0) | (memoryReadWord(cpuGetAReg(7)) & 0x1f));
   cpuSetAReg(7, cpuGetAReg(7) + 2);
@@ -1027,7 +1000,7 @@ static void cpuRtr()
 /// <summary>
 /// Nop 
 /// </summary>
-static void cpuNop()
+static void cpuNop(void)
 {
   cpuSetInstructionTime(4);
 }
@@ -1035,7 +1008,7 @@ static void cpuNop()
 /// <summary>
 /// Trapv
 /// </summary>
-static void cpuTrapv()
+static void cpuTrapv(void)
 {
   if (cpuGetFlagV())
   {
@@ -1048,77 +1021,73 @@ static void cpuTrapv()
 /// <summary>
 /// Muls/u.l
 /// </summary>
-static void cpuMulL(ULO src1, UWO extension)
+static void cpuMulL(uint32_t src1, uint16_t extension)
 {
-  ULO dl = (extension >> 12) & 7;
+  uint32_t dl = (extension >> 12) & 7;
   if (extension & 0x0800) // muls.l
   {
-    LLO result = ((LLO)(LON) src1) * ((LLO)(LON)cpuGetDReg(dl));
+    int64_t result = ((int64_t)(int32_t) src1) * ((int64_t)(int32_t)cpuGetDReg(dl));
     if (extension & 0x0400) // 32bx32b=64b
     {  
-      ULO dh = extension & 7;
-      cpuSetDReg(dh, (ULO)(result >> 32));
-      cpuSetDReg(dl, (ULO)result);
+      uint32_t dh = extension & 7;
+      cpuSetDReg(dl, (uint32_t)result);
+      cpuSetDReg(dh, (uint32_t)(result >> 32));
       cpuSetFlagsNZ00New64(result);
     }
     else // 32bx32b=32b
     {
       BOOLE o;
       if (result >= 0)
-	o = (result & 0xffffffff00000000) != 0;
+	o = (result & 0xffffffff80000000) != 0;
       else
-	o = (result & 0xffffffff00000000) != 0xffffffff00000000;
-      cpuSetDReg(dl, (ULO)result);
-      cpuSetFlagsNZVC(result == 0, result < 0, o, FALSE);
+	o = (result & 0xffffffff80000000) != 0xffffffff80000000;
+      cpuSetDReg(dl, (uint32_t)result);
+      cpuSetFlagsNZVC(((uint32_t)result) == 0, !!(result & 0x80000000), o, FALSE);
     }
   }
   else // mulu.l
   {
-    ULL result = ((ULL) src1) * ((ULL) cpuGetDReg(dl));
+    uint64_t result = ((uint64_t) src1) * ((uint64_t) cpuGetDReg(dl));
     if (extension & 0x0400) // 32bx32b=64b
     {  
-      ULO dh = extension & 7;
-      cpuSetDReg(dh, (ULO)(result >> 32));
-      cpuSetDReg(dl, (ULO)result);
+      uint32_t dh = extension & 7;
+      cpuSetDReg(dl, (uint32_t)result);
+      cpuSetDReg(dh, (uint32_t)(result >> 32));
       cpuSetFlagsNZ00New64(result);
     }
     else // 32bx32b=32b
     {
-      cpuSetDReg(dl, (ULO)result);
-      cpuSetFlagsNZVC(result == 0, !!(result & 0x80000000), (result >> 32) != 0, FALSE);
+      cpuSetDReg(dl, (uint32_t)result);
+      cpuSetFlagsNZVC((uint32_t)result == 0, !!(result & 0x80000000), (result >> 32) != 0, FALSE);
     }
   }
   cpuSetInstructionTime(4);
 }
 
-UBY cpuMuluTime[256];
-UBY cpuMulsTime[512];
+uint8_t cpuMuluTime[256];
+uint8_t cpuMulsTime[512];
 
 void cpuCreateMuluTimeTable(void)
 {
-  ULO i, j, k;
-
-  for (i = 0; i < 256; i++)
+  for (uint32_t i = 0; i < 256; i++)
   {
-    j = 0;
-    for (k = 0; k < 8; k++)
+    uint32_t j = 0;
+    for (uint32_t k = 0; k < 8; k++)
       if (((i>>k) & 1) == 1)
 	j++;
-    cpuMuluTime[i] = (UBY) j*2;
+    cpuMuluTime[i] = (uint8_t) j*2;
   }
 }
 
 void cpuCreateMulsTimeTable(void)
 {
-  ULO i, j, k;
-
-  for (i = 0; i < 512; i++)
+  for (uint32_t i = 0; i < 512; i++)
   {
-    j = 0;
-    for (k = 0; k < 9; k++)
+    uint32_t j = 0;
+    for (uint32_t k = 0; k < 9; k++)
       if ((((i>>k) & 3) == 1) || (((i>>k) & 3) == 2))
 	j++; 
-    cpuMulsTime[i] = (UBY) j*2;
+    cpuMulsTime[i] = (uint8_t) j*2;
   }
 }
 
@@ -1131,9 +1100,9 @@ void cpuCreateMulTimeTables(void)
 /// <summary>
 /// Muls.w
 /// </summary>
-static ULO cpuMulsW(UWO src2, UWO src1, ULO eatime)
+static uint32_t cpuMulsW(uint16_t src2, uint16_t src1, uint32_t eatime)
 {
-  ULO res = (ULO)(((LON)(WOR)src2)*((LON)(WOR)src1));
+  uint32_t res = (uint32_t)(((int32_t)(int16_t)src2)*((int32_t)(int16_t)src1));
   cpuSetFlagsNZ00NewL(res);
   cpuSetInstructionTime(38 + eatime + cpuMulsTime[(src1 << 1) & 0x1ff] + cpuMulsTime[src1 >> 7]);
   return res;
@@ -1142,9 +1111,9 @@ static ULO cpuMulsW(UWO src2, UWO src1, ULO eatime)
 /// <summary>
 /// Mulu.w
 /// </summary>
-static ULO cpuMuluW(UWO src2, UWO src1, ULO eatime)
+static uint32_t cpuMuluW(uint16_t src2, uint16_t src1, uint32_t eatime)
 {
-  ULO res = ((ULO)src2)*((ULO)src1);
+  uint32_t res = ((uint32_t)src2)*((uint32_t)src1);
   cpuSetFlagsNZ00NewL(res);
   cpuSetInstructionTime(38 + eatime + cpuMuluTime[src1 & 0xff] + cpuMuluTime[src1 >> 8]);
   return res;
@@ -1153,29 +1122,30 @@ static ULO cpuMuluW(UWO src2, UWO src1, ULO eatime)
 /// <summary>
 /// Divsw, src1 / src2
 /// </summary>
-static void cpuDivsW(ULO dst, UWO src1, ULO destination_reg, ULO instruction_time)
+static void cpuDivsW(uint32_t dst, uint16_t src1, uint32_t destination_reg, uint32_t instruction_time)
 {
   if (src1 == 0)
   {
     // Alcatraz odyssey assumes that PC in this exception points after the instruction.
+    cpuSetFlagsNZVC(TRUE, FALSE, FALSE, FALSE);
     cpuThrowDivisionByZeroException();
   }
   else
   {
-    ULO result;
-    LON x = (LON) dst;
-    LON y = (LON)(WOR) src1;
-    LON res = x / y;
-    LON rem = x % y;
+    uint32_t result;
+    int32_t x = (int32_t) dst;
+    int32_t y = (int32_t)(int16_t) src1;
+    int32_t res = x / y;
+    int32_t rem = x % y;
     if (res > 32767 || res < -32768)
     {
       result = dst;
-      cpuSetFlagsVC(TRUE, FALSE);
+      cpuSetFlagsNZVC(FALSE, TRUE, TRUE, FALSE);
     }
     else
     {
       result = (rem << 16) | (res & 0xffff);
-      cpuSetFlagsNZVC(cpuIsZeroW((UWO) res), cpuMsbW((UWO) res), FALSE, FALSE);
+      cpuSetFlagsNZVC(cpuIsZeroW((uint16_t) res), cpuMsbW((uint16_t) res), FALSE, FALSE);
     }
     cpuSetDReg(destination_reg, result);
     cpuSetInstructionTime(instruction_time);
@@ -1185,77 +1155,77 @@ static void cpuDivsW(ULO dst, UWO src1, ULO destination_reg, ULO instruction_tim
 /// <summary>
 /// Divuw, src1 / src2
 /// </summary>
-static void cpuDivuW(ULO dst, UWO src1, ULO destination_reg, ULO instruction_time)
+static void cpuDivuW(uint32_t dst, uint16_t src1, uint32_t destination_reg, uint32_t instruction_time)
 {
   if (src1 == 0)
   {
     // Alcatraz odyssey assumes that PC in this exception points after the instruction.
+    cpuSetFlagsNZVC((dst & 0xffff0000) == 0, (dst & 0x80000000) == 0x80000000, FALSE, FALSE);
     cpuThrowDivisionByZeroException();
   }
   else
   {
-    ULO result;
-    ULO x = dst;
-    ULO y = (ULO) src1;
-    ULO res = x / y;
-    ULO rem = x % y;
+    uint32_t result;
+    uint32_t x = dst;
+    uint32_t y = (uint32_t) src1;
+    uint32_t res = x / y;
+    uint32_t rem = x % y;
     if (res > 65535)
     {
       result = dst;
-      cpuSetFlagsVC(TRUE, FALSE);
+      cpuSetFlagsNZVC(FALSE, TRUE, TRUE, FALSE);
     }
     else
     {
       result = (rem << 16) | (res & 0xffff);
-      cpuSetFlagsNZVC(cpuIsZeroW((UWO) res), cpuMsbW((UWO) res), FALSE, FALSE);
+      cpuSetFlagsNZVC(cpuIsZeroW((uint16_t) res), cpuMsbW((uint16_t) res), FALSE, FALSE);
     }
     cpuSetDReg(destination_reg, result);
     cpuSetInstructionTime(instruction_time);
   }
 }
 
-static void cpuDivL(ULO divisor, ULO ext, ULO instruction_time)
+static void cpuDivL(uint32_t divisor, uint32_t ext, uint32_t instruction_time)
 {
   if (divisor != 0)
   {
-    ULO dq_reg = (ext>>12) & 7; /* Get operand registers, size and sign */
-    ULO dr_reg = ext & 7;
+    uint32_t dq_reg = (ext>>12) & 7; /* Get operand registers, size and sign */
+    uint32_t dr_reg = ext & 7;
     BOOLE size64 = (ext>>10) & 1;
     BOOLE sign = (ext>>11) & 1;
     BOOLE resultsigned = FALSE, restsigned = FALSE;
-    ULL result, rest;
-    ULL x, y;
-    LLO x_signed, y_signed; 
+    uint64_t x, y;
+    int64_t x_signed; 
 
     if (sign)
     { 
-      if (size64) x_signed = (LLO) ((ULL) cpuGetDReg(dq_reg)) | (((LLO) cpuGetDReg(dr_reg))<<32);
-      else x_signed = (LLO) (LON) cpuGetDReg(dq_reg);
-      y_signed = (LLO) (LON) divisor;
+      if (size64) x_signed = (int64_t) ((uint64_t) cpuGetDReg(dq_reg)) | (((int64_t) cpuGetDReg(dr_reg))<<32);
+      else x_signed = (int64_t) (int32_t) cpuGetDReg(dq_reg);
+      int64_t y_signed = (int64_t)(int32_t)divisor;
 
       if (y_signed < 0)
       {
-	y = (ULL) -y_signed;
+	y = (uint64_t) -y_signed;
 	resultsigned = !resultsigned;
       }
       else y = y_signed;
       if (x_signed < 0)
       {
-	x = (ULL) -x_signed;
+	x = (uint64_t) -x_signed;
 	resultsigned = !resultsigned;
 	restsigned = TRUE;
       }
-      else x = (ULL) x_signed;
+      else x = (uint64_t) x_signed;
     }
     else
     {
-      if (size64) x = ((ULL) cpuGetDReg(dq_reg)) | (((ULL) cpuGetDReg(dr_reg))<<32);
-      else x = (ULL) cpuGetDReg(dq_reg);
-      y = (ULL) divisor;
+      if (size64) x = ((uint64_t) cpuGetDReg(dq_reg)) | (((uint64_t) cpuGetDReg(dr_reg))<<32);
+      else x = (uint64_t) cpuGetDReg(dq_reg);
+      y = (uint64_t) divisor;
     }
 
-    result = x / y;
-    rest = x % y;
+    uint64_t result = x / y;
+    uint64_t rest = x % y;
 
     if (sign)
     {
@@ -1266,11 +1236,11 @@ static void cpuDivL(ULO divisor, ULO ext, ULO instruction_time)
       }
       else
       {
-	LLO result_signed = (resultsigned) ? (-(LLO)result) : ((LLO)result);
-	LLO rest_signed = (restsigned) ? (-(LLO)rest) : ((LLO)rest);
-	cpuSetDReg(dr_reg, (ULO) rest_signed);
-	cpuSetDReg(dq_reg, (ULO) result_signed);
-	cpuSetFlagsNZ00NewL((ULO) result_signed);
+	int64_t result_signed = (resultsigned) ? (-(int64_t)result) : ((int64_t)result);
+	int64_t rest_signed = (restsigned) ? (-(int64_t)rest) : ((int64_t)rest);
+	cpuSetDReg(dr_reg, (uint32_t) rest_signed);
+	cpuSetDReg(dq_reg, (uint32_t) result_signed);
+	cpuSetFlagsNZ00NewL((uint32_t) result_signed);
       }
     }
     else
@@ -1282,9 +1252,9 @@ static void cpuDivL(ULO divisor, ULO ext, ULO instruction_time)
       }
       else
       {
-	cpuSetDReg(dr_reg, (ULO) rest);
-	cpuSetDReg(dq_reg, (ULO) result);
-	cpuSetFlagsNZ00NewL((ULO) result);
+	cpuSetDReg(dr_reg, (uint32_t) rest);
+	cpuSetDReg(dq_reg, (uint32_t) result);
+	cpuSetFlagsNZ00NewL((uint32_t) result);
       }
     }
     cpuSetInstructionTime(instruction_time);
@@ -1298,9 +1268,9 @@ static void cpuDivL(ULO divisor, ULO ext, ULO instruction_time)
 /// <summary>
 /// Lslb
 /// </summary>
-static UBY cpuLslB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuLslB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
-  UBY res;
+  uint8_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
@@ -1324,9 +1294,9 @@ static UBY cpuLslB(UBY dst, ULO sh, ULO cycles)
 /// <summary>
 /// Lslw
 /// </summary>
-static UWO cpuLslW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuLslW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
-  UWO res;
+  uint16_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
@@ -1350,9 +1320,9 @@ static UWO cpuLslW(UWO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Lsll
 /// </summary>
-static ULO cpuLslL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuLslL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
-  ULO res;
+  uint32_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
@@ -1376,9 +1346,9 @@ static ULO cpuLslL(ULO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Lsrb
 /// </summary>
-static UBY cpuLsrB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuLsrB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
-  UBY res;
+  uint8_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
@@ -1402,9 +1372,9 @@ static UBY cpuLsrB(UBY dst, ULO sh, ULO cycles)
 /// <summary>
 /// Lsrw
 /// </summary>
-static UWO cpuLsrW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuLsrW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
-  UWO res;
+  uint16_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
@@ -1428,9 +1398,9 @@ static UWO cpuLsrW(UWO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Lsrl
 /// </summary>
-static ULO cpuLsrL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuLsrL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
-  ULO res;
+  uint32_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
@@ -1454,14 +1424,14 @@ static ULO cpuLsrL(ULO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Aslb
 /// </summary>
-static UBY cpuAslB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuAslB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
-  BYT res;
+  int8_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
     cpuSetFlagsShiftZero(cpuIsZeroB(dst), cpuMsbB(dst));
-    res = (BYT) dst;
+    res = (int8_t) dst;
   }
   else if (sh >= 8)
   {
@@ -1470,9 +1440,9 @@ static UBY cpuAslB(UBY dst, ULO sh, ULO cycles)
   }
   else
   {
-    UBY mask = 0xff << (7-sh);
-    UBY out = dst & mask;
-    res = ((BYT)dst) << sh;
+    uint8_t mask = 0xff << (7-sh);
+    uint8_t out = dst & mask;
+    res = ((int8_t)dst) << sh;
 
     // Overflow calculation: 
     // 1. The msb of the result and original are different
@@ -1484,20 +1454,20 @@ static UBY cpuAslB(UBY dst, ULO sh, ULO cycles)
     cpuSetFlagsShift(cpuIsZeroB(res), n_result, dst & (0x80>>(sh-1)), msb_changed);
   }
   cpuSetInstructionTime(cycles + sh*2);
-  return (UBY) res;
+  return (uint8_t) res;
 }
 
 /// <summary>
 /// Aslw
 /// </summary>
-static UWO cpuAslW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuAslW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
-  WOR res;
+  int16_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
     cpuSetFlagsShiftZero(cpuIsZeroW(dst), cpuMsbW(dst));
-    res = (WOR) dst;
+    res = (int16_t) dst;
   }
   else if (sh >= 16)
   {
@@ -1506,9 +1476,9 @@ static UWO cpuAslW(UWO dst, ULO sh, ULO cycles)
   }
   else
   {
-    UWO mask = 0xffff << (15-sh);
-    UWO out = dst & mask;
-    res = ((WOR)dst) << sh;
+    uint16_t mask = 0xffff << (15-sh);
+    uint16_t out = dst & mask;
+    res = ((int16_t)dst) << sh;
 
     // Overflow calculation: 
     // 1. The msb of the result and original are different
@@ -1520,20 +1490,20 @@ static UWO cpuAslW(UWO dst, ULO sh, ULO cycles)
     cpuSetFlagsShift(cpuIsZeroW(res), n_result, dst & (0x8000>>(sh-1)), msb_changed);
   }
   cpuSetInstructionTime(cycles + sh*2);
-  return (UWO) res;
+  return (uint16_t) res;
 }
 
 /// <summary>
 /// Asll
 /// </summary>
-static ULO cpuAslL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuAslL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
-  LON res;
+  int32_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
     cpuSetFlagsShiftZero(cpuIsZeroL(dst), cpuMsbL(dst));
-    res = (LON) dst;
+    res = (int32_t) dst;
   }
   else if (sh >= 32)
   {
@@ -1542,9 +1512,9 @@ static ULO cpuAslL(ULO dst, ULO sh, ULO cycles)
   }
   else
   {
-    ULO mask = 0xffffffff << (31-sh);
-    ULO out = dst & mask;
-    res = ((LON)dst) << sh;
+    uint32_t mask = 0xffffffff << (31-sh);
+    uint32_t out = dst & mask;
+    res = ((int32_t)dst) << sh;
 
     // Overflow calculation: 
     // 1. The msb of the result and original are different
@@ -1556,20 +1526,20 @@ static ULO cpuAslL(ULO dst, ULO sh, ULO cycles)
     cpuSetFlagsShift(cpuIsZeroL(res), n_result, dst & (0x80000000>>(sh-1)), msb_changed);
   }
   cpuSetInstructionTime(cycles + sh*2);
-  return (ULO) res;
+  return (uint32_t) res;
 }
 
 /// <summary>
 /// Asrb
 /// </summary>
-static UBY cpuAsrB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuAsrB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
-  BYT res;
+  int8_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
     cpuSetFlagsShiftZero(cpuIsZeroB(dst), cpuMsbB(dst));
-    res = (BYT) dst;
+    res = (int8_t) dst;
   }
   else if (sh >= 8)
   {
@@ -1578,24 +1548,24 @@ static UBY cpuAsrB(UBY dst, ULO sh, ULO cycles)
   }
   else
   {
-    res = ((BYT)dst) >> sh;
+    res = ((int8_t)dst) >> sh;
     cpuSetFlagsShift(cpuIsZeroB(res), cpuMsbB(res), dst & (1<<(sh-1)), FALSE);
   }
   cpuSetInstructionTime(cycles + sh*2);
-  return (UBY) res;
+  return (uint8_t) res;
 }
 
 /// <summary>
 /// Asrw
 /// </summary>
-static UWO cpuAsrW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuAsrW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
-  WOR res;
+  int16_t res;
   sh &= 0x3f;
   if (sh == 0)
   {
     cpuSetFlagsShiftZero(cpuIsZeroW(dst), cpuMsbW(dst));
-    res = (WOR) dst;
+    res = (int16_t) dst;
   }
   else if (sh >= 16)
   {
@@ -1604,25 +1574,25 @@ static UWO cpuAsrW(UWO dst, ULO sh, ULO cycles)
   }
   else
   {
-    res = ((WOR)dst) >> sh;
+    res = ((int16_t)dst) >> sh;
     cpuSetFlagsShift(cpuIsZeroW(res), cpuMsbW(res), dst & (1<<(sh-1)), FALSE);
   }
   cpuSetInstructionTime(cycles + sh*2);
-  return (UWO) res;
+  return (uint16_t) res;
 }
 
 /// <summary>
 /// Asrl
 /// </summary>
-static ULO cpuAsrL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuAsrL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
-  LON res;
+  int32_t res;
   sh &= 0x3f;
 
   if (sh == 0)
   {
     cpuSetFlagsShiftZero(cpuIsZeroL(dst), cpuMsbL(dst));
-    res = (LON) dst;
+    res = (int32_t) dst;
   }
   else if (sh >= 32)
   {
@@ -1631,19 +1601,19 @@ static ULO cpuAsrL(ULO dst, ULO sh, ULO cycles)
   }
   else
   {
-    res = ((LON)dst) >> sh;
+    res = ((int32_t)dst) >> sh;
     cpuSetFlagsShift(cpuIsZeroL(res), cpuMsbL(res), dst & (1<<(sh-1)), FALSE);
   }
   cpuSetInstructionTime(cycles + sh*2);
-  return (ULO) res;
+  return (uint32_t) res;
 }
 
 /// <summary>
 /// Rolb
 /// </summary>
-static UBY cpuRolB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuRolB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
-  UBY res;
+  uint8_t res;
   sh &= 0x3f;
   cycles += sh*2;
   if (sh == 0)
@@ -1664,9 +1634,9 @@ static UBY cpuRolB(UBY dst, ULO sh, ULO cycles)
 /// <summary>
 /// Rolw
 /// </summary>
-static UWO cpuRolW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuRolW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
-  UWO res;
+  uint16_t res;
   sh &= 0x3f;
   cycles += sh*2;
   if (sh == 0)
@@ -1687,9 +1657,9 @@ static UWO cpuRolW(UWO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roll
 /// </summary>
-static ULO cpuRolL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuRolL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
-  ULO res;
+  uint32_t res;
   sh &= 0x3f;
   cycles += sh*2;
   if (sh == 0)
@@ -1710,9 +1680,9 @@ static ULO cpuRolL(ULO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Rorb
 /// </summary>
-static UBY cpuRorB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuRorB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
-  UBY res;
+  uint8_t res;
   sh &= 0x3f;
   cycles += sh*2;
   if (sh == 0)
@@ -1733,9 +1703,9 @@ static UBY cpuRorB(UBY dst, ULO sh, ULO cycles)
 /// <summary>
 /// Rorw
 /// </summary>
-static UWO cpuRorW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuRorW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
-  UWO res;
+  uint16_t res;
   sh &= 0x3f;
   cycles += sh*2;
   if (sh == 0)
@@ -1756,9 +1726,9 @@ static UWO cpuRorW(UWO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Rorl
 /// </summary>
-static ULO cpuRorL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuRorL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
-  ULO res;
+  uint32_t res;
   sh &= 0x3f;
   cycles += sh*2;
   if (sh == 0)
@@ -1779,16 +1749,14 @@ static ULO cpuRorL(ULO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roxlb
 /// </summary>
-static UBY cpuRoxlB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuRoxlB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
   BOOLE x = cpuGetFlagX();
-  BOOLE x_temp;
-  UBY res = dst;
-  ULO i;
+  uint8_t res = dst;
   sh &= 0x3f;
-  for (i = 0; i < sh; ++i)
+  for (uint32_t i = 0; i < sh; ++i)
   {
-    x_temp = cpuMsbB(res);
+    BOOLE x_temp = cpuMsbB(res);
     res = (res << 1) | ((x) ? 1:0);
     x = x_temp;
   }
@@ -1800,16 +1768,14 @@ static UBY cpuRoxlB(UBY dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roxlw
 /// </summary>
-static UWO cpuRoxlW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuRoxlW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
   BOOLE x = cpuGetFlagX();
-  BOOLE x_temp;
-  UWO res = dst;
-  ULO i;
+  uint16_t res = dst;
   sh &= 0x3f;
-  for (i = 0; i < sh; ++i)
+  for (uint32_t i = 0; i < sh; ++i)
   {
-    x_temp = cpuMsbW(res);
+    BOOLE x_temp = cpuMsbW(res);
     res = (res << 1) | ((x) ? 1:0);
     x = x_temp;
   }
@@ -1821,16 +1787,14 @@ static UWO cpuRoxlW(UWO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roxll
 /// </summary>
-static ULO cpuRoxlL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuRoxlL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
   BOOLE x = cpuGetFlagX();
-  BOOLE x_temp;
-  ULO res = dst;
-  ULO i;
+  uint32_t res = dst;
   sh &= 0x3f;
-  for (i = 0; i < sh; ++i)
+  for (uint32_t i = 0; i < sh; ++i)
   {
-    x_temp = cpuMsbL(res);
+    BOOLE x_temp = cpuMsbL(res);
     res = (res << 1) | ((x) ? 1:0);
     x = x_temp;
   }
@@ -1842,16 +1806,14 @@ static ULO cpuRoxlL(ULO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roxrb
 /// </summary>
-static UBY cpuRoxrB(UBY dst, ULO sh, ULO cycles)
+static uint8_t cpuRoxrB(uint8_t dst, uint32_t sh, uint32_t cycles)
 {
   BOOLE x = cpuGetFlagX();
-  BOOLE x_temp;
-  UBY res = dst;
-  ULO i;
+  uint8_t res = dst;
   sh &= 0x3f;
-  for (i = 0; i < sh; ++i)
+  for (uint32_t i = 0; i < sh; ++i)
   {
-    x_temp = res & 1;
+    BOOLE x_temp = res & 1;
     res = (res >> 1) | ((x) ? 0x80:0);
     x = x_temp;
   }
@@ -1863,16 +1825,14 @@ static UBY cpuRoxrB(UBY dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roxrw
 /// </summary>
-static UWO cpuRoxrW(UWO dst, ULO sh, ULO cycles)
+static uint16_t cpuRoxrW(uint16_t dst, uint32_t sh, uint32_t cycles)
 {
   BOOLE x = cpuGetFlagX();
-  BOOLE x_temp;
-  UWO res = dst;
-  ULO i;
+  uint16_t res = dst;
   sh &= 0x3f;
-  for (i = 0; i < sh; ++i)
+  for (uint32_t i = 0; i < sh; ++i)
   {
-    x_temp = res & 1;
+    BOOLE x_temp = res & 1;
     res = (res >> 1) | ((x) ? 0x8000:0);
     x = x_temp;
   }
@@ -1884,16 +1844,14 @@ static UWO cpuRoxrW(UWO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Roxrl
 /// </summary>
-static ULO cpuRoxrL(ULO dst, ULO sh, ULO cycles)
+static uint32_t cpuRoxrL(uint32_t dst, uint32_t sh, uint32_t cycles)
 {
   BOOLE x = cpuGetFlagX();
-  BOOLE x_temp;
-  ULO res = dst;
-  ULO i;
+  uint32_t res = dst;
   sh &= 0x3f;
-  for (i = 0; i < sh; ++i)
+  for (uint32_t i = 0; i < sh; ++i)
   {
-    x_temp = res & 1;
+    BOOLE x_temp = res & 1;
     res = (res >> 1) | ((x) ? 0x80000000:0);
     x = x_temp;
   }
@@ -1905,7 +1863,7 @@ static ULO cpuRoxrL(ULO dst, ULO sh, ULO cycles)
 /// <summary>
 /// Stop
 /// </summary>
-static void cpuStop(UWO flags)
+static void cpuStop(uint16_t flags)
 {
   if (cpuGetFlagSupervisor())
   {
@@ -1922,7 +1880,7 @@ static void cpuStop(UWO flags)
 /// <summary>
 /// Reset
 /// </summary>
-static void cpuReset()
+static void cpuReset(void)
 {
   cpuCallResetExceptionFunc();
   cpuSetInstructionTime(132);
@@ -1931,28 +1889,27 @@ static void cpuReset()
 /// <summary>
 /// Rtd
 /// </summary>
-static void cpuRtd()
+static void cpuRtd(void)
 {
-  ULO displacement = cpuGetNextWordSignExt();
+  uint32_t displacement = cpuGetNextWordSignExt();
   cpuInitializeFromNewPC(memoryReadLong(cpuGetAReg(7))); 
   cpuSetAReg(7, cpuGetAReg(7) + 4 + displacement);
   cpuSetInstructionTime(4);
 }
 
-static ULO cpuRteStackInc[16] = {0, 0, 4, 4, 8, 0, 0, 52, 50, 10, 24, 84, 16, 18, 0, 0};
+static uint32_t cpuRteStackInc[16] = {0, 0, 4, 4, 8, 0, 0, 52, 50, 10, 24, 84, 16, 18, 0, 0};
 
 /// <summary>
 /// Rte
 /// </summary>
-static void cpuRte()
+static void cpuRte(void)
 {
   if (cpuGetFlagSupervisor())
   {
     BOOLE redo = TRUE;
-    UWO newsr;
     do
     {
-      newsr = memoryReadWord(cpuGetAReg(7));
+      uint16_t newsr = memoryReadWord(cpuGetAReg(7));
       cpuSetAReg(7, cpuGetAReg(7) + 2);
 
       cpuInitializeFromNewPC(memoryReadLong(cpuGetAReg(7)));
@@ -1960,7 +1917,7 @@ static void cpuRte()
 
       if (cpuGetModelMajor() > 0)
       {
-	ULO frame_type = (memoryReadWord(cpuGetAReg(7)) >> 12) & 0xf;
+	uint32_t frame_type = (memoryReadWord(cpuGetAReg(7)) >> 12) & 0xf;
 	cpuSetAReg(7, cpuGetAReg(7) + 2);
 	cpuSetAReg(7, cpuGetAReg(7) + cpuRteStackInc[frame_type]);
 	redo = (frame_type == 1 && cpuGetModelMajor() >= 2 && cpuGetModelMajor() < 6);
@@ -1970,20 +1927,21 @@ static void cpuRte()
       cpuUpdateSr(newsr); // Because we can go from isp to msp here.
 
     } while (redo);
+
+    cpuSetInstructionTime(20);
   }
   else
   {
     cpuThrowPrivilegeViolationException();
   }
-  cpuSetInstructionTime(20);
 }
 
 /// <summary>
 /// Swap
 /// </summary>
-static void cpuSwap(ULO reg)
+static void cpuSwap(uint32_t reg)
 {
-  ULO res = cpuJoinWordToLong((UWO)cpuGetDReg(reg), (UWO) (cpuGetDReg(reg) >> 16));
+  uint32_t res = cpuJoinWordToLong((uint16_t)cpuGetDReg(reg), (uint16_t) (cpuGetDReg(reg) >> 16));
   cpuSetDReg(reg, res);
   cpuSetFlagsNZ00NewL(res);
   cpuSetInstructionTime(4);
@@ -1992,22 +1950,24 @@ static void cpuSwap(ULO reg)
 /// <summary>
 /// Unlk
 /// </summary>
-static void cpuUnlk(ULO reg)
+static void cpuUnlk(uint32_t reg)
 {
   cpuSetAReg(7, cpuGetAReg(reg));
-  cpuSetAReg(reg, memoryReadLong(cpuGetAReg(7)));
+  uint32_t value = memoryReadLong(cpuGetAReg(7));
   cpuSetAReg(7, cpuGetAReg(7) + 4);
+  cpuSetAReg(reg, value);
   cpuSetInstructionTime(12);
 }
 
 /// <summary>
 /// Link
 /// </summary>
-static void cpuLinkW(ULO reg)
+static void cpuLinkW(uint32_t reg)
 {
-  ULO disp = cpuGetNextWordSignExt();
+  uint32_t disp = cpuGetNextWordSignExt();
+  uint32_t value = cpuGetAReg(reg);
   cpuSetAReg(7, cpuGetAReg(7) - 4);
-  memoryWriteLong(cpuGetAReg(reg), cpuGetAReg(7));
+  memoryWriteLong(value, cpuGetAReg(7));
   cpuSetAReg(reg, cpuGetAReg(7));
   cpuSetAReg(7, cpuGetAReg(7) + disp);
   cpuSetInstructionTime(16);
@@ -2017,11 +1977,12 @@ static void cpuLinkW(ULO reg)
 /// Link.
 /// 68020, 68030 and 68040 only.
 /// </summary>
-static void cpuLinkL(ULO reg)
+static void cpuLinkL(uint32_t reg)
 {
-  ULO disp = cpuGetNextLong();
+  uint32_t disp = cpuGetNextLong();
+  uint32_t value = cpuGetAReg(reg);
   cpuSetAReg(7, cpuGetAReg(7) - 4);
-  memoryWriteLong(cpuGetAReg(reg), cpuGetAReg(7));
+  memoryWriteLong(value, cpuGetAReg(7));
   cpuSetAReg(reg, cpuGetAReg(7));
   cpuSetAReg(7, cpuGetAReg(7) + disp);
   cpuSetInstructionTime(4);
@@ -2030,9 +1991,9 @@ static void cpuLinkL(ULO reg)
 /// <summary>
 /// Ext.w (byte to word)
 /// </summary>
-static void cpuExtW(ULO reg)
+static void cpuExtW(uint32_t reg)
 {
-  UWO res = cpuGetDRegByteSignExtWord(reg);
+  uint16_t res = cpuGetDRegByteSignExtWord(reg);
   cpuSetDRegWord(reg, res);
   cpuSetFlagsNZ00NewW(res);
   cpuSetInstructionTime(4);
@@ -2041,9 +2002,9 @@ static void cpuExtW(ULO reg)
 /// <summary>
 /// Ext.l (word to long)
 /// </summary>
-static void cpuExtL(ULO reg)
+static void cpuExtL(uint32_t reg)
 {
-  ULO res = cpuGetDRegWordSignExtLong(reg);
+  uint32_t res = cpuGetDRegWordSignExtLong(reg);
   cpuSetDReg(reg, res);
   cpuSetFlagsNZ00NewL(res);
   cpuSetInstructionTime(4);
@@ -2052,9 +2013,9 @@ static void cpuExtL(ULO reg)
 /// <summary>
 /// ExtB.l (byte to long) (020+)
 /// </summary>
-static void cpuExtBL(ULO reg)
+static void cpuExtBL(uint32_t reg)
 {
-  ULO res = cpuGetDRegByteSignExtLong(reg);
+  uint32_t res = cpuGetDRegByteSignExtLong(reg);
   cpuSetDReg(reg, res);
   cpuSetFlagsNZ00NewL(res);
   cpuSetInstructionTime(4);
@@ -2063,9 +2024,9 @@ static void cpuExtBL(ULO reg)
 /// <summary>
 /// Exg Rx,Ry
 /// </summary>
-static void cpuExgAll(ULO reg1_type, ULO reg1, ULO reg2_type, ULO reg2)
+static void cpuExgAll(uint32_t reg1_type, uint32_t reg1, uint32_t reg2_type, uint32_t reg2)
 {
-  ULO tmp = cpuGetReg(reg1_type, reg1);
+  uint32_t tmp = cpuGetReg(reg1_type, reg1);
   cpuSetReg(reg1_type, reg1, cpuGetReg(reg2_type, reg2));
   cpuSetReg(reg2_type, reg2, tmp);
   cpuSetInstructionTime(6);
@@ -2074,7 +2035,7 @@ static void cpuExgAll(ULO reg1_type, ULO reg1, ULO reg2_type, ULO reg2)
 /// <summary>
 /// Exg Dx,Dy
 /// </summary>
-static void cpuExgDD(ULO reg1, ULO reg2)
+static void cpuExgDD(uint32_t reg1, uint32_t reg2)
 {
   cpuExgAll(0, reg1, 0, reg2);
 }
@@ -2082,7 +2043,7 @@ static void cpuExgDD(ULO reg1, ULO reg2)
 /// <summary>
 /// Exg Ax,Ay
 /// </summary>
-static void cpuExgAA(ULO reg1, ULO reg2)
+static void cpuExgAA(uint32_t reg1, uint32_t reg2)
 {
   cpuExgAll(1, reg1, 1, reg2);
 }
@@ -2090,7 +2051,7 @@ static void cpuExgAA(ULO reg1, ULO reg2)
 /// <summary>
 /// Exg Dx,Ay
 /// </summary>
-static void cpuExgDA(ULO reg1, ULO reg2)
+static void cpuExgDA(uint32_t reg1, uint32_t reg2)
 {
   cpuExgAll(0, reg1, 1, reg2);
 }
@@ -2099,16 +2060,14 @@ static void cpuExgDA(ULO reg1, ULO reg2)
 /// Movem.w regs, -(Ax)
 /// Order: d0-d7,a0-a7   a7 first
 /// </summary>
-static void cpuMovemwPre(UWO regs, ULO reg)
+static void cpuMovemwPre(uint16_t regs, uint32_t reg)
 {
-  ULO cycles = 8;
-  ULO dstea = cpuGetAReg(reg);
-  ULO index = 1;
-  LON i, j;
-  BOOLE ea_reg_seen = FALSE;
-  ULO ea_reg_ea = 0;
+  uint32_t cycles = 8;
+  uint32_t dstea = cpuGetAReg(reg);
+  uint32_t index = 1;
+  int32_t j;
 
-  i = 1;
+  int32_t i = 1;
   for (j = 7; j >= 0; j--)
   {
     if (regs & index)
@@ -2116,8 +2075,7 @@ static void cpuMovemwPre(UWO regs, ULO reg)
       dstea -= 2;
       if (cpuGetModelMajor() >= 2 && j == reg)
       {
-	ea_reg_seen = TRUE;
-	ea_reg_ea = dstea;
+	memoryWriteWord((uint16_t)dstea, dstea);
       }
       else
       {
@@ -2139,10 +2097,6 @@ static void cpuMovemwPre(UWO regs, ULO reg)
     }
     index = index << 1;
   }
-  if (ea_reg_seen)
-  {
-    memoryWriteWord((UWO)dstea, ea_reg_ea);
-  }
   cpuSetAReg(reg, dstea);
   cpuSetInstructionTime(cycles);
 }
@@ -2151,16 +2105,14 @@ static void cpuMovemwPre(UWO regs, ULO reg)
 /// Movem.l regs, -(Ax)
 /// Order: d0-d7,a0-a7   a7 first
 /// </summary>
-static void cpuMovemlPre(UWO regs, ULO reg)
+static void cpuMovemlPre(uint16_t regs, uint32_t reg)
 {
-  ULO cycles = 8;
-  ULO dstea = cpuGetAReg(reg);
-  ULO index = 1;
-  LON i, j;
-  BOOLE ea_reg_seen = FALSE;
-  ULO ea_reg_ea = 0;
+  uint32_t cycles = 8;
+  uint32_t dstea = cpuGetAReg(reg);
+  uint32_t index = 1;
+  int32_t j;
 
-  i = 1;
+  int32_t i = 1;
   for (j = 7; j >= 0; j--)
   {
     if (regs & index)
@@ -2168,8 +2120,7 @@ static void cpuMovemlPre(UWO regs, ULO reg)
       dstea -= 4;
       if (cpuGetModelMajor() >= 2 && j == reg)
       {
-	ea_reg_seen = TRUE;
-	ea_reg_ea = dstea;
+	memoryWriteLong(dstea, dstea);
       }
       else
       {
@@ -2192,10 +2143,6 @@ static void cpuMovemlPre(UWO regs, ULO reg)
     index = index << 1;
   }
 
-  if (ea_reg_seen)
-  {
-    memoryWriteLong(dstea, ea_reg_ea);
-  }
   cpuSetAReg(reg, dstea);
   cpuSetInstructionTime(cycles);
 }
@@ -2204,21 +2151,20 @@ static void cpuMovemlPre(UWO regs, ULO reg)
 /// Movem.w (Ax)+, regs
 /// Order: a7-a0,d7-d0   d0 first
 /// </summary>
-static void cpuMovemwPost(UWO regs, ULO reg)
+static void cpuMovemwPost(uint16_t regs, uint32_t reg)
 {
-  ULO cycles = 12;
-  ULO dstea = cpuGetAReg(reg);
-  ULO index = 1;
-  ULO i, j;
+  uint32_t cycles = 12;
+  uint32_t dstea = cpuGetAReg(reg);
+  uint32_t index = 1;
 
-  for (i = 0; i < 2; ++i)
+  for (uint32_t i = 0; i < 2; ++i)
   {
-    for (j = 0; j < 8; ++j)
+    for (uint32_t j = 0; j < 8; ++j)
     {
       if (regs & index)
       {
 	// Each word, for both data and address registers, is sign-extended before stored.
-	cpuSetReg(i, j, (ULO)(LON)(WOR) memoryReadWord(dstea));
+	cpuSetReg(i, j, (uint32_t)(int32_t)(int16_t) memoryReadWord(dstea));
 	dstea += 2;
 	cycles += 4;
       }
@@ -2233,16 +2179,15 @@ static void cpuMovemwPost(UWO regs, ULO reg)
 /// Movem.l (Ax)+, regs
 /// Order: a7-a0,d7-d0   d0 first
 /// </summary>
-static void cpuMovemlPost(UWO regs, ULO reg)
+static void cpuMovemlPost(uint16_t regs, uint32_t reg)
 {
-  ULO cycles = 12;
-  ULO dstea = cpuGetAReg(reg);
-  ULO index = 1;
-  ULO i, j;
+  uint32_t cycles = 12;
+  uint32_t dstea = cpuGetAReg(reg);
+  uint32_t index = 1;
 
-  for (i = 0; i < 2; ++i)
+  for (uint32_t i = 0; i < 2; ++i)
   {
-    for (j = 0; j < 8; ++j)
+    for (uint32_t j = 0; j < 8; ++j)
     {
       if (regs & index)
       {
@@ -2261,21 +2206,20 @@ static void cpuMovemlPost(UWO regs, ULO reg)
 /// Movem.w <Control>, regs
 /// Order: a7-a0,d7-d0   d0 first
 /// </summary>
-static void cpuMovemwEa2R(UWO regs, ULO ea, ULO eacycles)
+static void cpuMovemwEa2R(uint16_t regs, uint32_t ea, uint32_t eacycles)
 {
-  ULO cycles = eacycles;
-  ULO dstea = ea;
-  ULO index = 1;
-  ULO i, j;
+  uint32_t cycles = eacycles;
+  uint32_t dstea = ea;
+  uint32_t index = 1;
 
-  for (i = 0; i < 2; ++i)
+  for (uint32_t i = 0; i < 2; ++i)
   {
-    for (j = 0; j < 8; ++j)
+    for (uint32_t j = 0; j < 8; ++j)
     {
       if (regs & index)
       {
 	// Each word, for both data and address registers, is sign-extended before stored.
-	cpuSetReg(i, j, (ULO)(LON)(WOR) memoryReadWord(dstea));
+	cpuSetReg(i, j, (uint32_t)(int32_t)(int16_t) memoryReadWord(dstea));
 	dstea += 2;
 	cycles += 4;
       }
@@ -2289,16 +2233,15 @@ static void cpuMovemwEa2R(UWO regs, ULO ea, ULO eacycles)
 /// Movem.l <Control>, regs
 /// Order: a7-a0,d7-d0   d0 first
 /// </summary>
-static void cpuMovemlEa2R(UWO regs, ULO ea, ULO eacycles)
+static void cpuMovemlEa2R(uint16_t regs, uint32_t ea, uint32_t eacycles)
 {
-  ULO cycles = eacycles;
-  ULO dstea = ea;
-  ULO index = 1;
-  ULO i, j;
+  uint32_t cycles = eacycles;
+  uint32_t dstea = ea;
+  uint32_t index = 1;
 
-  for (i = 0; i < 2; ++i)
+  for (uint32_t i = 0; i < 2; ++i)
   {
-    for (j = 0; j < 8; ++j)
+    for (uint32_t j = 0; j < 8; ++j)
     {
       if (regs & index)
       {
@@ -2316,16 +2259,15 @@ static void cpuMovemlEa2R(UWO regs, ULO ea, ULO eacycles)
 /// Movem.w regs, <Control>
 /// Order: a7-a0,d7-d0   d0 first
 /// </summary>
-static void cpuMovemwR2Ea(UWO regs, ULO ea, ULO eacycles)
+static void cpuMovemwR2Ea(uint16_t regs, uint32_t ea, uint32_t eacycles)
 {
-  ULO cycles = eacycles;
-  ULO dstea = ea;
-  ULO index = 1;
-  ULO i, j;
+  uint32_t cycles = eacycles;
+  uint32_t dstea = ea;
+  uint32_t index = 1;
 
-  for (i = 0; i < 2; ++i)
+  for (uint32_t i = 0; i < 2; ++i)
   {
-    for (j = 0; j < 8; ++j)
+    for (uint32_t j = 0; j < 8; ++j)
     {
       if (regs & index)
       {
@@ -2343,12 +2285,12 @@ static void cpuMovemwR2Ea(UWO regs, ULO ea, ULO eacycles)
 /// Movem.l regs, <Control>
 /// Order: a7-a0,d7-d0   d0 first
 /// </summary>
-static void cpuMovemlR2Ea(UWO regs, ULO ea, ULO eacycles)
+static void cpuMovemlR2Ea(uint16_t regs, uint32_t ea, uint32_t eacycles)
 {
-  ULO cycles = eacycles;
-  ULO dstea = ea;
-  ULO index = 1;
-  ULO i, j;
+  uint32_t cycles = eacycles;
+  uint32_t dstea = ea;
+  uint32_t index = 1;
+  uint32_t i, j;
 
   for (i = 0; i < 2; ++i)
   {
@@ -2369,7 +2311,7 @@ static void cpuMovemlR2Ea(UWO regs, ULO ea, ULO eacycles)
 /// <summary>
 /// Trap #vectorno
 /// </summary>
-static void cpuTrap(ULO vectorno)
+static void cpuTrap(uint32_t vectorno)
 {
   // PC written to the exception frame must be pc + 2, the address of the next instruction.
   cpuThrowTrapException(vectorno);
@@ -2378,7 +2320,7 @@ static void cpuTrap(ULO vectorno)
 /// <summary>
 /// move.l  Ax,Usp
 /// </summary>
-static void cpuMoveToUsp(ULO reg)
+static void cpuMoveToUsp(uint32_t reg)
 {
   if (cpuGetFlagSupervisor())
   {
@@ -2395,7 +2337,7 @@ static void cpuMoveToUsp(ULO reg)
 /// <summary>
 /// move.l  Usp,Ax
 /// </summary>
-static void cpuMoveFromUsp(ULO reg)
+static void cpuMoveFromUsp(uint32_t reg)
 {
   if (cpuGetFlagSupervisor())
   {
@@ -2412,11 +2354,11 @@ static void cpuMoveFromUsp(ULO reg)
 /// <summary>
 /// cmp.b (Ay)+,(Ax)+
 /// </summary>
-static void cpuCmpMB(ULO regx, ULO regy)
+static void cpuCmpMB(uint32_t regx, uint32_t regy)
 {
-  UBY src = memoryReadByte(cpuEA03(regy, 1));
-  UBY dst = memoryReadByte(cpuEA03(regx, 1));
-  UBY res = dst - src;
+  uint8_t src = memoryReadByte(cpuEA03(regy, 1));
+  uint8_t dst = memoryReadByte(cpuEA03(regx, 1));
+  uint8_t res = dst - src;
   cpuSetFlagsCmp(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(dst), cpuMsbB(src));
   cpuSetInstructionTime(12);
 }
@@ -2424,11 +2366,11 @@ static void cpuCmpMB(ULO regx, ULO regy)
 /// <summary>
 /// cmp.w (Ay)+,(Ax)+
 /// </summary>
-static void cpuCmpMW(ULO regx, ULO regy)
+static void cpuCmpMW(uint32_t regx, uint32_t regy)
 {
-  UWO src = memoryReadWord(cpuEA03(regy, 2));
-  UWO dst = memoryReadWord(cpuEA03(regx, 2));
-  UWO res = dst - src;
+  uint16_t src = memoryReadWord(cpuEA03(regy, 2));
+  uint16_t dst = memoryReadWord(cpuEA03(regx, 2));
+  uint16_t res = dst - src;
   cpuSetFlagsCmp(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(dst), cpuMsbW(src));
   cpuSetInstructionTime(12);
 }
@@ -2436,34 +2378,39 @@ static void cpuCmpMW(ULO regx, ULO regy)
 /// <summary>
 /// cmp.l (Ay)+,(Ax)+
 /// </summary>
-static void cpuCmpML(ULO regx, ULO regy)
+static void cpuCmpML(uint32_t regx, uint32_t regy)
 {
-  ULO src = memoryReadLong(cpuEA03(regy, 4));
-  ULO dst = memoryReadLong(cpuEA03(regx, 4));
-  ULO res = dst - src;
+  uint32_t src = memoryReadLong(cpuEA03(regy, 4));
+  uint32_t dst = memoryReadLong(cpuEA03(regx, 4));
+  uint32_t res = dst - src;
   cpuSetFlagsCmp(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(dst), cpuMsbL(src));
   cpuSetInstructionTime(20);
 }
 
 /// <summary>
-/// chk.w Dx, ea
+/// chk.w ea, dn  (upper bound, value to test)
 /// Undocumented features:
 /// Z is set from the register operand,
 /// V and C is always cleared.
 /// </summary>
-static void cpuChkW(UWO value, UWO ub)
+static void cpuChkW(uint16_t value, uint16_t ub, uint32_t instructionTime)
 {
   cpuSetFlagZ(value == 0);
   cpuClearFlagsVC();
-  if (((WOR)value) < 0)
+  if (((int16_t)value) < 0)
   {
     cpuSetFlagN(TRUE);
     cpuThrowChkException();
   }
-  else if (((WOR)value) > ((WOR)ub))
+  else if (((int16_t)value) > ((int16_t)ub))
   {
     cpuSetFlagN(FALSE);
     cpuThrowChkException();
+  }
+  else
+  {
+    cpuSetFlagN(FALSE);
+    cpuSetInstructionTime(instructionTime);
   }
 }
 
@@ -2474,28 +2421,32 @@ static void cpuChkW(UWO value, UWO ub)
 /// Z is set from the register operand,
 /// V and C is always cleared.
 /// </summary>
-static void cpuChkL(ULO value, ULO ub)
+static void cpuChkL(uint32_t value, uint32_t ub, uint32_t instructionTime)
 {
   cpuSetFlagZ(value == 0);
   cpuClearFlagsVC();
-  if (((LON)value) < 0)
+  if (((int32_t)value) < 0)
   {
     cpuSetFlagN(TRUE);
     cpuThrowChkException();
   }
-  else if (((LON)value) > ((LON)ub))
+  else if (((int32_t)value) > ((int32_t)ub))
   {
     cpuSetFlagN(FALSE);
     cpuThrowChkException();
+  }
+  else
+  {
+    cpuSetInstructionTime(instructionTime);
   }
 }
 
 /// <summary>
 /// addx.b dx,dy
 /// </summary>
-static UBY cpuAddXB(UBY dst, UBY src)
+static uint8_t cpuAddXB(uint8_t dst, uint8_t src)
 {
-  UBY res = dst + src + ((cpuGetFlagX()) ? 1:0);
+  uint8_t res = dst + src + ((cpuGetFlagX()) ? 1:0);
   cpuSetFlagsAddX(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(dst), cpuMsbB(src));
   return res;
 }
@@ -2503,9 +2454,9 @@ static UBY cpuAddXB(UBY dst, UBY src)
 /// <summary>
 /// addx.w dx,dy
 /// </summary>
-static UWO cpuAddXW(UWO dst, UWO src)
+static uint16_t cpuAddXW(uint16_t dst, uint16_t src)
 {
-  UWO res = dst + src + ((cpuGetFlagX()) ? 1:0);
+  uint16_t res = dst + src + ((cpuGetFlagX()) ? 1:0);
   cpuSetFlagsAddX(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(dst), cpuMsbW(src));
   return res;
 }
@@ -2513,9 +2464,9 @@ static UWO cpuAddXW(UWO dst, UWO src)
 /// <summary>
 /// addx.l dx,dy
 /// </summary>
-static ULO cpuAddXL(ULO dst, ULO src)
+static uint32_t cpuAddXL(uint32_t dst, uint32_t src)
 {
-  ULO res = dst + src + ((cpuGetFlagX()) ? 1:0);
+  uint32_t res = dst + src + ((cpuGetFlagX()) ? 1:0);
   cpuSetFlagsAddX(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(dst), cpuMsbL(src));
   return res;
 }
@@ -2523,9 +2474,9 @@ static ULO cpuAddXL(ULO dst, ULO src)
 /// <summary>
 /// subx.b dx,dy
 /// </summary>
-static UBY cpuSubXB(UBY dst, UBY src)
+static uint8_t cpuSubXB(uint8_t dst, uint8_t src)
 {
-  UBY res = dst - src - ((cpuGetFlagX()) ? 1:0);
+  uint8_t res = dst - src - ((cpuGetFlagX()) ? 1:0);
   cpuSetFlagsSubX(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(dst), cpuMsbB(src));
   return res;
 }
@@ -2533,9 +2484,9 @@ static UBY cpuSubXB(UBY dst, UBY src)
 /// <summary>
 /// subx.w dx,dy
 /// </summary>
-static UWO cpuSubXW(UWO dst, UWO src)
+static uint16_t cpuSubXW(uint16_t dst, uint16_t src)
 {
-  UWO res = dst - src - ((cpuGetFlagX()) ? 1:0);
+  uint16_t res = dst - src - ((cpuGetFlagX()) ? 1:0);
   cpuSetFlagsSubX(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(dst), cpuMsbW(src));
   return res;
 }
@@ -2543,9 +2494,9 @@ static UWO cpuSubXW(UWO dst, UWO src)
 /// <summary>
 /// subx.l dx,dy
 /// </summary>
-static ULO cpuSubXL(ULO dst, ULO src)
+static uint32_t cpuSubXL(uint32_t dst, uint32_t src)
 {
-  ULO res = dst - src - ((cpuGetFlagX()) ? 1:0);
+  uint32_t res = dst - src - ((cpuGetFlagX()) ? 1:0);
   cpuSetFlagsSubX(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(dst), cpuMsbL(src));
   return res;
 }
@@ -2557,13 +2508,13 @@ static ULO cpuSubXL(ULO dst, ULO src)
 ///                Fourth Edition
 ///    by Bart Trzynadlowski, May 12, 2003
 /// </summary>
-static UBY cpuAbcdB(UBY dst, UBY src)
+static uint8_t cpuAbcdB(uint8_t dst, uint8_t src)
 {
-  UBY xflag = (cpuGetFlagX()) ? 1 : 0;
-  UWO low_nibble = (dst & 0xf) + (src & 0xf) + xflag;
-  UWO high_nibble = ((UWO)(dst & 0xf0)) + ((UWO)(src & 0xf0));
-  UWO result_unadjusted = low_nibble + high_nibble;
-  UWO result_bcd = result_unadjusted;
+  uint8_t xflag = (cpuGetFlagX()) ? 1 : 0;
+  uint16_t low_nibble = (dst & 0xf) + (src & 0xf) + xflag;
+  uint16_t high_nibble = ((uint16_t)(dst & 0xf0)) + ((uint16_t)(src & 0xf0));
+  uint16_t result_unadjusted = low_nibble + high_nibble;
+  uint16_t result_bcd = result_unadjusted;
 
   if (low_nibble > 9)
   {
@@ -2587,7 +2538,7 @@ static UBY cpuAbcdB(UBY dst, UBY src)
     cpuSetFlagN(result_bcd & 0x80);
     cpuSetFlagV(((result_unadjusted & 0x80) == 0) && (result_bcd & 0x80));
   }
-  return (UBY)result_bcd;
+  return (uint8_t)result_bcd;
 }
 
 /// <summary>
@@ -2598,27 +2549,27 @@ static UBY cpuAbcdB(UBY dst, UBY src)
 ///                Fourth Edition
 ///    by Bart Trzynadlowski, May 12, 2003
 /// </summary>
-static UBY cpuSbcdB(UBY dst, UBY src)
+static uint8_t cpuSbcdB(uint8_t dst, uint8_t src)
 {
-  UWO xflag = (cpuGetFlagX()) ? 1:0;
-  UWO result_plain_binary = (UWO)dst - (UWO)src - xflag;
-  UWO low_nibble = (UWO)(dst & 0xf) - (UWO)(src & 0xf) - xflag;
-  UWO high_nibble = ((UWO)(dst & 0xf0)) - ((UWO)(src & 0xf0));
-  UWO result_unadjusted = low_nibble + high_nibble;
-  UWO result_bcd = result_unadjusted;
+  uint16_t xflag = (cpuGetFlagX()) ? 1:0;
+  uint16_t result_plain_binary = (uint16_t)dst - (uint16_t)src - xflag;
+  uint16_t low_nibble = (uint16_t)(dst & 0xf) - (uint16_t)(src & 0xf) - xflag;
+  uint16_t high_nibble = ((uint16_t)(dst & 0xf0)) - ((uint16_t)(src & 0xf0));
+  uint16_t result_unadjusted = low_nibble + high_nibble;
+  uint16_t result_bcd = result_unadjusted;
 
-  if ((WOR)result_plain_binary < 0)
+  if ((int16_t)result_plain_binary < 0)
   {
     result_bcd -= 0x60;
   }
 
-  if (((WOR)low_nibble) < 0)
+  if (((int16_t)low_nibble) < 0)
   {
     result_bcd -= 6;
     result_plain_binary -= 6;
   }
 
-  BOOLE borrow = ((WOR)result_plain_binary < 0);
+  BOOLE borrow = ((int16_t)result_plain_binary < 0);
   cpuSetFlagXC(borrow);
 
   if (result_bcd & 0xff)
@@ -2631,47 +2582,47 @@ static UBY cpuSbcdB(UBY dst, UBY src)
     cpuSetFlagN(result_bcd & 0x80);
     cpuSetFlagV(((result_unadjusted & 0x80) == 0x80) && !(result_bcd & 0x80));
   }
-  return (UBY) result_bcd;
+  return (uint8_t) result_bcd;
 }
 
 /// <summary>
 /// nbcd.b dst
 /// </summary>
-static UBY cpuNbcdB(UBY dst)
+static uint8_t cpuNbcdB(uint8_t dst)
 {
   return cpuSbcdB(0, dst);
 }
 
 // Bit field functions
-struct cpuBfData
+typedef struct cpuBfData
 {
-  LON offset;
-  ULO width;
-  ULO normalized_offset;
+  int32_t offset;
+  uint32_t width;
+  uint32_t normalized_offset;
 
-  ULO base_address;
-  LON base_address_byte_offset;
-  ULO base_address_byte_count;
+  uint32_t base_address;
+  int32_t base_address_byte_offset;
+  uint32_t base_address_byte_count;
 
-  ULO field;
-  ULL field_mask;
-  ULO dn;
-  ULL field_memory;
-};
+  uint32_t field;
+  uint64_t field_mask;
+  uint32_t dn;
+  uint64_t field_memory;
+} cpuBfData;
 
-static LON cpuGetBfOffset(UWO ext, bool offsetIsDataRegister)
+static int32_t cpuGetBfOffset(uint16_t ext, bool offsetIsDataRegister)
 {
-  LON offset = (ext >> 6) & 0x1f;
+  int32_t offset = (ext >> 6) & 0x1f;
   if (offsetIsDataRegister)
   {
-    offset = (LON) cpuGetDReg(offset & 7);
+    offset = (int32_t) cpuGetDReg(offset & 7);
   }
   return offset;
 }
 
-static ULO cpuGetBfWidth(UWO ext, bool widthIsDataRegister)
+static uint32_t cpuGetBfWidth(uint16_t ext, bool widthIsDataRegister)
 {
-  ULO width = (ext & 0x1f);
+  uint32_t width = (ext & 0x1f);
   if (widthIsDataRegister)
   {
     width = cpuGetDReg(width & 7) & 0x1f;
@@ -2683,30 +2634,51 @@ static ULO cpuGetBfWidth(UWO ext, bool widthIsDataRegister)
   return width;
 }
 
-static void cpuSetBfField(struct cpuBfData *bf_data, ULO ea_or_reg, bool has_ea)
+static uint32_t cpuRotateLeft(uint32_t value, uint32_t shift)
+{
+  return (value << shift) | (value >> (32 - shift));
+}
+
+static uint32_t cpuRotateRight(uint32_t value, uint32_t shift)
+{
+  return (value >> shift) | (value << (32 - shift));
+}
+
+static void cpuSetBfField(cpuBfData *bf_data, uint32_t ea_or_reg, bool has_ea)
 {
   if (has_ea)
   {
-    ULO shift = bf_data->base_address_byte_count*8 - bf_data->normalized_offset - bf_data->width;
-    ULL field_value = (bf_data->field_memory & ~(bf_data->field_mask << shift)) | (bf_data->field << shift);
-    ULO address = bf_data->base_address + bf_data->base_address_byte_offset;
+    uint32_t shift = bf_data->base_address_byte_count*8 - bf_data->normalized_offset - bf_data->width;
+    uint64_t field_value = (bf_data->field_memory & ~(bf_data->field_mask << shift)) | (((uint64_t)bf_data->field) << shift);
+    uint32_t address = bf_data->base_address + bf_data->base_address_byte_offset;
 
     for (int i = bf_data->base_address_byte_count - 1; i >= 0; --i)
     {
-      UBY field_byte = (field_value >> (i*8)) & 0xff;
+      uint8_t field_byte = (field_value >> (i*8)) & 0xff;
       memoryWriteByte(field_byte, address);
       ++address;
     }
   }
   else
   {
-    ULO reg_shift = (32 - bf_data->offset - bf_data->width);
-    ULO reg_value = (cpuGetDReg(ea_or_reg) & ~(bf_data->field_mask << reg_shift)) | (bf_data->field << reg_shift);
-    cpuSetDReg(ea_or_reg, reg_value);
+    // Field from Dn wraps around if offset + width > 32
+    uint32_t offsetPlusWidth = (bf_data->offset & 0x1f) + bf_data->width;
+    if (offsetPlusWidth > 32)
+    {
+      uint32_t rotate = offsetPlusWidth - 32;
+      uint32_t reg_value = (cpuGetDReg(ea_or_reg) & ~cpuRotateRight((uint32_t)bf_data->field_mask, rotate)) | cpuRotateRight(bf_data->field, rotate);
+      cpuSetDReg(ea_or_reg, reg_value);
+    }
+    else
+    {
+      uint32_t reg_shift = 32 - offsetPlusWidth;
+      uint32_t reg_value = (cpuGetDReg(ea_or_reg) & ~(bf_data->field_mask << reg_shift)) | (bf_data->field << reg_shift);
+      cpuSetDReg(ea_or_reg, reg_value);
+    }
   }
 }
 
-void cpuBfDecodeExtWordAndGetField(struct cpuBfData *bf_data, ULO ea_or_reg, bool has_dn, bool has_ea, UWO ext)
+void cpuBfDecodeExtWordAndGetField(cpuBfData *bf_data, uint32_t ea_or_reg, bool has_dn, bool has_ea, uint16_t ext)
 {
   bool offsetIsDataRegister = ((ext & 0x0800) == 0x0800);
   bool widthIsDataRegister = ((ext & 0x0020) == 0x0020);
@@ -2727,13 +2699,13 @@ void cpuBfDecodeExtWordAndGetField(struct cpuBfData *bf_data, ULO ea_or_reg, boo
     bf_data->normalized_offset = bf_data->offset - (bf_data->base_address_byte_offset)*8; // Offset relative to the first byte in the field
     bf_data->base_address_byte_count = (bf_data->normalized_offset + bf_data->width + 7) / 8;
 
-    ULO field = 0;
-    ULL field_memory = 0;
-    ULO address = bf_data->base_address + bf_data->base_address_byte_offset;
-    ULO shift = (8 - bf_data->normalized_offset - bf_data->width) & 7;
+    uint32_t field = 0;
+    uint64_t field_memory = 0;
+    uint32_t address = bf_data->base_address + bf_data->base_address_byte_offset;
+    uint32_t shift = (8 - bf_data->normalized_offset - bf_data->width) & 7;
     for (int i = bf_data->base_address_byte_count - 1; i >= 0; --i)
     {
-      ULL value = ((ULL)memoryReadByte(address)) << (8 * i);
+      uint64_t value = ((uint64_t)memoryReadByte(address)) << (8 * i);
       field_memory |= value;
       field |= (value >> shift);
       ++address;
@@ -2744,7 +2716,16 @@ void cpuBfDecodeExtWordAndGetField(struct cpuBfData *bf_data, ULO ea_or_reg, boo
   }
   else
   {
-    bf_data->field = cpuGetDReg(ea_or_reg) >> (32 - bf_data->offset - bf_data->width);
+    // Field from Dn wraps around if offset + width > 32
+    const uint32_t offsetPlusWidth = (bf_data->offset & 0x1f) + bf_data->width;
+    if (offsetPlusWidth > 32)
+    {
+      bf_data->field = cpuRotateLeft(cpuGetDReg(ea_or_reg), offsetPlusWidth - 32);
+    }
+    else
+    {
+      bf_data->field = cpuGetDReg(ea_or_reg) >> (32 - offsetPlusWidth);
+    }
   }
   bf_data->field &= bf_data->field_mask;
 }
@@ -2752,19 +2733,19 @@ void cpuBfDecodeExtWordAndGetField(struct cpuBfData *bf_data, ULO ea_or_reg, boo
 /// <summary>
 /// bfchg common logic
 /// </summary>
-static void cpuBfChgCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfChgCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, false, has_ea, ext);
   cpuSetFlagsNZVC(bf_data.field == 0, bf_data.field & (1 << (bf_data.width - 1)), FALSE, FALSE);
 
-  bf_data.field = (~bf_data.field) & bf_data.field_mask;
+  bf_data.field = (~bf_data.field) & (uint32_t)bf_data.field_mask;
 
   cpuSetBfField(&bf_data, ea_or_reg, has_ea);
 }
 
 // bfchg dx {offset:width}
-static void cpuBfChgReg(ULO regno, UWO ext)
+static void cpuBfChgReg(uint32_t regno, uint16_t ext)
 {
   cpuBfChgCommon(regno, false, ext);
 }
@@ -2772,7 +2753,7 @@ static void cpuBfChgReg(ULO regno, UWO ext)
 /// <summary>
 /// bfchg ea {offset:width}
 /// </summary>
-static void cpuBfChgEa(ULO ea, UWO ext)
+static void cpuBfChgEa(uint32_t ea, uint16_t ext)
 {
   cpuBfChgCommon(ea, true, ext);
 }
@@ -2780,9 +2761,9 @@ static void cpuBfChgEa(ULO ea, UWO ext)
 /// <summary>
 /// bfclr common logic
 /// </summary>
-static void cpuBfClrCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfClrCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, false, has_ea, ext);
 
   cpuSetFlagsNZVC(bf_data.field == 0, bf_data.field & (1 << (bf_data.width - 1)), FALSE, FALSE);
@@ -2795,7 +2776,7 @@ static void cpuBfClrCommon(ULO ea_or_reg, bool has_ea, UWO ext)
 /// <summary>
 /// bfclr dx {offset:width}
 /// </summary>
-static void cpuBfClrReg(ULO regno, UWO ext)
+static void cpuBfClrReg(uint32_t regno, uint16_t ext)
 {
   cpuBfClrCommon(regno, false, ext);
 }
@@ -2803,7 +2784,7 @@ static void cpuBfClrReg(ULO regno, UWO ext)
 /// <summary>
 /// bfclr ea {offset:width}
 /// </summary>
-static void cpuBfClrEa(ULO ea, UWO ext)
+static void cpuBfClrEa(uint32_t ea, uint16_t ext)
 {
   cpuBfClrCommon(ea, true, ext);
 }
@@ -2811,19 +2792,18 @@ static void cpuBfClrEa(ULO ea, UWO ext)
 /// <summary>
 /// bfexts common logic
 /// </summary>
-static void cpuBfExtsCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfExtsCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
-  BOOLE n_flag;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, true, has_ea, ext);
 
-  n_flag = bf_data.field & (1 << (bf_data.width - 1));
+  BOOLE n_flag = bf_data.field & (1 << (bf_data.width - 1));
 
   cpuSetFlagsNZVC(bf_data.field == 0, n_flag, FALSE, FALSE);
 
   if (n_flag)
   {
-    bf_data.field = (ULO)((~bf_data.field_mask) | bf_data.field);
+    bf_data.field = (uint32_t)((~bf_data.field_mask) | bf_data.field);
   }
   // Destination is always Dn
   cpuSetDReg(bf_data.dn, bf_data.field);
@@ -2832,7 +2812,7 @@ static void cpuBfExtsCommon(ULO ea_or_reg, bool has_ea, UWO ext)
 /// <summary>
 /// bfexts dx {offset:width}, Dn
 /// </summary>
-static void cpuBfExtsReg(ULO regno, UWO ext)
+static void cpuBfExtsReg(uint32_t regno, uint16_t ext)
 {
   cpuBfExtsCommon(regno, false, ext);
 }
@@ -2840,7 +2820,7 @@ static void cpuBfExtsReg(ULO regno, UWO ext)
 /// <summary>
 /// bfexts ea {offset:width}, Dn
 /// </summary>
-static void cpuBfExtsEa(ULO ea, UWO ext)
+static void cpuBfExtsEa(uint32_t ea, uint16_t ext)
 {
   cpuBfExtsCommon(ea, true, ext);
 }
@@ -2848,9 +2828,9 @@ static void cpuBfExtsEa(ULO ea, UWO ext)
 /// <summary>
 /// bfextu ea {offset:width}, Dn
 /// </summary>
-static void cpuBfExtuCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfExtuCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, true, has_ea, ext);
   cpuSetFlagsNZVC(bf_data.field == 0, bf_data.field & (1 << (bf_data.width - 1)), FALSE, FALSE);
   // Destination is always Dn
@@ -2860,7 +2840,7 @@ static void cpuBfExtuCommon(ULO ea_or_reg, bool has_ea, UWO ext)
 /// <summary>
 /// bfextu dx {offset:width}, Dn
 /// </summary>
-static void cpuBfExtuReg(ULO regno, UWO ext)
+static void cpuBfExtuReg(uint32_t regno, uint16_t ext)
 {
   cpuBfExtuCommon(regno, false, ext);
 }
@@ -2868,7 +2848,7 @@ static void cpuBfExtuReg(ULO regno, UWO ext)
 /// <summary>
 /// bfextu ea {offset:width}, Dn
 /// </summary>
-static void cpuBfExtuEa(ULO ea, UWO ext)
+static void cpuBfExtuEa(uint32_t ea, uint16_t ext)
 {
   cpuBfExtuCommon(ea, true, ext);
 }
@@ -2876,10 +2856,10 @@ static void cpuBfExtuEa(ULO ea, UWO ext)
 /// <summary>
 /// bfffo common logic
 /// </summary>
-static void cpuBfFfoCommon(ULO val, bool has_ea, UWO ext)
+static void cpuBfFfoCommon(uint32_t val, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
-  ULO i;
+  cpuBfData bf_data;
+  uint32_t i;
   cpuBfDecodeExtWordAndGetField(&bf_data, val, true, has_ea, ext);
   cpuSetFlagsNZVC(bf_data.field == 0, bf_data.field & (1 << (bf_data.width - 1)), FALSE, FALSE);
 
@@ -2894,7 +2874,7 @@ static void cpuBfFfoCommon(ULO val, bool has_ea, UWO ext)
 /// <summary>
 /// bfffo dx {offset:width}, Dn
 /// </summary>
-static void cpuBfFfoReg(ULO regno, UWO ext)
+static void cpuBfFfoReg(uint32_t regno, uint16_t ext)
 {
   cpuBfFfoCommon(regno, false, ext);
 }
@@ -2902,7 +2882,7 @@ static void cpuBfFfoReg(ULO regno, UWO ext)
 /// <summary>
 /// bfffo ea {offset:width}, Dn
 /// </summary>
-static void cpuBfFfoEa(ULO ea, UWO ext)
+static void cpuBfFfoEa(uint32_t ea, uint16_t ext)
 {
   cpuBfFfoCommon(ea, true, ext);
 }
@@ -2910,9 +2890,9 @@ static void cpuBfFfoEa(ULO ea, UWO ext)
 /// <summary>
 /// bfins common logic
 /// </summary>
-static void cpuBfInsCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfInsCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, true, has_ea, ext);
 
   bf_data.field = cpuGetDReg(bf_data.dn) & bf_data.field_mask;
@@ -2926,7 +2906,7 @@ static void cpuBfInsCommon(ULO ea_or_reg, bool has_ea, UWO ext)
 /// <summary>
 /// bfins Dn, ea {offset:width}
 /// </summary>
-static void cpuBfInsReg(ULO regno, UWO ext)
+static void cpuBfInsReg(uint32_t regno, uint16_t ext)
 {
   cpuBfInsCommon(regno, false, ext);
 }
@@ -2934,7 +2914,7 @@ static void cpuBfInsReg(ULO regno, UWO ext)
 /// <summary>
 /// bfins Dn, ea {offset:width}
 /// </summary>
-static void cpuBfInsEa(ULO ea, UWO ext)
+static void cpuBfInsEa(uint32_t ea, uint16_t ext)
 {
   cpuBfInsCommon(ea, true, ext);
 }
@@ -2942,13 +2922,13 @@ static void cpuBfInsEa(ULO ea, UWO ext)
 /// <summary>
 /// bfset common logic
 /// </summary>
-static void cpuBfSetCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfSetCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, false, has_ea, ext);
   cpuSetFlagsNZVC(bf_data.field == 0, bf_data.field & (1 << (bf_data.width - 1)), FALSE, FALSE);
 
-  bf_data.field = (ULO)bf_data.field_mask;
+  bf_data.field = (uint32_t)bf_data.field_mask;
 
   cpuSetBfField(&bf_data, ea_or_reg, has_ea);
 }
@@ -2956,7 +2936,7 @@ static void cpuBfSetCommon(ULO ea_or_reg, bool has_ea, UWO ext)
 /// <summary>
 /// bfset dx {offset:width}
 /// </summary>
-static void cpuBfSetReg(ULO regno, UWO ext)
+static void cpuBfSetReg(uint32_t regno, uint16_t ext)
 {
   cpuBfSetCommon(regno, false, ext);
 }
@@ -2964,7 +2944,7 @@ static void cpuBfSetReg(ULO regno, UWO ext)
 /// <summary>
 /// bfset ea {offset:width}
 /// </summary>
-static void cpuBfSetEa(ULO ea, UWO ext)
+static void cpuBfSetEa(uint32_t ea, uint16_t ext)
 {
   cpuBfSetCommon(ea, true, ext);
 }
@@ -2972,9 +2952,9 @@ static void cpuBfSetEa(ULO ea, UWO ext)
 /// <summary>
 /// bftst common logic
 /// </summary>
-static void cpuBfTstCommon(ULO ea_or_reg, bool has_ea, UWO ext)
+static void cpuBfTstCommon(uint32_t ea_or_reg, bool has_ea, uint16_t ext)
 {
-  struct cpuBfData bf_data;
+  cpuBfData bf_data;
   cpuBfDecodeExtWordAndGetField(&bf_data, ea_or_reg, false, has_ea, ext);
   cpuSetFlagsNZVC(bf_data.field == 0, bf_data.field & (1 << (bf_data.width - 1)), FALSE, FALSE);
 }
@@ -2982,7 +2962,7 @@ static void cpuBfTstCommon(ULO ea_or_reg, bool has_ea, UWO ext)
 /// <summary>
 /// bftst dx {offset:width}
 /// </summary>
-static void cpuBfTstReg(ULO regno, UWO ext)
+static void cpuBfTstReg(uint32_t regno, uint16_t ext)
 {
   cpuBfTstCommon(regno, false, ext);
 }
@@ -2990,7 +2970,7 @@ static void cpuBfTstReg(ULO regno, UWO ext)
 /// <summary>
 /// bftst ea {offset:width}
 /// </summary>
-static void cpuBfTstEa(ULO ea, UWO ext)
+static void cpuBfTstEa(uint32_t ea, uint16_t ext)
 {
   cpuBfTstCommon(ea, true, ext);
 }
@@ -2998,9 +2978,9 @@ static void cpuBfTstEa(ULO ea, UWO ext)
 /// <summary>
 /// movep.w (d16, Ay), Dx
 /// </summary>
-static void cpuMovepWReg(ULO areg, ULO dreg)
+static void cpuMovepWReg(uint32_t areg, uint32_t dreg)
 {
-  ULO ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
+  uint32_t ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
   cpuSetDRegWord(dreg, cpuJoinByteToWord(memoryReadByte(ea), memoryReadByte(ea + 2)));
   cpuSetInstructionTime(16);
 }
@@ -3008,9 +2988,9 @@ static void cpuMovepWReg(ULO areg, ULO dreg)
 /// <summary>
 /// movep.l (d16, Ay), Dx
 /// </summary>
-static void cpuMovepLReg(ULO areg, ULO dreg)
+static void cpuMovepLReg(uint32_t areg, uint32_t dreg)
 {
-  ULO ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
+  uint32_t ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
   cpuSetDReg(dreg, cpuJoinByteToLong(memoryReadByte(ea), memoryReadByte(ea + 2), memoryReadByte(ea + 4), memoryReadByte(ea + 6)));
   cpuSetInstructionTime(24);
 }
@@ -3018,10 +2998,10 @@ static void cpuMovepLReg(ULO areg, ULO dreg)
 /// <summary>
 /// movep.w Dx, (d16, Ay)
 /// </summary>
-static void cpuMovepWEa(ULO areg, ULO dreg)
+static void cpuMovepWEa(uint32_t areg, uint32_t dreg)
 {
-  ULO ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
-  memoryWriteByte((UBY) (cpuGetDReg(dreg) >> 8), ea);
+  uint32_t ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
+  memoryWriteByte((uint8_t) (cpuGetDReg(dreg) >> 8), ea);
   memoryWriteByte(cpuGetDRegByte(dreg), ea + 2);
   cpuSetInstructionTime(16);
 }
@@ -3029,12 +3009,12 @@ static void cpuMovepWEa(ULO areg, ULO dreg)
 /// <summary>
 /// movep.l Dx, (d16, Ay)
 /// </summary>
-static void cpuMovepLEa(ULO areg, ULO dreg)
+static void cpuMovepLEa(uint32_t areg, uint32_t dreg)
 {
-  ULO ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
-  memoryWriteByte((UBY)(cpuGetDReg(dreg) >> 24), ea);
-  memoryWriteByte((UBY)(cpuGetDReg(dreg) >> 16), ea + 2);
-  memoryWriteByte((UBY)(cpuGetDReg(dreg) >> 8), ea + 4);
+  uint32_t ea = cpuGetAReg(areg) + cpuGetNextWordSignExt();
+  memoryWriteByte((uint8_t)(cpuGetDReg(dreg) >> 24), ea);
+  memoryWriteByte((uint8_t)(cpuGetDReg(dreg) >> 16), ea + 2);
+  memoryWriteByte((uint8_t)(cpuGetDReg(dreg) >> 8), ea + 4);
   memoryWriteByte(cpuGetDRegByte(dreg), ea + 6);
   cpuSetInstructionTime(24);
 }
@@ -3042,35 +3022,34 @@ static void cpuMovepLEa(ULO areg, ULO dreg)
 /// <summary>
 /// pack Dx, Dy, #adjustment
 /// </summary>
-static void cpuPackReg(ULO yreg, ULO xreg)
+static void cpuPackReg(uint32_t xreg, uint32_t yreg)
 {
-  UWO adjustment = cpuGetNextWord();
-  UWO src = cpuGetDRegWord(xreg) + adjustment;
-  cpuSetDRegByte(yreg, (UBY) (((src >> 4) & 0xf0) | (src & 0xf)));
+  uint16_t adjustment = cpuGetNextWord();
+  uint16_t src = cpuGetDRegWord(xreg) + adjustment;
+  cpuSetDRegByte(yreg, (uint8_t) (((src >> 4) & 0xf0) | (src & 0xf)));
   cpuSetInstructionTime(4);
 }
 
 /// <summary>
 /// pack -(Ax), -(Ay), #adjustment
 /// </summary>
-static void cpuPackEa(ULO yreg, ULO xreg)
+static void cpuPackEa(uint32_t xreg, uint32_t yreg)
 {
-  UWO adjustment = cpuGetNextWord();
-  UBY b1 = memoryReadByte(cpuEA04(xreg, 1));
-  UBY b2 = memoryReadByte(cpuEA04(xreg, 1));
-  UWO result = ((((UWO)b1) << 8) | (UWO) b2) + adjustment;
-  memoryWriteByte((UBY) (((result >> 4) & 0xf0) | (result & 0xf)), cpuEA04(yreg, 1));
+  uint16_t adjustment = cpuGetNextWord();
+  uint16_t src = memoryReadWord(cpuEA04(xreg, 2));
+  uint16_t result = src + adjustment;
+  memoryWriteByte((uint8_t) (((result >> 4) & 0xf0) | (result & 0xf)), cpuEA04(yreg, 1));
   cpuSetInstructionTime(4);
 }
 
 /// <summary>
 /// unpk Dx, Dy, #adjustment
 /// </summary>
-static void cpuUnpkReg(ULO yreg, ULO xreg)
+static void cpuUnpkReg(uint32_t xreg, uint32_t yreg)
 {
-  UWO adjustment = cpuGetNextWord();
-  UBY b1 = cpuGetDRegByte(xreg);
-  UWO result = ((((UWO)(b1 & 0xf0)) << 4) | ((UWO)(b1 & 0xf))) + adjustment;
+  uint16_t adjustment = cpuGetNextWord();
+  uint8_t b1 = cpuGetDRegByte(xreg);
+  uint16_t result = ((((uint16_t)(b1 & 0xf0)) << 4) | ((uint16_t)(b1 & 0xf))) + adjustment;
   cpuSetDRegWord(yreg, result);
   cpuSetInstructionTime(4);
 }
@@ -3078,27 +3057,26 @@ static void cpuUnpkReg(ULO yreg, ULO xreg)
 /// <summary>
 /// unpk -(Ax), -(Ay), #adjustment
 /// </summary>
-static void cpuUnpkEa(ULO yreg, ULO xreg)
+static void cpuUnpkEa(uint32_t xreg, uint32_t yreg)
 {
-  UWO adjustment = cpuGetNextWord();
-  UBY b1 = memoryReadByte(cpuEA04(xreg, 1));
-  UWO result = ((((UWO)(b1 & 0xf0)) << 4) | ((UWO)(b1 & 0xf))) + adjustment;
-  memoryWriteByte((UBY) (result >> 8), cpuEA04(yreg, 1));
-  memoryWriteByte((UBY) result, cpuEA04(yreg, 1));
+  uint16_t adjustment = cpuGetNextWord();
+  uint8_t b1 = memoryReadByte(cpuEA04(xreg, 1));
+  uint16_t result = ((((uint16_t)(b1 & 0xf0)) << 4) | ((uint16_t)(b1 & 0xf))) + adjustment;
+  memoryWriteWord(result, cpuEA04(yreg, 2));
   cpuSetInstructionTime(4);
 }
 
 /// <summary>
 /// movec
 /// </summary>
-static void cpuMoveCFrom()
+static void cpuMoveCFrom(void)
 {
   if (cpuGetFlagSupervisor())
   {
-    UWO extension = (UWO) cpuGetNextWord();
-    ULO da = (extension >> 15) & 1;
-    ULO regno = (extension >> 12) & 7;
-    ULO ctrl_regno = extension & 0xfff;
+    uint16_t extension = (uint16_t) cpuGetNextWord();
+    uint32_t da = (extension >> 15) & 1;
+    uint32_t regno = (extension >> 12) & 7;
+    uint32_t ctrl_regno = extension & 0xfff;
     if (cpuGetModelMajor() == 1)
     {
       switch (ctrl_regno)
@@ -3152,14 +3130,14 @@ static void cpuMoveCFrom()
 /// <summary>
 /// movec
 /// </summary>
-static void cpuMoveCTo()
+static void cpuMoveCTo(void)
 {
   if (cpuGetFlagSupervisor())
   {
-    UWO extension = (UWO) cpuGetNextWord();
-    ULO da = (extension >> 15) & 1;
-    ULO regno = (extension >> 12) & 7;
-    ULO ctrl_regno = extension & 0xfff;
+    uint16_t extension = (uint16_t) cpuGetNextWord();
+    uint32_t da = (extension >> 15) & 1;
+    uint32_t regno = (extension >> 12) & 7;
+    uint32_t ctrl_regno = extension & 0xfff;
     if (cpuGetModelMajor() == 1)
     {
       switch (ctrl_regno)
@@ -3213,26 +3191,26 @@ static void cpuMoveCTo()
 /// <summary>
 /// moves.b Rn, ea / moves.b ea, Rn
 /// </summary>
-static void cpuMoveSB(ULO ea, UWO extension)
+static void cpuMoveSB(uint32_t ea, uint16_t extension)
 {
   if (cpuGetFlagSupervisor())
   {
-    ULO da = (extension >> 15) & 1;
-    ULO regno = (extension >> 12) & 7;
+    uint32_t da = (extension >> 15) & 1;
+    uint32_t regno = (extension >> 12) & 7;
     if (extension & 0x0800) // From Rn to ea (in dfc)
     {
-      memoryWriteByte((UBY)cpuGetReg(da, regno), ea);
+      memoryWriteByte((uint8_t)cpuGetReg(da, regno), ea);
     }
     else  // From ea to Rn (in sfc)
     {
-      UBY data = memoryReadByte(ea);
+      uint8_t data = memoryReadByte(ea);
       if (da == 0)
       {
 	cpuSetDRegByte(regno, data);
       }
       else
       {
-	cpuSetAReg(regno, (ULO)(LON)(BYT) data);
+	cpuSetAReg(regno, (uint32_t)(int32_t)(int8_t) data);
       }
     }
   }
@@ -3247,26 +3225,26 @@ static void cpuMoveSB(ULO ea, UWO extension)
 /// <summary>
 /// moves.w Rn, ea / moves.w ea, Rn
 /// </summary>
-static void cpuMoveSW(ULO ea, UWO extension)
+static void cpuMoveSW(uint32_t ea, uint16_t extension)
 {
   if (cpuGetFlagSupervisor())
   {
-    ULO da = (extension >> 15) & 1;
-    ULO regno = (extension >> 12) & 7;
+    uint32_t da = (extension >> 15) & 1;
+    uint32_t regno = (extension >> 12) & 7;
     if (extension & 0x0800) // From Rn to ea (in dfc)
     {
-      memoryWriteWord((UWO)cpuGetReg(da, regno), ea);
+      memoryWriteWord((uint16_t)cpuGetReg(da, regno), ea);
     }
     else  // From ea to Rn (in sfc)
     {
-      UWO data = memoryReadWord(ea);
+      uint16_t data = memoryReadWord(ea);
       if (da == 0)
       {
 	cpuSetDRegWord(regno, data);
       }
       else
       {
-	cpuSetAReg(regno, (ULO)(LON)(WOR) data);
+	cpuSetAReg(regno, (uint32_t)(int32_t)(int16_t) data);
       }
     }
   }
@@ -3281,12 +3259,12 @@ static void cpuMoveSW(ULO ea, UWO extension)
 /// <summary>
 /// moves.l Rn, ea / moves.l ea, Rn
 /// </summary>
-static void cpuMoveSL(ULO ea, UWO extension)
+static void cpuMoveSL(uint32_t ea, uint16_t extension)
 {
   if (cpuGetFlagSupervisor())
   {
-    ULO da = (extension >> 15) & 1;
-    ULO regno = (extension >> 12) & 7;
+    uint32_t da = (extension >> 15) & 1;
+    uint32_t regno = (extension >> 12) & 7;
     if (extension & 0x0800) // From Rn to ea (in dfc)
     {
       memoryWriteLong(cpuGetReg(da, regno), ea);
@@ -3307,7 +3285,7 @@ static void cpuMoveSL(ULO ea, UWO extension)
 /// <summary>
 /// Trapcc
 /// </summary>
-static void cpuTrapcc(ULO cc)
+static void cpuTrapcc(uint32_t cc)
 {
   if (cc)
   {
@@ -3320,7 +3298,7 @@ static void cpuTrapcc(ULO cc)
 /// <summary>
 /// Trapcc.w #
 /// </summary>
-static void cpuTrapccW(ULO cc)
+static void cpuTrapccW(uint32_t cc)
 {
   cpuGetNextWord();
   if (cc)
@@ -3328,13 +3306,13 @@ static void cpuTrapccW(ULO cc)
     cpuThrowTrapVException(); // TrapV and Trapcc share the exception vector
     return;
   }
-  cpuSetInstructionTime(4);	  
+  cpuSetInstructionTime(4);
 }
 
 /// <summary>
 /// trapcc.l #
 /// </summary>
-static void cpuTrapccL(ULO cc)
+static void cpuTrapccL(uint32_t cc)
 {
   cpuGetNextLong();
   if (cc)
@@ -3342,17 +3320,17 @@ static void cpuTrapccL(ULO cc)
     cpuThrowTrapVException(); // TrapV and Trapcc share the exception vector
     return;
   }
-  cpuSetInstructionTime(4);	  
+  cpuSetInstructionTime(4);
 }
 
 /// <summary>
 /// cas.b Dc,Du, ea
 /// </summary>
-static void cpuCasB(ULO ea, UWO extension)
+static void cpuCasB(uint32_t ea, uint16_t extension)
 {
-  UBY dst = memoryReadByte(ea);
-  ULO cmp_regno = extension & 7;
-  UBY res = dst - cpuGetDRegByte(cmp_regno);
+  uint8_t dst = memoryReadByte(ea);
+  uint32_t cmp_regno = extension & 7;
+  uint8_t res = dst - cpuGetDRegByte(cmp_regno);
 
   cpuSetFlagsCmp(cpuIsZeroB(res), cpuMsbB(res), cpuMsbB(dst), cpuMsbB(cpuGetDRegByte(cmp_regno)));
 
@@ -3370,11 +3348,11 @@ static void cpuCasB(ULO ea, UWO extension)
 /// <summary>
 /// cas.w Dc,Du, ea
 /// </summary>
-static void cpuCasW(ULO ea, UWO extension)
+static void cpuCasW(uint32_t ea, uint16_t extension)
 {
-  UWO dst = memoryReadWord(ea);
-  ULO cmp_regno = extension & 7;
-  UWO res = dst - cpuGetDRegWord(cmp_regno);
+  uint16_t dst = memoryReadWord(ea);
+  uint32_t cmp_regno = extension & 7;
+  uint16_t res = dst - cpuGetDRegWord(cmp_regno);
 
   cpuSetFlagsCmp(cpuIsZeroW(res), cpuMsbW(res), cpuMsbW(dst), cpuMsbW(cpuGetDRegWord(cmp_regno)));
 
@@ -3392,11 +3370,11 @@ static void cpuCasW(ULO ea, UWO extension)
 /// <summary>
 /// cas.l Dc,Du, ea
 /// </summary>
-static void cpuCasL(ULO ea, UWO extension)
+static void cpuCasL(uint32_t ea, uint16_t extension)
 {
-  ULO dst = memoryReadLong(ea);
-  ULO cmp_regno = extension & 7;
-  ULO res = dst - cpuGetDReg(cmp_regno);
+  uint32_t dst = memoryReadLong(ea);
+  uint32_t cmp_regno = extension & 7;
+  uint32_t res = dst - cpuGetDReg(cmp_regno);
 
   cpuSetFlagsCmp(cpuIsZeroL(res), cpuMsbL(res), cpuMsbL(dst), cpuMsbL(cpuGetDReg(cmp_regno)));
 
@@ -3414,18 +3392,18 @@ static void cpuCasL(ULO ea, UWO extension)
 /// <summary>
 /// cas2.w Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)
 /// </summary>
-static void cpuCas2W()
+static void cpuCas2W(void)
 {
-  UWO extension1 = cpuGetNextWord();
-  UWO extension2 = cpuGetNextWord();
-  ULO ea1 = cpuGetReg(extension1 >> 15, (extension1 >> 12) & 7);
-  ULO ea2 = cpuGetReg(extension2 >> 15, (extension2 >> 12) & 7);
-  UWO dst1 = memoryReadWord(ea1);
-  UWO dst2 = memoryReadWord(ea2);
-  ULO cmp1_regno = extension1 & 7;
-  ULO cmp2_regno = extension2 & 7;
-  UWO res1 = dst1 - cpuGetDRegWord(cmp1_regno);
-  UWO res2 = dst2 - cpuGetDRegWord(cmp2_regno);
+  uint16_t extension1 = cpuGetNextWord();
+  uint16_t extension2 = cpuGetNextWord();
+  uint32_t ea1 = cpuGetReg(extension1 >> 15, (extension1 >> 12) & 7);
+  uint32_t ea2 = cpuGetReg(extension2 >> 15, (extension2 >> 12) & 7);
+  uint16_t dst1 = memoryReadWord(ea1);
+  uint16_t dst2 = memoryReadWord(ea2);
+  uint32_t cmp1_regno = extension1 & 7;
+  uint32_t cmp2_regno = extension2 & 7;
+  uint16_t res1 = dst1 - cpuGetDRegWord(cmp1_regno);
+  uint16_t res2 = dst2 - cpuGetDRegWord(cmp2_regno);
 
   if (cpuIsZeroW(res1))
   {
@@ -3444,7 +3422,10 @@ static void cpuCas2W()
   else
   {
     cpuSetDRegWord(cmp1_regno, dst1);
-    cpuSetDRegWord(cmp2_regno, dst2);
+    if (cmp1_regno != cmp2_regno)
+    {
+      cpuSetDRegWord(cmp2_regno, dst2);
+    }
   }
   cpuSetInstructionTime(4);
 }
@@ -3452,18 +3433,18 @@ static void cpuCas2W()
 /// <summary>
 /// cas2.l Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)
 /// </summary>
-static void cpuCas2L()
+static void cpuCas2L(void)
 {
-  UWO extension1 = cpuGetNextWord();
-  UWO extension2 = cpuGetNextWord();
-  ULO ea1 = cpuGetReg(extension1 >> 15, (extension1 >> 12) & 7);
-  ULO ea2 = cpuGetReg(extension2 >> 15, (extension2 >> 12) & 7);
-  ULO dst1 = memoryReadLong(ea1);
-  ULO dst2 = memoryReadLong(ea2);
-  ULO cmp1_regno = extension1 & 7;
-  ULO cmp2_regno = extension2 & 7;
-  ULO res1 = dst1 - cpuGetDReg(cmp1_regno);
-  ULO res2 = dst2 - cpuGetDReg(cmp2_regno);
+  uint16_t extension1 = cpuGetNextWord();
+  uint16_t extension2 = cpuGetNextWord();
+  uint32_t ea1 = cpuGetReg(extension1 >> 15, (extension1 >> 12) & 7);
+  uint32_t ea2 = cpuGetReg(extension2 >> 15, (extension2 >> 12) & 7);
+  uint32_t dst1 = memoryReadLong(ea1);
+  uint32_t dst2 = memoryReadLong(ea2);
+  uint32_t cmp1_regno = extension1 & 7;
+  uint32_t cmp2_regno = extension2 & 7;
+  uint32_t res1 = dst1 - cpuGetDReg(cmp1_regno);
+  uint32_t res2 = dst2 - cpuGetDReg(cmp2_regno);
 
   if (cpuIsZeroL(res1))
   {
@@ -3482,7 +3463,10 @@ static void cpuCas2L()
   else
   {
     cpuSetDReg(cmp1_regno, dst1);
-    cpuSetDReg(cmp2_regno, dst2);
+    if (cmp1_regno != cmp2_regno)
+    {
+      cpuSetDReg(cmp2_regno, dst2);
+    }
   }
   cpuSetInstructionTime(4);
 }
@@ -3490,12 +3474,14 @@ static void cpuCas2L()
 /// <summary>
 /// Common code for chk2 ea, Rn / cmp2 ea, Rn
 /// </summary>
-static void cpuChkCmp(ULO lb, ULO ub, ULO val, BOOLE is_chk2)
+static void cpuChk2Cmp2(uint32_t lb, uint32_t ub, uint32_t val, BOOLE is_chk2)
 {
   BOOLE z = (val == lb || val == ub);
-  BOOLE c = ((lb <= ub) && (val < lb || val > ub)) || ((lb > ub) && (val < lb) && (val > ub)); 
+  BOOLE c = ((lb <= ub) && (val < lb || val > ub)) || ((lb > ub) && (val < lb) && (val > ub));
+  BOOLE v = (ub < lb) && (val > ub) && (val < lb);
   cpuSetFlagZ(z);
   cpuSetFlagC(c);
+  cpuSetFlagV(v);
   cpuSetInstructionTime(4);
   if (is_chk2 && c)
   {
@@ -3506,48 +3492,48 @@ static void cpuChkCmp(ULO lb, ULO ub, ULO val, BOOLE is_chk2)
 /// <summary>
 /// chk2.b ea, Rn / cmp2.b ea, Rn
 /// </summary>
-static void cpuChkCmp2B(ULO ea, UWO extension)
+static void cpuChkCmp2B(uint32_t ea, uint16_t extension)
 {
-  ULO da = (ULO) (extension >> 15);
-  ULO rn = (ULO) (extension >> 12) & 7;
+  uint32_t da = (uint32_t) (extension >> 15);
+  uint32_t rn = (uint32_t) (extension >> 12) & 7;
   BOOLE is_chk2 = (extension & 0x0800);
   if (da == 1)
   {
-    cpuChkCmp((ULO)(LON)(BYT)memoryReadByte(ea), (ULO)(LON)(BYT)memoryReadByte(ea + 1), cpuGetAReg(rn), is_chk2);
+    cpuChk2Cmp2((uint32_t)(int32_t)(int8_t)memoryReadByte(ea), (uint32_t)(int32_t)(int8_t)memoryReadByte(ea + 1), cpuGetAReg(rn), is_chk2);
   }
   else
   {
-    cpuChkCmp((ULO)memoryReadByte(ea), (ULO)memoryReadByte(ea + 1), (ULO)(UBY)cpuGetDReg(rn), is_chk2);
+    cpuChk2Cmp2((uint32_t)memoryReadByte(ea), (uint32_t)memoryReadByte(ea + 1), (uint32_t)(uint8_t)cpuGetDReg(rn), is_chk2);
   }
 }
 
 /// <summary>
 /// chk2.w ea, Rn / cmp2.w ea, Rn
 /// </summary>
-static void cpuChkCmp2W(ULO ea, UWO extension)
+static void cpuChkCmp2W(uint32_t ea, uint16_t extension)
 {
-  ULO da = (ULO) (extension >> 15);
-  ULO rn = (ULO) (extension >> 12) & 7;
+  uint32_t da = (uint32_t) (extension >> 15);
+  uint32_t rn = (uint32_t) (extension >> 12) & 7;
   BOOLE is_chk2 = (extension & 0x0800);
   if (da == 1)
   {
-    cpuChkCmp((ULO)(LON)(WOR)memoryReadWord(ea), (ULO)(LON)(WOR)memoryReadWord(ea + 1), cpuGetAReg(rn), is_chk2);
+    cpuChk2Cmp2((uint32_t)(int32_t)(int16_t)memoryReadWord(ea), (uint32_t)(int32_t)(int16_t)memoryReadWord(ea + 1), cpuGetAReg(rn), is_chk2);
   }
   else
   {
-    cpuChkCmp((ULO)memoryReadWord(ea), (ULO)memoryReadWord(ea + 2), (ULO)(UWO)cpuGetDReg(rn), is_chk2);
+    cpuChk2Cmp2((uint32_t)memoryReadWord(ea), (uint32_t)memoryReadWord(ea + 2), (uint32_t)(uint16_t)cpuGetDReg(rn), is_chk2);
   }
 }
 
 /// <summary>
 /// chk2.l ea, Rn / cmp2.l ea, Rn
 /// </summary>
-static void cpuChkCmp2L(ULO ea, UWO extension)
+static void cpuChkCmp2L(uint32_t ea, uint16_t extension)
 {
-  ULO da = (ULO) (extension >> 15);
-  ULO rn = (ULO) (extension >> 12) & 7;
+  uint32_t da = (uint32_t) (extension >> 15);
+  uint32_t rn = (uint32_t) (extension >> 12) & 7;
   BOOLE is_chk2 = (extension & 0x0800);
-  cpuChkCmp(memoryReadLong(ea), memoryReadLong(ea + 4), cpuGetReg(da, rn), is_chk2);
+  cpuChk2Cmp2(memoryReadLong(ea), memoryReadLong(ea + 4), cpuGetReg(da, rn), is_chk2);
 }
 
 /// <summary>
@@ -3555,7 +3541,7 @@ static void cpuChkCmp2L(ULO ea, UWO extension)
 /// Since this is a coprocessor instruction, this is NOP.
 /// This will likely fail, but anything we do here will be wrong anyhow.
 /// </summary>
-static void cpuCallm(ULO ea, UWO extension)
+static void cpuCallm(uint32_t ea, uint16_t extension)
 {
   cpuSetInstructionTime(4);
 }
@@ -3565,7 +3551,7 @@ static void cpuCallm(ULO ea, UWO extension)
 /// Since this is a coprocessor instruction, this is NOP.
 /// This will likely fail, but anything we do here will be wrong anyhow.
 /// </summary>
-static void cpuRtm(ULO da, ULO regno)
+static void cpuRtm(uint32_t da, uint32_t regno)
 {
   cpuSetInstructionTime(4);
 }
@@ -3597,7 +3583,7 @@ static void cpuRtm(ULO da, ULO regno)
 ///
 /// Since this is a coprocessor instruction, this is NOP.
 /// </summary>
-static void cpuPflush030(ULO ea, UWO extension)
+static void cpuPflush030(uint32_t ea, uint16_t extension)
 {
   if (cpuGetFlagSupervisor())
   {
@@ -3608,9 +3594,9 @@ static void cpuPflush030(ULO ea, UWO extension)
     else if ((extension & 0xe300) == 0x2000)
     {
       // pflusha, pflush
-      ULO mode = (extension >> 10) & 7;
-      ULO mask = (extension >> 5) & 7;
-      ULO fc = extension & 0x1f;
+      uint32_t mode = (extension >> 10) & 7;
+      uint32_t mask = (extension >> 5) & 7;
+      uint32_t fc = extension & 0x1f;
     }
   }
   else
@@ -3630,7 +3616,7 @@ static void cpuPflush030(ULO ea, UWO extension)
 ///
 /// Since this is a coprocessor instruction, this is NOP.
 /// </summary>
-static void cpuPflush040(ULO opmode, ULO regno)
+static void cpuPflush040(uint32_t opmode, uint32_t regno)
 {
   if (cpuGetFlagSupervisor())
   {
@@ -3665,7 +3651,7 @@ static void cpuPflush040(ULO opmode, ULO regno)
 ///
 /// Since this is a coprocessor instruction, this is NOP.
 /// </summary>
-static void cpuPtest040(ULO rw, ULO regno)
+static void cpuPtest040(uint32_t rw, uint32_t regno)
 {
   if (cpuGetFlagSupervisor())
   {
@@ -3698,8 +3684,7 @@ cpuOpcodeData cpu_opcode_data_current[65536];
 
 void cpuMakeOpcodeTableForModel(void)
 {
-  ULO opcode;
-  for (opcode = 0; opcode < 65536; opcode++)
+  for (uint32_t opcode = 0; opcode < 65536; opcode++)
   {
     if (cpu_opcode_model_mask[opcode] & cpuGetModelMask())
     {
@@ -3715,10 +3700,10 @@ void cpuMakeOpcodeTableForModel(void)
   }
 }
 
-ULO irq_arrival_time = -1;
-extern ULO busGetCycle();
+uint32_t irq_arrival_time = -1;
+extern uint32_t busGetCycle();
 
-ULO cpuExecuteInstruction(void)
+uint32_t cpuExecuteInstruction(void)
 {
   if (cpuGetRaiseInterrupt())
   {
@@ -3728,15 +3713,15 @@ ULO cpuExecuteInstruction(void)
   }
   else
   {
-    ULO oldSr = cpuGetSR();
-    UWO opcode;
+    uint32_t oldSr = cpuGetSR();
+    cpuSetInstructionAborted(false);
 
 #ifdef CPU_INSTRUCTION_LOGGING
     cpuCallInstructionLoggingFunc();
 #endif
 
     cpuSetOriginalPC(cpuGetPC()); // Store pc and opcode for exception logging
-    opcode = cpuGetNextWord();
+    uint16_t opcode = cpuGetNextWord();
 
 #ifdef CPU_INSTRUCTION_LOGGING
     cpuSetCurrentOpcode(opcode);
@@ -3744,12 +3729,12 @@ ULO cpuExecuteInstruction(void)
 
     cpuSetInstructionTime(0);
 
-	cpu_opcode_data_current[opcode].instruction_func(
-			cpu_opcode_data_current[opcode].data);
-    if (oldSr & 0xc000)
+    cpu_opcode_data_current[opcode].instruction_func(cpu_opcode_data_current[opcode].data);
+
+    if (oldSr & 0xc000 && !cpuGetInstructionAborted())
     {
       // This instruction was traced
-      ULO cycles = cpuGetInstructionTime();
+      uint32_t cycles = cpuGetInstructionTime();
       cpuThrowTraceException();
       cpuSetInstructionTime(cpuGetInstructionTime() + cycles);
     }
