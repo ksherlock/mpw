@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 project(mpw VERSION 0.8.3 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 11)
