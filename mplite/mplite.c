@@ -130,13 +130,19 @@ MPLITE_API void *mplite_malloc(mplite_t *handle, const int nBytes)
 
 MPLITE_API void mplite_free(mplite_t *handle, const void *pPrior)
 {
+    int iBlock;
+
     /* Check the parameters */
     if ((NULL == handle) || (NULL == pPrior)) {
         return;
     }
 
     mplite_enter(handle);
-    mplite_free_unsafe(handle, pPrior);
+    iBlock = (int)((uint8_t *) pPrior - handle->zPool) / handle->szAtom;
+    /* Guard against double-free: only free if the block is not already free */
+    if ((handle->aCtrl[iBlock] & MPLITE_CTRL_FREE) == 0) {
+        mplite_free_unsafe(handle, pPrior);
+    }
     mplite_leave(handle);
 }
 
