@@ -715,6 +715,8 @@ std::string find_exe(const std::string &name)
 }
 
 
+extern "C" void cpuSetRaiseInterrupt(BOOLE f);
+
 void MainLoop()
 {
 	#if 0
@@ -722,6 +724,8 @@ void MainLoop()
 	fprintf(stderr, "Begin Emulation Time: %20lld\n", (begin_emu_time - start_time).count());
 	#endif
 
+
+	cpuSetRaiseInterrupt(0);
 
 	uint64_t cycles = 0;
 	for (;;)

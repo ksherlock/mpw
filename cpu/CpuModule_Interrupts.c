@@ -31,7 +31,7 @@ cpuCheckPendingInterruptsFunc cpu_check_pending_interrupts_func;
 void cpuCheckPendingInterrupts(void)
 {
   if (cpuGetRaiseInterrupt()) return;
-  cpu_check_pending_interrupts_func();
+  if (cpu_check_pending_interrupts_func) cpu_check_pending_interrupts_func();
 }
 
 void cpuSetCheckPendingInterruptsFunc(cpuCheckPendingInterruptsFunc func)
