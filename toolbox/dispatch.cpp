@@ -719,6 +719,10 @@ namespace ToolBox {
 				d0 = MM::BlockMove(trap);
 				break;
 
+			case 0xa036:
+				d0 = MM::MoreMasters(trap);
+				break;
+
 			case 0xa049:
 				d0 = MM::HPurge(trap);
 				break;
@@ -728,6 +732,7 @@ namespace ToolBox {
 				break;
 
 
+			case 0xA01D: /* not documented? used by megamax, known by DumpCode */
 			case 0xA11D:
 				d0 = MM::MaxMem(trap);
 				break;

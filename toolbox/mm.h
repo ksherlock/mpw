@@ -117,6 +117,8 @@ namespace MM
 
 	uint16_t SetApplLimit(uint16_t trap);
 
+	uint16_t MoreMasters(uint16_t trap);
+
 	// OS Dispatch
 
 	uint16_t TempMaxMem(void);

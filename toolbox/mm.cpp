@@ -1585,6 +1585,19 @@ namespace MM
 		return 0;
 	}
 
+	uint16_t MoreMasters(uint16_t trap)
+	{
+		// PROCEDURE MoreMasters;
+
+		/*
+		 * on exit:
+		 * D0 Result code
+		 */
+
+		Log("%04x MoreMasters\n", trap);
+
+		return 0;
+	}
 
 
 	uint32_t PurgeSpace(uint16_t trap)
