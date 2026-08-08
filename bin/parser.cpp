@@ -1,30 +1,9 @@
-/*
-** 2000-05-29
-**
-** The author disclaims copyright to this source code.  In place of
-** a legal notice, here is a blessing:
-**
-**    May you do good and not evil.
-**    May you find forgiveness for yourself and forgive others.
-**    May you share freely, never taking more than you give.
-**
-*************************************************************************
-** Driver template for the LEMON parser generator.
-**
-** The "lemon" program processes an LALR(1) input grammar file, then uses
-** this template to construct a parser.  The "lemon" program inserts text
-** at each "%%" line.  Also, any "P-a-r-s-e" identifier prefix (without the
-** interstitial "-" characters) contained in this template is changed into
-** the value of the %name directive from the grammar.  Otherwise, the content
-** of this template is copied straight through into the generate parser
-** source file.
-**
-** The following is the concatenation of all %include directives from the
-** input grammar file:
+/* Driver template for the LEMON parser generator.
+** The author disclaims copyright to this source code.
 */
+/* First off, code is include which follows the "include" declaration
+** in the input file. */
 #include <stdio.h>
-#include <assert.h>
-/************ Begin %include sections from the grammar ************************/
 #line 6 "parser.lemon"
 
 #include <stdbool.h> 
@@ -54,109 +33,77 @@ uint32_t cpuGetDReg(unsigned);
 
 #undef NDEBUG
 
-#line 58 "parser.c"
-/**************** End of %include directives **********************************/
-/* These constants specify the various numeric values for terminal symbols
-** in a format understandable to "makeheaders".  This section is blank unless
-** "lemon" is run with the "-m" command-line option.
-***************** Begin makeheaders token definitions *************************/
-/**************** End makeheaders token definitions ***************************/
-
-/* The next sections is a series of control #defines.
-** various aspects of the generated parser.
-**    YYCODETYPE         is the data type used to store the integer codes
-**                       that represent terminal and non-terminal symbols.
-**                       "unsigned char" is used if there are fewer than
-**                       256 symbols.  Larger types otherwise.
-**    YYNOCODE           is a number of type YYCODETYPE that is not used for
-**                       any terminal or nonterminal symbol.
-**    YYFALLBACK         If defined, this indicates that one or more tokens
-**                       (also known as: "terminal symbols") have fall-back
-**                       values which should be used if the original symbol
-**                       would not parse.  This permits keywords to sometimes
-**                       be used as identifiers, for example.
-**    YYACTIONTYPE       is the data type used for "action codes" - numbers
-**                       that indicate what to do in response to the next
-**                       token.
-**    ParseTOKENTYPE     is the data type used for minor type for terminal
-**                       symbols.  Background: A "minor type" is a semantic
-**                       value associated with a terminal or non-terminal
-**                       symbols.  For example, for an "ID" terminal symbol,
-**                       the minor type might be the name of the identifier.
-**                       Each non-terminal can have a different minor type.
-**                       Terminal symbols all have the same minor type, though.
-**                       This macros defines the minor type for terminal 
-**                       symbols.
-**    YYMINORTYPE        is the data type used for all minor types.
-**                       This is typically a union of many types, one of
-**                       which is ParseTOKENTYPE.  The entry in the union
-**                       for terminal symbols is called "yy0".
-**    YYSTACKDEPTH       is the maximum depth of the parser's stack.  If
-**                       zero the stack is dynamically sized using realloc()
-**    ParseARG_SDECL     A static variable declaration for the %extra_argument
-**    ParseARG_PDECL     A parameter declaration for the %extra_argument
-**    ParseARG_STORE     Code to store %extra_argument into yypParser
-**    ParseARG_FETCH     Code to extract %extra_argument from yypParser
-**    YYERRORSYMBOL      is the code number of the error symbol.  If not
-**                       defined, then do no error processing.
-**    YYNSTATE           the combined number of states.
-**    YYNRULE            the number of rules in the grammar
-**    YY_MAX_SHIFT       Maximum value for shift actions
-**    YY_MIN_SHIFTREDUCE Minimum value for shift-reduce actions
-**    YY_MAX_SHIFTREDUCE Maximum value for shift-reduce actions
-**    YY_MIN_REDUCE      Maximum value for reduce actions
-**    YY_ERROR_ACTION    The yy_action[] code for syntax error
-**    YY_ACCEPT_ACTION   The yy_action[] code for accept
-**    YY_NO_ACTION       The yy_action[] code for no-op
+#line 38 "parser.c"
+/* Next is all token values, in a form suitable for use by makeheaders.
+** This section will be null unless lemon is run with the -m switch.
+*/
+/* 
+** These constants (all generated automatically by the parser generator)
+** specify the various kinds of tokens (terminals) that the parser
+** understands. 
+**
+** Each symbol here is a terminal symbol in the grammar.
+*/
+/* Make sure the INTERFACE macro is defined.
 */
 #ifndef INTERFACE
 # define INTERFACE 1
 #endif
-/************* Begin control #defines *****************************************/
+/* The next thing included is series of defines which control
+** various aspects of the generated parser.
+**    YYCODETYPE         is the data type used for storing terminal
+**                       and nonterminal numbers.  "unsigned char" is
+**                       used if there are fewer than 250 terminals
+**                       and nonterminals.  "int" is used otherwise.
+**    YYNOCODE           is a number of type YYCODETYPE which corresponds
+**                       to no legal terminal or nonterminal number.  This
+**                       number is used to fill in empty slots of the hash 
+**                       table.
+**    YYFALLBACK         If defined, this indicates that one or more tokens
+**                       have fall-back values which should be used if the
+**                       original value of the token will not parse.
+**    YYACTIONTYPE       is the data type used for storing terminal
+**                       and nonterminal numbers.  "unsigned char" is
+**                       used if there are fewer than 250 rules and
+**                       states combined.  "int" is used otherwise.
+**    ParseTOKENTYPE     is the data type used for minor tokens given 
+**                       directly to the parser from the tokenizer.
+**    YYMINORTYPE        is the data type used for all minor tokens.
+**                       This is typically a union of many types, one of
+**                       which is ParseTOKENTYPE.  The entry in the union
+**                       for base tokens is called "yy0".
+**    YYSTACKDEPTH       is the maximum depth of the parser's stack.
+**    ParseARG_SDECL     A static variable declaration for the %extra_argument
+**    ParseARG_PDECL     A parameter declaration for the %extra_argument
+**    ParseARG_STORE     Code to store %extra_argument into yypParser
+**    ParseARG_FETCH     Code to extract %extra_argument from yypParser
+**    YYNSTATE           the combined number of states.
+**    YYNRULE            the number of rules in the grammar
+**    YYERRORSYMBOL      is the code number of the error symbol.  If not
+**                       defined, then do no error processing.
+*/
 #define YYCODETYPE unsigned char
 #define YYNOCODE 59
-#define YYACTIONTYPE unsigned short int
+#define YYACTIONTYPE unsigned char
 #define ParseTOKENTYPE  Token 
 typedef union {
-  int yyinit;
   ParseTOKENTYPE yy0;
   int yy117;
 } YYMINORTYPE;
-#ifndef YYSTACKDEPTH
 #define YYSTACKDEPTH 100
-#endif
 #define ParseARG_SDECL  Debug::Command *command ;
 #define ParseARG_PDECL , Debug::Command *command 
 #define ParseARG_FETCH  Debug::Command *command  = yypParser->command 
 #define ParseARG_STORE yypParser->command  = command 
+#define YYNSTATE 157
+#define YYNRULE 70
 #define YYERRORSYMBOL 52
 #define YYERRSYMDT yy117
-#define YYNSTATE             140
-#define YYNRULE              70
-#define YY_MAX_SHIFT         139
-#define YY_MIN_SHIFTREDUCE   157
-#define YY_MAX_SHIFTREDUCE   226
-#define YY_MIN_REDUCE        227
-#define YY_MAX_REDUCE        296
-#define YY_ERROR_ACTION      297
-#define YY_ACCEPT_ACTION     298
-#define YY_NO_ACTION         299
-/************* End control #defines *******************************************/
+#define YY_NO_ACTION      (YYNSTATE+YYNRULE+2)
+#define YY_ACCEPT_ACTION  (YYNSTATE+YYNRULE+1)
+#define YY_ERROR_ACTION   (YYNSTATE+YYNRULE)
 
-/* Define the yytestcase() macro to be a no-op if is not already defined
-** otherwise.
-**
-** Applications can choose to define yytestcase() in the %include section
-** to a macro that can assist in verifying code coverage.  For production
-** code the yytestcase() macro should be turned off.  But it is useful
-** for testing.
-*/
-#ifndef yytestcase
-# define yytestcase(X)
-#endif
-
-
-/* Next are the tables used to determine what action to take based on the
+/* Next are that tables used to determine what action to take based on the
 ** current state and lookahead token.  These tables are used to implement
 ** functions that take a state number and lookahead value and return an
 ** action integer.  
@@ -164,37 +111,29 @@ typedef union {
 ** Suppose the action integer is N.  Then the action is determined as
 ** follows
 **
-**   0 <= N <= YY_MAX_SHIFT             Shift N.  That is, push the lookahead
+**   0 <= N < YYNSTATE                  Shift N.  That is, push the lookahead
 **                                      token onto the stack and goto state N.
 **
-**   N between YY_MIN_SHIFTREDUCE       Shift to an arbitrary state then
-**     and YY_MAX_SHIFTREDUCE           reduce by rule N-YY_MIN_SHIFTREDUCE.
+**   YYNSTATE <= N < YYNSTATE+YYNRULE   Reduce by rule N-YYNSTATE.
 **
-**   N between YY_MIN_REDUCE            Reduce by rule N-YY_MIN_REDUCE
-**     and YY_MAX_REDUCE
+**   N == YYNSTATE+YYNRULE              A syntax error has occurred.
 **
-**   N == YY_ERROR_ACTION               A syntax error has occurred.
+**   N == YYNSTATE+YYNRULE+1            The parser accepts its input.
 **
-**   N == YY_ACCEPT_ACTION              The parser accepts its input.
-**
-**   N == YY_NO_ACTION                  No such action.  Denotes unused
+**   N == YYNSTATE+YYNRULE+2            No such action.  Denotes unused
 **                                      slots in the yy_action[] table.
 **
 ** The action table is constructed as a single large table named yy_action[].
-** Given state S and lookahead X, the action is computed as either:
+** Given state S and lookahead X, the action is computed as
 **
-**    (A)   N = yy_action[ yy_shift_ofst[S] + X ]
-**    (B)   N = yy_default[S]
+**      yy_action[ yy_shift_ofst[S] + X ]
 **
-** The (A) formula is preferred.  The B formula is used instead if:
-**    (1)  The yy_shift_ofst[S]+X value is out of range, or
-**    (2)  yy_lookahead[yy_shift_ofst[S]+X] is not equal to X, or
-**    (3)  yy_shift_ofst[S] equal YY_SHIFT_USE_DFLT.
-** (Implementation note: YY_SHIFT_USE_DFLT is chosen so that
-** YY_SHIFT_USE_DFLT+X will be out of range for all possible lookaheads X.
-** Hence only tests (1) and (2) need to be evaluated.)
+** If the index value yy_shift_ofst[S]+X is out of range or if the value
+** yy_lookahead[yy_shift_ofst[S]+X] is not equal to X or if yy_shift_ofst[S]
+** is equal to YY_SHIFT_USE_DFLT, it means that the action is not in the table
+** and that yy_default[S] should be used instead.  
 **
-** The formulas above are for computing the action when the lookahead is
+** The formula above is for computing the action when the lookahead is
 ** a terminal symbol.  If the lookahead is a non-terminal (as occurs after
 ** a reduce action) then the yy_reduce_ofst[] array is used in place of
 ** the yy_shift_ofst[] array and YY_REDUCE_USE_DFLT is used in place of
@@ -210,245 +149,236 @@ typedef union {
 **  yy_reduce_ofst[]   For each state, the offset into yy_action for
 **                     shifting non-terminals after a reduce.
 **  yy_default[]       Default action for each state.
-**
-*********** Begin parsing tables **********************************************/
-#define YY_ACTTAB_COUNT (849)
+*/
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */    42,   41,   37,  119,  128,   39,   40,  126,   15,    5,
- /*    10 */   110,  108,    4,    3,    2,   14,    1,   13,  263,    6,
- /*    20 */    10,   93,   30,   29,   35,   34,   33,   32,   31,   83,
- /*    30 */    91,  262,   89,   87,   85,   17,  118,  221,  116,   18,
- /*    40 */    19,   20,   21,   22,   24,   23,   28,   27,   26,   25,
- /*    50 */    30,   29,   35,   34,   33,   32,   31,  261,   84,  139,
- /*    60 */   138,  136,  134,  132,  130,   44,   54,  120,  292,  284,
- /*    70 */    36,   16,    7,  124,   75,  122,   18,   19,   20,   21,
- /*    80 */    22,   24,   23,   28,   27,   26,   25,   30,   29,   35,
- /*    90 */    34,   33,   32,   31,  260,    8,   97,  298,   45,  120,
- /*   100 */   292,  284,   35,   34,   33,   32,   31,   12,   11,   18,
- /*   110 */    19,   20,   21,   22,   24,   23,   28,   27,   26,   25,
- /*   120 */    30,   29,   35,   34,   33,   32,   31,  259,    9,   82,
- /*   130 */    92,   18,   19,   20,   21,   22,   24,   23,   28,   27,
- /*   140 */    26,   25,   30,   29,   35,   34,   33,   32,   31,  247,
- /*   150 */   246,   86,  107,   18,   19,   20,   21,   22,   24,   23,
- /*   160 */    28,   27,   26,   25,   30,   29,   35,   34,   33,   32,
- /*   170 */    31,  245,  244,   88,  109,   18,   19,   20,   21,   22,
- /*   180 */    24,   23,   28,   27,   26,   25,   30,   29,   35,   34,
- /*   190 */    33,   32,   31,  243,  242,   90,  115,   18,   19,   20,
- /*   200 */    21,   22,   24,   23,   28,   27,   26,   25,   30,   29,
- /*   210 */    35,   34,   33,   32,   31,  241,  240,   94,  117,   18,
- /*   220 */    19,   20,   21,   22,   24,   23,   28,   27,   26,   25,
- /*   230 */    30,   29,   35,   34,   33,   32,   31,  239,  238,   95,
- /*   240 */   213,   18,   19,   20,   21,   22,   24,   23,   28,   27,
- /*   250 */    26,   25,   30,   29,   35,   34,   33,   32,   31,  237,
- /*   260 */   236,   96,   43,   18,   19,   20,   21,   22,   24,   23,
- /*   270 */    28,   27,   26,   25,   30,   29,   35,   34,   33,   32,
- /*   280 */    31,  235,  234,   98,  121,   18,   19,   20,   21,   22,
- /*   290 */    24,   23,   28,   27,   26,   25,   30,   29,   35,   34,
- /*   300 */    33,   32,   31,  233,  232,  100,  123,   18,   19,   20,
- /*   310 */    21,   22,   24,   23,   28,   27,   26,   25,   30,   29,
- /*   320 */    35,   34,   33,   32,   31,  231,  230,  101,  125,   18,
- /*   330 */    19,   20,   21,   22,   24,   23,   28,   27,   26,   25,
- /*   340 */    30,   29,   35,   34,   33,   32,   31,  229,  228,  103,
- /*   350 */   127,   18,   19,   20,   21,   22,   24,   23,   28,   27,
- /*   360 */    26,   25,   30,   29,   35,   34,   33,   32,   31,  253,
- /*   370 */   250,  105,  129,   18,   19,   20,   21,   22,   24,   23,
- /*   380 */    28,   27,   26,   25,   30,   29,   35,   34,   33,   32,
- /*   390 */    31,  254,  249,  111,  131,   18,   19,   20,   21,   22,
- /*   400 */    24,   23,   28,   27,   26,   25,   30,   29,   35,   34,
- /*   410 */    33,   32,   31,  258,  257,  113,  133,   18,   19,   20,
- /*   420 */    21,   22,   24,   23,   28,   27,   26,   25,   30,   29,
- /*   430 */    35,   34,   33,   32,   31,   19,   20,   21,   22,   24,
- /*   440 */    23,   28,   27,   26,   25,   30,   29,   35,   34,   33,
- /*   450 */    32,   31,   80,  135,   18,   19,   20,   21,   22,   24,
- /*   460 */    23,   28,   27,   26,   25,   30,   29,   35,   34,   33,
- /*   470 */    32,   31,   18,   19,   20,   21,   22,   24,   23,   28,
- /*   480 */    27,   26,   25,   30,   29,   35,   34,   33,   32,   31,
- /*   490 */    24,   23,   28,   27,   26,   25,   30,   29,   35,   34,
- /*   500 */    33,   32,   31,  220,  289,  292,  284,   81,   33,   32,
- /*   510 */    31,   20,   21,   22,   24,   23,   28,   27,   26,   25,
- /*   520 */    30,   29,   35,   34,   33,   32,   31,   21,   22,   24,
- /*   530 */    23,   28,   27,   26,   25,   30,   29,   35,   34,   33,
- /*   540 */    32,   31,   22,   24,   23,   28,   27,   26,   25,   30,
- /*   550 */    29,   35,   34,   33,   32,   31,   42,   41,   38,  256,
- /*   560 */   255,   39,   40,   99,  252,   42,   41,   38,  251,  248,
- /*   570 */    39,   40,  102,  288,  292,  284,   42,   41,   38,  137,
- /*   580 */   227,   39,   40,  104,  229,  223,  224,  229,  225,  226,
- /*   590 */   229,   17,  229,  221,  223,  224,  229,  225,  226,  229,
- /*   600 */    17,  224,  221,  225,  226,  223,  224,  229,  225,  226,
- /*   610 */   229,   17,  229,  221,  229,   42,   41,   38,  229,  229,
- /*   620 */    39,   40,  106,  229,   42,   41,   38,  229,  229,   39,
- /*   630 */    40,  112,  287,  292,  284,   42,   41,   38,  229,  229,
- /*   640 */    39,   40,  114,  229,  223,  224,  229,  225,  226,  229,
- /*   650 */    17,  229,  221,  223,  224,  229,  225,  226,  229,   17,
- /*   660 */   229,  221,  229,  229,  223,  224,  229,  225,  226,  229,
- /*   670 */    17,  229,  221,  229,   42,   41,   38,  229,  229,   39,
- /*   680 */    40,   28,   27,   26,   25,   30,   29,   35,   34,   33,
- /*   690 */    32,   31,   56,  120,  292,  284,   57,  120,  292,  284,
- /*   700 */   286,  292,  284,  223,  224,  229,  225,  226,  229,   17,
- /*   710 */   229,  221,   58,  120,  292,  284,   59,  120,  292,  284,
- /*   720 */    47,  120,  292,  284,  229,   48,  120,  292,  284,   49,
- /*   730 */   120,  292,  284,  229,   50,  120,  292,  284,   51,  120,
- /*   740 */   292,  284,   52,  120,  292,  284,   53,  120,  292,  284,
- /*   750 */    46,  120,  292,  284,   55,  120,  292,  284,   60,  120,
- /*   760 */   292,  284,   61,  120,  292,  284,   62,  120,  292,  284,
- /*   770 */    64,  120,  292,  284,   65,  120,  292,  284,   66,  120,
- /*   780 */   292,  284,   67,  120,  292,  284,   68,  120,  292,  284,
- /*   790 */    69,  120,  292,  284,   70,  120,  292,  284,   71,  120,
- /*   800 */   292,  284,   72,  120,  292,  284,   73,  120,  292,  284,
- /*   810 */    74,  120,  292,  284,   76,  120,  292,  284,   77,  120,
- /*   820 */   292,  284,  269,  120,  292,  284,  268,  120,  292,  284,
- /*   830 */   267,  120,  292,  284,   78,  120,  292,  284,   79,  120,
- /*   840 */   292,  284,   63,  120,  292,  284,  285,  292,  284,
+ /*     0 */    42,   38,   37,  113,   97,   40,   41,   94,   20,    3,
+ /*    10 */    87,   91,    1,    5,    2,   16,    4,   14,   92,  116,
+ /*    20 */     6,   98,   23,   25,   17,   18,   19,   21,   22,   88,
+ /*    30 */    99,  149,  102,   83,   86,   27,   89,  130,   84,    7,
+ /*    40 */    36,   35,   34,   33,   31,   32,   26,   28,   29,   30,
+ /*    50 */    23,   25,   17,   18,   19,   21,   22,   43,    9,  121,
+ /*    60 */    85,   82,  101,   96,   95,   44,   54,  100,  131,  122,
+ /*    70 */    15,   24,  153,   90,   75,   93,    7,   36,   35,   34,
+ /*    80 */    33,   31,   32,   26,   28,   29,   30,   23,   25,   17,
+ /*    90 */    18,   19,   21,   22,  118,  120,  106,   17,   18,   19,
+ /*   100 */    21,   22,  228,   45,  100,  131,  122,   13,   12,    7,
+ /*   110 */    36,   35,   34,   33,   31,   32,   26,   28,   29,   30,
+ /*   120 */    23,   25,   17,   18,   19,   21,   22,  143,  155,  110,
+ /*   130 */     8,    7,   36,   35,   34,   33,   31,   32,   26,   28,
+ /*   140 */    29,   30,   23,   25,   17,   18,   19,   21,   22,   36,
+ /*   150 */    35,   34,   33,   31,   32,   26,   28,   29,   30,   23,
+ /*   160 */    25,   17,   18,   19,   21,   22,   81,  134,    7,   36,
+ /*   170 */    35,   34,   33,   31,   32,   26,   28,   29,   30,   23,
+ /*   180 */    25,   17,   18,   19,   21,   22,  144,  105,  139,  135,
+ /*   190 */     7,   36,   35,   34,   33,   31,   32,   26,   28,   29,
+ /*   200 */    30,   23,   25,   17,   18,   19,   21,   22,  107,  109,
+ /*   210 */   117,  111,    7,   36,   35,   34,   33,   31,   32,   26,
+ /*   220 */    28,   29,   30,   23,   25,   17,   18,   19,   21,   22,
+ /*   230 */    11,  114,  151,  130,    7,   36,   35,   34,   33,   31,
+ /*   240 */    32,   26,   28,   29,   30,   23,   25,   17,   18,   19,
+ /*   250 */    21,   22,   10,  130,  108,  130,    7,   36,   35,   34,
+ /*   260 */    33,   31,   32,   26,   28,   29,   30,   23,   25,   17,
+ /*   270 */    18,   19,   21,   22,  130,  130,  123,  130,    7,   36,
+ /*   280 */    35,   34,   33,   31,   32,   26,   28,   29,   30,   23,
+ /*   290 */    25,   17,   18,   19,   21,   22,  130,  130,  142,  130,
+ /*   300 */     7,   36,   35,   34,   33,   31,   32,   26,   28,   29,
+ /*   310 */    30,   23,   25,   17,   18,   19,   21,   22,  130,  130,
+ /*   320 */   119,  130,    7,   36,   35,   34,   33,   31,   32,   26,
+ /*   330 */    28,   29,   30,   23,   25,   17,   18,   19,   21,   22,
+ /*   340 */   130,  130,  148,  130,    7,   36,   35,   34,   33,   31,
+ /*   350 */    32,   26,   28,   29,   30,   23,   25,   17,   18,   19,
+ /*   360 */    21,   22,  130,  130,  154,  130,    7,   36,   35,   34,
+ /*   370 */    33,   31,   32,   26,   28,   29,   30,   23,   25,   17,
+ /*   380 */    18,   19,   21,   22,  130,  130,  156,  130,    7,   36,
+ /*   390 */    35,   34,   33,   31,   32,   26,   28,   29,   30,   23,
+ /*   400 */    25,   17,   18,   19,   21,   22,  130,  130,  115,  130,
+ /*   410 */     7,   36,   35,   34,   33,   31,   32,   26,   28,   29,
+ /*   420 */    30,   23,   25,   17,   18,   19,   21,   22,  130,  130,
+ /*   430 */   112,  130,    7,   36,   35,   34,   33,   31,   32,   26,
+ /*   440 */    28,   29,   30,   23,   25,   17,   18,   19,   21,   22,
+ /*   450 */   130,  130,  104,  130,    7,   36,   35,   34,   33,   31,
+ /*   460 */    32,   26,   28,   29,   30,   23,   25,   17,   18,   19,
+ /*   470 */    21,   22,   35,   34,   33,   31,   32,   26,   28,   29,
+ /*   480 */    30,   23,   25,   17,   18,   19,   21,   22,  130,   80,
+ /*   490 */   130,    7,   36,   35,   34,   33,   31,   32,   26,   28,
+ /*   500 */    29,   30,   23,   25,   17,   18,   19,   21,   22,   34,
+ /*   510 */    33,   31,   32,   26,   28,   29,   30,   23,   25,   17,
+ /*   520 */    18,   19,   21,   22,   33,   31,   32,   26,   28,   29,
+ /*   530 */    30,   23,   25,   17,   18,   19,   21,   22,  130,  130,
+ /*   540 */   129,   31,   32,   26,   28,   29,   30,   23,   25,   17,
+ /*   550 */    18,   19,   21,   22,  130,   42,   38,   39,  130,  130,
+ /*   560 */    40,   41,  103,  130,   42,   38,   39,  130,  130,   40,
+ /*   570 */    41,  150,  124,  131,  122,   42,   38,   39,  130,  130,
+ /*   580 */    40,   41,  140,  130,  132,  147,  130,  145,  141,  130,
+ /*   590 */    27,  130,  130,  132,  147,  130,  145,  141,  130,   27,
+ /*   600 */   147,  130,  145,  141,  132,  147,  130,  145,  141,  130,
+ /*   610 */    27,  130,  130,  130,   42,   38,   39,  130,  130,   40,
+ /*   620 */    41,  146,  130,   42,   38,   39,  130,  130,   40,   41,
+ /*   630 */   152,  127,  131,  122,   42,   38,   39,  130,  130,   40,
+ /*   640 */    41,  137,  130,  132,  147,  130,  145,  141,  130,   27,
+ /*   650 */   130,  130,  132,  147,  130,  145,  141,  130,   27,  130,
+ /*   660 */   130,  130,  130,  132,  147,  130,  145,  141,  130,   27,
+ /*   670 */   130,  130,  130,   42,   38,   39,  130,  130,   40,   41,
+ /*   680 */    26,   28,   29,   30,   23,   25,   17,   18,   19,   21,
+ /*   690 */    22,   62,  100,  131,  122,   53,  100,  131,  122,  125,
+ /*   700 */   131,  122,  132,  147,  130,  145,  141,  130,   27,  130,
+ /*   710 */   130,   77,  100,  131,  122,   57,  100,  131,  122,  133,
+ /*   720 */   100,  131,  122,  130,  136,  100,  131,  122,   47,  100,
+ /*   730 */   131,  122,  130,   58,  100,  131,  122,   59,  100,  131,
+ /*   740 */   122,   66,  100,  131,  122,   60,  100,  131,  122,   65,
+ /*   750 */   100,  131,  122,   48,  100,  131,  122,   56,  100,  131,
+ /*   760 */   122,   64,  100,  131,  122,   51,  100,  131,  122,   49,
+ /*   770 */   100,  131,  122,   74,  100,  131,  122,   73,  100,  131,
+ /*   780 */   122,   61,  100,  131,  122,   72,  100,  131,  122,   69,
+ /*   790 */   100,  131,  122,   63,  100,  131,  122,   70,  100,  131,
+ /*   800 */   122,   68,  100,  131,  122,   67,  100,  131,  122,  138,
+ /*   810 */   100,  131,  122,   78,  100,  131,  122,   79,  100,  131,
+ /*   820 */   122,   55,  100,  131,  122,   52,  100,  131,  122,   46,
+ /*   830 */   100,  131,  122,   76,  100,  131,  122,   50,  100,  131,
+ /*   840 */   122,   71,  100,  131,  122,  126,  131,  122,   19,   21,
+ /*   850 */    22,  128,  131,  122,
 };
 static const YYCODETYPE yy_lookahead[] = {
- /*     0 */    14,   15,   16,   56,   43,   19,   20,   52,   22,   23,
- /*    10 */    24,   25,   26,   27,   28,   29,   30,   31,    0,   45,
+ /*     0 */    14,   15,   16,   21,   56,   19,   20,   43,   22,   23,
+ /*    10 */    24,   25,   26,   27,   28,   29,   30,   31,   52,   21,
  /*    20 */    34,   35,   12,   13,   14,   15,   16,   17,   18,   43,
- /*    30 */    44,    0,   46,   47,   48,   49,   37,   51,   39,    1,
+ /*    30 */    44,   50,   46,   47,   48,   49,   37,   51,   39,    1,
  /*    40 */     2,    3,    4,    5,    6,    7,    8,    9,   10,   11,
- /*    50 */    12,   13,   14,   15,   16,   17,   18,    0,   21,   21,
+ /*    50 */    12,   13,   14,   15,   16,   17,   18,   49,   45,   21,
  /*    60 */    37,   38,   39,   40,   41,   42,   54,   55,   56,   57,
- /*    70 */    32,   33,   45,   37,   36,   39,    1,    2,    3,    4,
+ /*    70 */    32,   33,   21,   37,   36,   39,    1,    2,    3,    4,
  /*    80 */     5,    6,    7,    8,    9,   10,   11,   12,   13,   14,
- /*    90 */    15,   16,   17,   18,    0,   45,   21,   53,   54,   55,
- /*   100 */    56,   57,   14,   15,   16,   17,   18,   32,   33,    1,
+ /*    90 */    15,   16,   17,   18,   21,   21,   21,   14,   15,   16,
+ /*   100 */    17,   18,   53,   54,   55,   56,   57,   32,   33,    1,
  /*   110 */     2,    3,    4,    5,    6,    7,    8,    9,   10,   11,
- /*   120 */    12,   13,   14,   15,   16,   17,   18,    0,   45,   21,
- /*   130 */    21,    1,    2,    3,    4,    5,    6,    7,    8,    9,
- /*   140 */    10,   11,   12,   13,   14,   15,   16,   17,   18,    0,
- /*   150 */     0,   21,   21,    1,    2,    3,    4,    5,    6,    7,
- /*   160 */     8,    9,   10,   11,   12,   13,   14,   15,   16,   17,
- /*   170 */    18,    0,    0,   21,   21,    1,    2,    3,    4,    5,
- /*   180 */     6,    7,    8,    9,   10,   11,   12,   13,   14,   15,
- /*   190 */    16,   17,   18,    0,    0,   21,   21,    1,    2,    3,
- /*   200 */     4,    5,    6,    7,    8,    9,   10,   11,   12,   13,
- /*   210 */    14,   15,   16,   17,   18,    0,    0,   21,   21,    1,
- /*   220 */     2,    3,    4,    5,    6,    7,    8,    9,   10,   11,
- /*   230 */    12,   13,   14,   15,   16,   17,   18,    0,    0,   21,
- /*   240 */    50,    1,    2,    3,    4,    5,    6,    7,    8,    9,
- /*   250 */    10,   11,   12,   13,   14,   15,   16,   17,   18,    0,
- /*   260 */     0,   21,   49,    1,    2,    3,    4,    5,    6,    7,
- /*   270 */     8,    9,   10,   11,   12,   13,   14,   15,   16,   17,
- /*   280 */    18,    0,    0,   21,   21,    1,    2,    3,    4,    5,
- /*   290 */     6,    7,    8,    9,   10,   11,   12,   13,   14,   15,
- /*   300 */    16,   17,   18,    0,    0,   21,   21,    1,    2,    3,
- /*   310 */     4,    5,    6,    7,    8,    9,   10,   11,   12,   13,
- /*   320 */    14,   15,   16,   17,   18,    0,    0,   21,   21,    1,
- /*   330 */     2,    3,    4,    5,    6,    7,    8,    9,   10,   11,
- /*   340 */    12,   13,   14,   15,   16,   17,   18,    0,    0,   21,
- /*   350 */    21,    1,    2,    3,    4,    5,    6,    7,    8,    9,
- /*   360 */    10,   11,   12,   13,   14,   15,   16,   17,   18,    0,
- /*   370 */     0,   21,   21,    1,    2,    3,    4,    5,    6,    7,
- /*   380 */     8,    9,   10,   11,   12,   13,   14,   15,   16,   17,
- /*   390 */    18,    0,    0,   21,   21,    1,    2,    3,    4,    5,
- /*   400 */     6,    7,    8,    9,   10,   11,   12,   13,   14,   15,
- /*   410 */    16,   17,   18,    0,    0,   21,   21,    1,    2,    3,
- /*   420 */     4,    5,    6,    7,    8,    9,   10,   11,   12,   13,
- /*   430 */    14,   15,   16,   17,   18,    2,    3,    4,    5,    6,
- /*   440 */     7,    8,    9,   10,   11,   12,   13,   14,   15,   16,
- /*   450 */    17,   18,   36,   21,    1,    2,    3,    4,    5,    6,
+ /*   120 */    12,   13,   14,   15,   16,   17,   18,   21,   21,   21,
+ /*   130 */    45,    1,    2,    3,    4,    5,    6,    7,    8,    9,
+ /*   140 */    10,   11,   12,   13,   14,   15,   16,   17,   18,    2,
+ /*   150 */     3,    4,    5,    6,    7,    8,    9,   10,   11,   12,
+ /*   160 */    13,   14,   15,   16,   17,   18,   36,   21,    1,    2,
+ /*   170 */     3,    4,    5,    6,    7,    8,    9,   10,   11,   12,
+ /*   180 */    13,   14,   15,   16,   17,   18,   21,   21,   21,   21,
+ /*   190 */     1,    2,    3,    4,    5,    6,    7,    8,    9,   10,
+ /*   200 */    11,   12,   13,   14,   15,   16,   17,   18,   21,   21,
+ /*   210 */    21,   21,    1,    2,    3,    4,    5,    6,    7,    8,
+ /*   220 */     9,   10,   11,   12,   13,   14,   15,   16,   17,   18,
+ /*   230 */    45,   21,   21,   58,    1,    2,    3,    4,    5,    6,
+ /*   240 */     7,    8,    9,   10,   11,   12,   13,   14,   15,   16,
+ /*   250 */    17,   18,   45,   58,   21,   58,    1,    2,    3,    4,
+ /*   260 */     5,    6,    7,    8,    9,   10,   11,   12,   13,   14,
+ /*   270 */    15,   16,   17,   18,   58,   58,   21,   58,    1,    2,
+ /*   280 */     3,    4,    5,    6,    7,    8,    9,   10,   11,   12,
+ /*   290 */    13,   14,   15,   16,   17,   18,   58,   58,   21,   58,
+ /*   300 */     1,    2,    3,    4,    5,    6,    7,    8,    9,   10,
+ /*   310 */    11,   12,   13,   14,   15,   16,   17,   18,   58,   58,
+ /*   320 */    21,   58,    1,    2,    3,    4,    5,    6,    7,    8,
+ /*   330 */     9,   10,   11,   12,   13,   14,   15,   16,   17,   18,
+ /*   340 */    58,   58,   21,   58,    1,    2,    3,    4,    5,    6,
+ /*   350 */     7,    8,    9,   10,   11,   12,   13,   14,   15,   16,
+ /*   360 */    17,   18,   58,   58,   21,   58,    1,    2,    3,    4,
+ /*   370 */     5,    6,    7,    8,    9,   10,   11,   12,   13,   14,
+ /*   380 */    15,   16,   17,   18,   58,   58,   21,   58,    1,    2,
+ /*   390 */     3,    4,    5,    6,    7,    8,    9,   10,   11,   12,
+ /*   400 */    13,   14,   15,   16,   17,   18,   58,   58,   21,   58,
+ /*   410 */     1,    2,    3,    4,    5,    6,    7,    8,    9,   10,
+ /*   420 */    11,   12,   13,   14,   15,   16,   17,   18,   58,   58,
+ /*   430 */    21,   58,    1,    2,    3,    4,    5,    6,    7,    8,
+ /*   440 */     9,   10,   11,   12,   13,   14,   15,   16,   17,   18,
+ /*   450 */    58,   58,   21,   58,    1,    2,    3,    4,    5,    6,
  /*   460 */     7,    8,    9,   10,   11,   12,   13,   14,   15,   16,
- /*   470 */    17,   18,    1,    2,    3,    4,    5,    6,    7,    8,
- /*   480 */     9,   10,   11,   12,   13,   14,   15,   16,   17,   18,
- /*   490 */     6,    7,    8,    9,   10,   11,   12,   13,   14,   15,
- /*   500 */    16,   17,   18,   50,   55,   56,   57,   36,   16,   17,
- /*   510 */    18,    3,    4,    5,    6,    7,    8,    9,   10,   11,
- /*   520 */    12,   13,   14,   15,   16,   17,   18,    4,    5,    6,
- /*   530 */     7,    8,    9,   10,   11,   12,   13,   14,   15,   16,
- /*   540 */    17,   18,    5,    6,    7,    8,    9,   10,   11,   12,
- /*   550 */    13,   14,   15,   16,   17,   18,   14,   15,   16,    0,
- /*   560 */     0,   19,   20,   21,    0,   14,   15,   16,    0,    0,
- /*   570 */    19,   20,   21,   55,   56,   57,   14,   15,   16,   21,
- /*   580 */     0,   19,   20,   21,   58,   43,   44,   58,   46,   47,
- /*   590 */    58,   49,   58,   51,   43,   44,   58,   46,   47,   58,
- /*   600 */    49,   44,   51,   46,   47,   43,   44,   58,   46,   47,
- /*   610 */    58,   49,   58,   51,   58,   14,   15,   16,   58,   58,
- /*   620 */    19,   20,   21,   58,   14,   15,   16,   58,   58,   19,
- /*   630 */    20,   21,   55,   56,   57,   14,   15,   16,   58,   58,
- /*   640 */    19,   20,   21,   58,   43,   44,   58,   46,   47,   58,
- /*   650 */    49,   58,   51,   43,   44,   58,   46,   47,   58,   49,
- /*   660 */    58,   51,   58,   58,   43,   44,   58,   46,   47,   58,
- /*   670 */    49,   58,   51,   58,   14,   15,   16,   58,   58,   19,
- /*   680 */    20,    8,    9,   10,   11,   12,   13,   14,   15,   16,
- /*   690 */    17,   18,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   700 */    55,   56,   57,   43,   44,   58,   46,   47,   58,   49,
- /*   710 */    58,   51,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   720 */    54,   55,   56,   57,   58,   54,   55,   56,   57,   54,
- /*   730 */    55,   56,   57,   58,   54,   55,   56,   57,   54,   55,
- /*   740 */    56,   57,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   750 */    54,   55,   56,   57,   54,   55,   56,   57,   54,   55,
- /*   760 */    56,   57,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   770 */    54,   55,   56,   57,   54,   55,   56,   57,   54,   55,
- /*   780 */    56,   57,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   790 */    54,   55,   56,   57,   54,   55,   56,   57,   54,   55,
- /*   800 */    56,   57,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   810 */    54,   55,   56,   57,   54,   55,   56,   57,   54,   55,
- /*   820 */    56,   57,   54,   55,   56,   57,   54,   55,   56,   57,
- /*   830 */    54,   55,   56,   57,   54,   55,   56,   57,   54,   55,
- /*   840 */    56,   57,   54,   55,   56,   57,   55,   56,   57,
+ /*   470 */    17,   18,    3,    4,    5,    6,    7,    8,    9,   10,
+ /*   480 */    11,   12,   13,   14,   15,   16,   17,   18,   58,   36,
+ /*   490 */    58,    1,    2,    3,    4,    5,    6,    7,    8,    9,
+ /*   500 */    10,   11,   12,   13,   14,   15,   16,   17,   18,    4,
+ /*   510 */     5,    6,    7,    8,    9,   10,   11,   12,   13,   14,
+ /*   520 */    15,   16,   17,   18,    5,    6,    7,    8,    9,   10,
+ /*   530 */    11,   12,   13,   14,   15,   16,   17,   18,   58,   58,
+ /*   540 */    50,    6,    7,    8,    9,   10,   11,   12,   13,   14,
+ /*   550 */    15,   16,   17,   18,   58,   14,   15,   16,   58,   58,
+ /*   560 */    19,   20,   21,   58,   14,   15,   16,   58,   58,   19,
+ /*   570 */    20,   21,   55,   56,   57,   14,   15,   16,   58,   58,
+ /*   580 */    19,   20,   21,   58,   43,   44,   58,   46,   47,   58,
+ /*   590 */    49,   58,   51,   43,   44,   58,   46,   47,   58,   49,
+ /*   600 */    44,   51,   46,   47,   43,   44,   58,   46,   47,   58,
+ /*   610 */    49,   58,   51,   58,   14,   15,   16,   58,   58,   19,
+ /*   620 */    20,   21,   58,   14,   15,   16,   58,   58,   19,   20,
+ /*   630 */    21,   55,   56,   57,   14,   15,   16,   58,   58,   19,
+ /*   640 */    20,   21,   58,   43,   44,   58,   46,   47,   58,   49,
+ /*   650 */    58,   51,   43,   44,   58,   46,   47,   58,   49,   58,
+ /*   660 */    51,   58,   58,   43,   44,   58,   46,   47,   58,   49,
+ /*   670 */    58,   51,   58,   14,   15,   16,   58,   58,   19,   20,
+ /*   680 */     8,    9,   10,   11,   12,   13,   14,   15,   16,   17,
+ /*   690 */    18,   54,   55,   56,   57,   54,   55,   56,   57,   55,
+ /*   700 */    56,   57,   43,   44,   58,   46,   47,   58,   49,   58,
+ /*   710 */    51,   54,   55,   56,   57,   54,   55,   56,   57,   54,
+ /*   720 */    55,   56,   57,   58,   54,   55,   56,   57,   54,   55,
+ /*   730 */    56,   57,   58,   54,   55,   56,   57,   54,   55,   56,
+ /*   740 */    57,   54,   55,   56,   57,   54,   55,   56,   57,   54,
+ /*   750 */    55,   56,   57,   54,   55,   56,   57,   54,   55,   56,
+ /*   760 */    57,   54,   55,   56,   57,   54,   55,   56,   57,   54,
+ /*   770 */    55,   56,   57,   54,   55,   56,   57,   54,   55,   56,
+ /*   780 */    57,   54,   55,   56,   57,   54,   55,   56,   57,   54,
+ /*   790 */    55,   56,   57,   54,   55,   56,   57,   54,   55,   56,
+ /*   800 */    57,   54,   55,   56,   57,   54,   55,   56,   57,   54,
+ /*   810 */    55,   56,   57,   54,   55,   56,   57,   54,   55,   56,
+ /*   820 */    57,   54,   55,   56,   57,   54,   55,   56,   57,   54,
+ /*   830 */    55,   56,   57,   54,   55,   56,   57,   54,   55,   56,
+ /*   840 */    57,   54,   55,   56,   57,   55,   56,   57,   16,   17,
+ /*   850 */    18,   55,   56,   57,
 };
-#define YY_SHIFT_USE_DFLT (849)
-#define YY_SHIFT_COUNT    (139)
-#define YY_SHIFT_MIN      (-39)
-#define YY_SHIFT_MAX      (673)
+#define YY_SHIFT_USE_DFLT (-37)
+#define YY_SHIFT_MAX 102
 static const short yy_shift_ofst[] = {
- /*     0 */   -14,  542,  551,  562,  601,  610,  660,  660,  660,  660,
- /*    10 */   660,  660,  660,  660,  660,  660,  660,  660,  660,  660,
- /*    20 */   660,  660,  660,  660,  660,  660,  660,  660,  660,  660,
- /*    30 */   660,  660,  660,  660,  660,  660,  660,  621,  660,  660,
- /*    40 */   660,  660,  660,  557,  -39,   38,   75,  108,  130,  152,
- /*    50 */   174,  196,  218,  240,  262,  284,  306,  328,  350,  372,
- /*    60 */   394,  416,  453,  471,  433,  508,  523,  537,  484,  673,
- /*    70 */   673,   10,   10,   10,   10,   23,   88,   88,  492,  492,
- /*    80 */    -1,   36,   18,  -26,   31,   37,   57,   27,   94,   50,
- /*    90 */   127,   83,  149,  109,  150,  171,  172,  193,  194,  215,
- /*   100 */   216,  237,  238,  259,  260,  281,  282,  303,  131,  304,
- /*   110 */   153,  325,  326,  347,  348,  369,  175,  370,  197,  190,
- /*   120 */   213,  391,  263,  392,  285,  413,  307,  414,  329,  559,
- /*   130 */   351,  560,  373,  564,  395,  568,  432,  569,  558,  580,
+ /*     0 */   -14,  600,  609,  561,  541,  550,  659,  659,  659,  659,
+ /*    10 */   659,  659,  659,  659,  659,  659,  659,  659,  659,  659,
+ /*    20 */   659,  659,  659,  659,  659,  659,  659,  659,  659,  659,
+ /*    30 */   659,  659,  659,  659,  659,  659,  659,  620,  659,  659,
+ /*    40 */   659,  659,  659,  556,  -36,   38,   75,  167,  130,  108,
+ /*    50 */   233,  490,  453,  431,  409,  365,  343,  321,  299,  277,
+ /*    60 */   255,  387,  211,  189,  147,  469,  505,  519,  535,  672,
+ /*    70 */   672,   10,   10,   10,   10,   23,   83,   83,  832,  832,
+ /*    80 */    -1,   36,   -2,   13,   51,   73,   74,  106,   85,  107,
+ /*    90 */   146,  165,  166,  168,  187,  188,  190,  -19,  -18,  185,
+ /*   100 */     8,  210,  207,
 };
-#define YY_REDUCE_USE_DFLT (-54)
-#define YY_REDUCE_COUNT (44)
-#define YY_REDUCE_MIN   (-53)
-#define YY_REDUCE_MAX   (791)
+#define YY_REDUCE_USE_DFLT (-53)
+#define YY_REDUCE_MAX 44
 static const short yy_reduce_ofst[] = {
- /*     0 */    44,   12,  638,  642,  658,  662,  666,  671,  675,  680,
- /*    10 */   684,  688,  692,  696,  700,  704,  708,  712,  716,  720,
- /*    20 */   724,  728,  732,  736,  740,  744,  748,  752,  756,  760,
- /*    30 */   764,  768,  772,  776,  780,  784,  788,  449,  449,  518,
- /*    40 */   577,  645,  791,  -53,  -45,
+ /*     0 */    49,  661,  703,  683,  641,  637,   12,  707,  691,  679,
+ /*    10 */   739,  727,  715,  783,  775,  771,  767,  763,  759,  755,
+ /*    20 */   674,  670,  665,  657,  699,  779,  787,  711,  719,  723,
+ /*    30 */   731,  735,  743,  747,  751,  687,  695,  796,  644,  796,
+ /*    40 */   576,  790,  517,  -52,  -34,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*    10 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*    20 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*    30 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*    40 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*    50 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*    60 */   297,  297,  297,  297,  282,  281,  280,  279,  278,  277,
- /*    70 */   276,  275,  274,  273,  272,  297,  271,  270,  266,  265,
- /*    80 */   297,  297,  297,  293,  297,  297,  297,  296,  297,  295,
- /*    90 */   297,  294,  297,  297,  297,  297,  297,  297,  297,  297,
- /*   100 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*   110 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*   120 */   264,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*   130 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
+ /*     0 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  227,
+ /*    10 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  227,
+ /*    20 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  227,
+ /*    30 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  227,
+ /*    40 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  227,
+ /*    50 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  227,
+ /*    60 */   227,  227,  227,  227,  212,  211,  210,  209,  208,  206,
+ /*    70 */   207,  202,  205,  204,  203,  227,  201,  200,  196,  195,
+ /*    80 */   227,  227,  227,  226,  227,  227,  227,  227,  223,  227,
+ /*    90 */   227,  227,  227,  227,  227,  227,  227,  227,  227,  224,
+ /*   100 */   194,  227,  225,  171,  172,  188,  173,  187,  174,  186,
+ /*   110 */   175,  185,  176,  177,  182,  189,  181,  190,  178,  191,
+ /*   120 */   192,  157,  214,  193,  215,  216,  217,  218,  219,  220,
+ /*   130 */   221,  222,  223,  199,  180,  183,  198,  158,  197,  159,
+ /*   140 */   160,  226,  161,  162,  163,  225,  164,  224,  165,  213,
+ /*   150 */   166,  167,  168,  184,  169,  179,  170,
 };
-/********** End of lemon-generated parsing tables *****************************/
+#define YY_SZ_ACTTAB (int)(sizeof(yy_action)/sizeof(yy_action[0]))
 
-/* The next table maps tokens (terminal symbols) into fallback tokens.  
-** If a construct like the following:
+/* The next table maps tokens into fallback tokens.  If a construct
+** like the following:
 ** 
 **      %fallback ID X Y Z.
 **
-** appears in the grammar, then ID becomes a fallback token for X, Y,
+** appears in the grammer, then ID becomes a fallback token for X, Y,
 ** and Z.  Whenever one of the tokens X, Y, or Z is input to the parser
 ** but it does not parse, the type of the token is changed to ID and
 ** the parse is retried before an error is thrown.
-**
-** This feature can be used, for example, to cause some keywords in a language
-** to revert to identifiers if they keyword does not apply in the context where
-** it appears.
 */
 #ifdef YYFALLBACK
 static const YYCODETYPE yyFallback[] = {
@@ -466,39 +396,23 @@ static const YYCODETYPE yyFallback[] = {
 **   +  The semantic value stored at this level of the stack.  This is
 **      the information used by the action routines in the grammar.
 **      It is sometimes called the "minor" token.
-**
-** After the "shift" half of a SHIFTREDUCE action, the stateno field
-** actually contains the reduce action for the second half of the
-** SHIFTREDUCE.
 */
 struct yyStackEntry {
-  YYACTIONTYPE stateno;  /* The state-number, or reduce action in SHIFTREDUCE */
-  YYCODETYPE major;      /* The major token value.  This is the code
-                         ** number for the token at this stack level */
-  YYMINORTYPE minor;     /* The user-supplied minor token value.  This
-                         ** is the value of the token  */
+  int stateno;       /* The state-number */
+  int major;         /* The major token value.  This is the code
+                     ** number for the token at this stack level */
+  YYMINORTYPE minor; /* The user-supplied minor token value.  This
+                     ** is the value of the token  */
 };
 typedef struct yyStackEntry yyStackEntry;
 
 /* The state of the parser is completely contained in an instance of
 ** the following structure */
 struct yyParser {
-  yyStackEntry *yytos;          /* Pointer to top element of the stack */
-#ifdef YYTRACKMAXSTACKDEPTH
-  int yyhwm;                    /* High-water mark of the stack */
-#endif
-#ifndef YYNOERRORRECOVERY
+  int yyidx;                    /* Index of top element in stack */
   int yyerrcnt;                 /* Shifts left before out of the error */
-#endif
   ParseARG_SDECL                /* A place to hold %extra_argument */
-#if YYSTACKDEPTH<=0
-  int yystksz;                  /* Current side of the stack */
-  yyStackEntry *yystack;        /* The parser's stack */
-  yyStackEntry yystk0;          /* First stack entry */
-#else
   yyStackEntry yystack[YYSTACKDEPTH];  /* The parser's stack */
-  yyStackEntry *yystackEnd;            /* Last entry in the stack */
-#endif
 };
 typedef struct yyParser yyParser;
 
@@ -633,77 +547,22 @@ static const char *const yyRuleName[] = {
 };
 #endif /* NDEBUG */
 
-
-#if YYSTACKDEPTH<=0
 /*
-** Try to increase the size of the parser stack.  Return the number
-** of errors.  Return 0 on success.
+** This function returns the symbolic name associated with a token
+** value.
 */
-static int yyGrowStack(yyParser *p){
-  int newSize;
-  int idx;
-  yyStackEntry *pNew;
-
-  newSize = p->yystksz*2 + 100;
-  idx = p->yytos ? (int)(p->yytos - p->yystack) : 0;
-  if( p->yystack==&p->yystk0 ){
-    pNew = malloc(newSize*sizeof(pNew[0]));
-    if( pNew ) pNew[0] = p->yystk0;
-  }else{
-    pNew = realloc(p->yystack, newSize*sizeof(pNew[0]));
-  }
-  if( pNew ){
-    p->yystack = pNew;
-    p->yytos = &p->yystack[idx];
+const char *ParseTokenName(int tokenType){
 #ifndef NDEBUG
-    if( yyTraceFILE ){
-      fprintf(yyTraceFILE,"%sStack grows from %d to %d entries.\n",
-              yyTracePrompt, p->yystksz, newSize);
-    }
-#endif
-    p->yystksz = newSize;
+  if( tokenType>0 && tokenType<(sizeof(yyTokenName)/sizeof(yyTokenName[0])) ){
+    return yyTokenName[tokenType];
+  }else{
+    return "Unknown";
   }
-  return pNew==0; 
-}
-#endif
-
-/* Datatype of the argument to the memory allocated passed as the
-** second argument to ParseAlloc() below.  This can be changed by
-** putting an appropriate #define in the %include section of the input
-** grammar.
-*/
-#ifndef YYMALLOCARGTYPE
-# define YYMALLOCARGTYPE size_t
-#endif
-
-/* Initialize a new parser that has already been allocated.
-*/
-void ParseInit(void *yypParser){
-  yyParser *pParser = (yyParser*)yypParser;
-#ifdef YYTRACKMAXSTACKDEPTH
-  pParser->yyhwm = 0;
-#endif
-#if YYSTACKDEPTH<=0
-  pParser->yytos = NULL;
-  pParser->yystack = NULL;
-  pParser->yystksz = 0;
-  if( yyGrowStack(pParser) ){
-    pParser->yystack = &pParser->yystk0;
-    pParser->yystksz = 1;
-  }
-#endif
-#ifndef YYNOERRORRECOVERY
-  pParser->yyerrcnt = -1;
-#endif
-  pParser->yytos = pParser->yystack;
-  pParser->yystack[0].stateno = 0;
-  pParser->yystack[0].major = 0;
-#if YYSTACKDEPTH>0
-  pParser->yystackEnd = &pParser->yystack[YYSTACKDEPTH-1];
+#else
+  return "";
 #endif
 }
 
-#ifndef Parse_ENGINEALWAYSONSTACK
 /* 
 ** This function allocates a new parser.
 ** The only argument is a pointer to a function which works like
@@ -716,28 +575,21 @@ void ParseInit(void *yypParser){
 ** A pointer to a parser.  This pointer is used in subsequent calls
 ** to Parse and ParseFree.
 */
-void *ParseAlloc(void *(*mallocProc)(YYMALLOCARGTYPE)){
+void *ParseAlloc(void *(*mallocProc)(size_t)){
   yyParser *pParser;
-  pParser = (yyParser*)(*mallocProc)( (YYMALLOCARGTYPE)sizeof(yyParser) );
-  if( pParser ) ParseInit(pParser);
+  pParser = (yyParser*)(*mallocProc)( (size_t)sizeof(yyParser) );
+  if( pParser ){
+    pParser->yyidx = -1;
+  }
   return pParser;
 }
-#endif /* Parse_ENGINEALWAYSONSTACK */
 
-
-/* The following function deletes the "minor type" or semantic value
-** associated with a symbol.  The symbol can be either a terminal
-** or nonterminal. "yymajor" is the symbol code, and "yypminor" is
-** a pointer to the value to be deleted.  The code used to do the 
-** deletions is derived from the %destructor and/or %token_destructor
-** directives of the input grammar.
+/* The following function deletes the value associated with a
+** symbol.  The symbol can be either a terminal or nonterminal.
+** "yymajor" is the symbol code, and "yypminor" is a pointer to
+** the value.
 */
-static void yy_destructor(
-  yyParser *yypParser,    /* The parser */
-  YYCODETYPE yymajor,     /* Type code for object to destroy */
-  YYMINORTYPE *yypminor   /* The object to be destroyed */
-){
-  ParseARG_FETCH;
+static void yy_destructor(YYCODETYPE yymajor, YYMINORTYPE *yypminor){
   switch( yymajor ){
     /* Here is inserted the actions which take place when a
     ** terminal or non-terminal is destroyed.  This can happen
@@ -746,11 +598,9 @@ static void yy_destructor(
     ** being destroyed before it is finished parsing.
     **
     ** Note: during a reduce, the only symbols destroyed are those
-    ** which appear on the RHS of the rule, but which are *not* used
+    ** which appear on the RHS of the rule, but which are not used
     ** inside the C code.
     */
-/********* Begin destructor definitions ***************************************/
-/********* End destructor definitions *****************************************/
     default:  break;   /* If no destructor action specified: do nothing */
   }
 }
@@ -760,84 +610,75 @@ static void yy_destructor(
 **
 ** If there is a destructor routine associated with the token which
 ** is popped from the stack, then call it.
+**
+** Return the major token number for the symbol popped.
 */
-static void yy_pop_parser_stack(yyParser *pParser){
-  yyStackEntry *yytos;
-  assert( pParser->yytos!=0 );
-  assert( pParser->yytos > pParser->yystack );
-  yytos = pParser->yytos--;
+static int yy_pop_parser_stack(yyParser *pParser){
+  YYCODETYPE yymajor;
+  yyStackEntry *yytos = &pParser->yystack[pParser->yyidx];
+
+  if( pParser->yyidx<0 ) return 0;
 #ifndef NDEBUG
-  if( yyTraceFILE ){
+  if( yyTraceFILE && pParser->yyidx>=0 ){
     fprintf(yyTraceFILE,"%sPopping %s\n",
       yyTracePrompt,
       yyTokenName[yytos->major]);
   }
 #endif
-  yy_destructor(pParser, yytos->major, &yytos->minor);
+  yymajor = yytos->major;
+  yy_destructor( yymajor, &yytos->minor);
+  pParser->yyidx--;
+  return yymajor;
 }
 
-/*
-** Clear all secondary memory allocations from the parser
-*/
-void ParseFinalize(void *p){
-  yyParser *pParser = (yyParser*)p;
-  while( pParser->yytos>pParser->yystack ) yy_pop_parser_stack(pParser);
-#if YYSTACKDEPTH<=0
-  if( pParser->yystack!=&pParser->yystk0 ) free(pParser->yystack);
-#endif
-}
-
-#ifndef Parse_ENGINEALWAYSONSTACK
 /* 
-** Deallocate and destroy a parser.  Destructors are called for
+** Deallocate and destroy a parser.  Destructors are all called for
 ** all stack elements before shutting the parser down.
 **
-** If the YYPARSEFREENEVERNULL macro exists (for example because it
-** is defined in a %include section of the input grammar) then it is
-** assumed that the input pointer is never NULL.
+** Inputs:
+** <ul>
+** <li>  A pointer to the parser.  This should be a pointer
+**       obtained from ParseAlloc.
+** <li>  A pointer to a function used to reclaim memory obtained
+**       from malloc.
+** </ul>
 */
 void ParseFree(
   void *p,                    /* The parser to be deleted */
   void (*freeProc)(void*)     /* Function used to reclaim memory */
 ){
-#ifndef YYPARSEFREENEVERNULL
-  if( p==0 ) return;
-#endif
-  ParseFinalize(p);
-  (*freeProc)(p);
-}
-#endif /* Parse_ENGINEALWAYSONSTACK */
-
-/*
-** Return the peak depth of the stack for a parser.
-*/
-#ifdef YYTRACKMAXSTACKDEPTH
-int ParseStackPeak(void *p){
   yyParser *pParser = (yyParser*)p;
-  return pParser->yyhwm;
+  if( pParser==0 ) return;
+  while( pParser->yyidx>=0 ) yy_pop_parser_stack(pParser);
+  (*freeProc)((void*)pParser);
 }
-#endif
 
 /*
 ** Find the appropriate action for a parser given the terminal
 ** look-ahead token iLookAhead.
+**
+** If the look-ahead token is YYNOCODE, then check to see if the action is
+** independent of the look-ahead.  If it is, return the action, otherwise
+** return YY_NO_ACTION.
 */
-static unsigned int yy_find_shift_action(
+static int yy_find_shift_action(
   yyParser *pParser,        /* The parser */
   YYCODETYPE iLookAhead     /* The look-ahead token */
 ){
   int i;
-  int stateno = pParser->yytos->stateno;
+  int stateno = pParser->yystack[pParser->yyidx].stateno;
  
-  if( stateno>=YY_MIN_REDUCE ) return stateno;
-  assert( stateno <= YY_SHIFT_COUNT );
-  do{
-    i = yy_shift_ofst[stateno];
-    assert( iLookAhead!=YYNOCODE );
-    i += iLookAhead;
-    if( i<0 || i>=YY_ACTTAB_COUNT || yy_lookahead[i]!=iLookAhead ){
+  if( stateno>YY_SHIFT_MAX || (i = yy_shift_ofst[stateno])==YY_SHIFT_USE_DFLT ){
+    return yy_default[stateno];
+  }
+  if( iLookAhead==YYNOCODE ){
+    return YY_NO_ACTION;
+  }
+  i += iLookAhead;
+  if( i<0 || i>=YY_SZ_ACTTAB || yy_lookahead[i]!=iLookAhead ){
+    if( iLookAhead>0 ){
 #ifdef YYFALLBACK
-      YYCODETYPE iFallback;            /* Fallback token */
+      int iFallback;            /* Fallback token */
       if( iLookAhead<sizeof(yyFallback)/sizeof(yyFallback[0])
              && (iFallback = yyFallback[iLookAhead])!=0 ){
 #ifndef NDEBUG
@@ -846,109 +687,59 @@ static unsigned int yy_find_shift_action(
              yyTracePrompt, yyTokenName[iLookAhead], yyTokenName[iFallback]);
         }
 #endif
-        assert( yyFallback[iFallback]==0 ); /* Fallback loop must terminate */
-        iLookAhead = iFallback;
-        continue;
+        return yy_find_shift_action(pParser, iFallback);
       }
 #endif
 #ifdef YYWILDCARD
       {
         int j = i - iLookAhead + YYWILDCARD;
-        if( 
-#if YY_SHIFT_MIN+YYWILDCARD<0
-          j>=0 &&
-#endif
-#if YY_SHIFT_MAX+YYWILDCARD>=YY_ACTTAB_COUNT
-          j<YY_ACTTAB_COUNT &&
-#endif
-          yy_lookahead[j]==YYWILDCARD && iLookAhead>0
-        ){
+        if( j>=0 && j<YY_SZ_ACTTAB && yy_lookahead[j]==YYWILDCARD ){
 #ifndef NDEBUG
           if( yyTraceFILE ){
             fprintf(yyTraceFILE, "%sWILDCARD %s => %s\n",
-               yyTracePrompt, yyTokenName[iLookAhead],
-               yyTokenName[YYWILDCARD]);
+               yyTracePrompt, yyTokenName[iLookAhead], yyTokenName[YYWILDCARD]);
           }
 #endif /* NDEBUG */
           return yy_action[j];
         }
       }
 #endif /* YYWILDCARD */
-      return yy_default[stateno];
-    }else{
-      return yy_action[i];
     }
-  }while(1);
+    return yy_default[stateno];
+  }else{
+    return yy_action[i];
+  }
 }
 
 /*
 ** Find the appropriate action for a parser given the non-terminal
 ** look-ahead token iLookAhead.
+**
+** If the look-ahead token is YYNOCODE, then check to see if the action is
+** independent of the look-ahead.  If it is, return the action, otherwise
+** return YY_NO_ACTION.
 */
 static int yy_find_reduce_action(
   int stateno,              /* Current state number */
   YYCODETYPE iLookAhead     /* The look-ahead token */
 ){
   int i;
-#ifdef YYERRORSYMBOL
-  if( stateno>YY_REDUCE_COUNT ){
+  /* int stateno = pParser->yystack[pParser->yyidx].stateno; */
+ 
+  if( stateno>YY_REDUCE_MAX ||
+      (i = yy_reduce_ofst[stateno])==YY_REDUCE_USE_DFLT ){
     return yy_default[stateno];
   }
-#else
-  assert( stateno<=YY_REDUCE_COUNT );
-#endif
-  i = yy_reduce_ofst[stateno];
-  assert( i!=YY_REDUCE_USE_DFLT );
-  assert( iLookAhead!=YYNOCODE );
+  if( iLookAhead==YYNOCODE ){
+    return YY_NO_ACTION;
+  }
   i += iLookAhead;
-#ifdef YYERRORSYMBOL
-  if( i<0 || i>=YY_ACTTAB_COUNT || yy_lookahead[i]!=iLookAhead ){
+  if( i<0 || i>=YY_SZ_ACTTAB || yy_lookahead[i]!=iLookAhead ){
     return yy_default[stateno];
-  }
-#else
-  assert( i>=0 && i<YY_ACTTAB_COUNT );
-  assert( yy_lookahead[i]==iLookAhead );
-#endif
-  return yy_action[i];
-}
-
-/*
-** The following routine is called if the stack overflows.
-*/
-static void yyStackOverflow(yyParser *yypParser){
-   ParseARG_FETCH;
-#ifndef NDEBUG
-   if( yyTraceFILE ){
-     fprintf(yyTraceFILE,"%sStack Overflow!\n",yyTracePrompt);
-   }
-#endif
-   while( yypParser->yytos>yypParser->yystack ) yy_pop_parser_stack(yypParser);
-   /* Here code is inserted which will execute if the parser
-   ** stack every overflows */
-/******** Begin %stack_overflow code ******************************************/
-/******** End %stack_overflow code ********************************************/
-   ParseARG_STORE; /* Suppress warning about unused %extra_argument var */
-}
-
-/*
-** Print tracing information for a SHIFT action
-*/
-#ifndef NDEBUG
-static void yyTraceShift(yyParser *yypParser, int yyNewState){
-  if( yyTraceFILE ){
-    if( yyNewState<YYNSTATE ){
-      fprintf(yyTraceFILE,"%sShift '%s', go to state %d\n",
-         yyTracePrompt,yyTokenName[yypParser->yytos->major],
-         yyNewState);
-    }else{
-      fprintf(yyTraceFILE,"%sShift '%s'\n",
-         yyTracePrompt,yyTokenName[yypParser->yytos->major]);
-    }
+  }else{
+    return yy_action[i];
   }
 }
-#else
-# define yyTraceShift(X,Y)
-#endif
 
 /*
 ** Perform a shift action.
@@ -957,118 +748,117 @@ static void yy_shift(
   yyParser *yypParser,          /* The parser to be shifted */
   int yyNewState,               /* The new state to shift in */
   int yyMajor,                  /* The major token to shift in */
-  ParseTOKENTYPE yyMinor        /* The minor token to shift in */
+  YYMINORTYPE *yypMinor         /* Pointer ot the minor token to shift in */
 ){
   yyStackEntry *yytos;
-  yypParser->yytos++;
-#ifdef YYTRACKMAXSTACKDEPTH
-  if( (int)(yypParser->yytos - yypParser->yystack)>yypParser->yyhwm ){
-    yypParser->yyhwm++;
-    assert( yypParser->yyhwm == (int)(yypParser->yytos - yypParser->yystack) );
+  yypParser->yyidx++;
+  if( yypParser->yyidx>=YYSTACKDEPTH ){
+     ParseARG_FETCH;
+     yypParser->yyidx--;
+#ifndef NDEBUG
+     if( yyTraceFILE ){
+       fprintf(yyTraceFILE,"%sStack Overflow!\n",yyTracePrompt);
+     }
+#endif
+     while( yypParser->yyidx>=0 ) yy_pop_parser_stack(yypParser);
+     /* Here code is inserted which will execute if the parser
+     ** stack every overflows */
+     ParseARG_STORE; /* Suppress warning about unused %extra_argument var */
+     return;
+  }
+  yytos = &yypParser->yystack[yypParser->yyidx];
+  yytos->stateno = yyNewState;
+  yytos->major = yyMajor;
+  yytos->minor = *yypMinor;
+#ifndef NDEBUG
+  if( yyTraceFILE && yypParser->yyidx>0 ){
+    int i;
+    fprintf(yyTraceFILE,"%sShift %d\n",yyTracePrompt,yyNewState);
+    fprintf(yyTraceFILE,"%sStack:",yyTracePrompt);
+    for(i=1; i<=yypParser->yyidx; i++)
+      fprintf(yyTraceFILE," %s",yyTokenName[yypParser->yystack[i].major]);
+    fprintf(yyTraceFILE,"\n");
   }
 #endif
-#if YYSTACKDEPTH>0 
-  if( yypParser->yytos>yypParser->yystackEnd ){
-    yypParser->yytos--;
-    yyStackOverflow(yypParser);
-    return;
-  }
-#else
-  if( yypParser->yytos>=&yypParser->yystack[yypParser->yystksz] ){
-    if( yyGrowStack(yypParser) ){
-      yypParser->yytos--;
-      yyStackOverflow(yypParser);
-      return;
-    }
-  }
-#endif
-  if( yyNewState > YY_MAX_SHIFT ){
-    yyNewState += YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE;
-  }
-  yytos = yypParser->yytos;
-  yytos->stateno = (YYACTIONTYPE)yyNewState;
-  yytos->major = (YYCODETYPE)yyMajor;
-  yytos->minor.yy0 = yyMinor;
-  yyTraceShift(yypParser, yyNewState);
 }
 
 /* The following table contains information about every rule that
 ** is used during the reduce.
 */
 static const struct {
-  YYCODETYPE lhs;       /* Symbol on the left-hand side of the rule */
-  signed char nrhs;     /* Negative of the number of RHS symbols in the rule */
+  YYCODETYPE lhs;         /* Symbol on the left-hand side of the rule */
+  unsigned char nrhs;     /* Number of right-hand side symbols in the rule */
 } yyRuleInfo[] = {
-  { 53, -2 },
-  { 53, -2 },
-  { 53, -3 },
-  { 53, -2 },
-  { 53, -3 },
-  { 53, -2 },
-  { 53, -2 },
-  { 53, -2 },
-  { 53, -3 },
-  { 53, -2 },
-  { 53, -3 },
-  { 53, -2 },
-  { 53, -3 },
-  { 53, -3 },
-  { 53, -2 },
-  { 53, -3 },
-  { 53, -3 },
-  { 53, -5 },
-  { 53, -5 },
-  { 53, -3 },
-  { 53, -2 },
-  { 53, -4 },
-  { 53, -6 },
-  { 53, -6 },
-  { 53, -4 },
-  { 53, -4 },
-  { 53, -6 },
-  { 53, -6 },
-  { 53, -4 },
-  { 53, -4 },
-  { 53, -5 },
-  { 53, -5 },
-  { 53, -4 },
-  { 53, -4 },
-  { 53, -4 },
-  { 53, -2 },
-  { 53, -4 },
-  { 54, -1 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -3 },
-  { 54, -4 },
-  { 55, -1 },
-  { 55, -2 },
-  { 55, -2 },
-  { 55, -2 },
-  { 55, -2 },
-  { 55, -2 },
-  { 57, -3 },
-  { 57, -1 },
-  { 57, -1 },
-  { 57, -1 },
-  { 56, -1 },
-  { 56, -1 },
-  { 56, -1 },
+  { 53, 2 },
+  { 53, 2 },
+  { 53, 3 },
+  { 53, 2 },
+  { 53, 3 },
+  { 53, 2 },
+  { 53, 2 },
+  { 53, 2 },
+  { 53, 3 },
+  { 53, 2 },
+  { 53, 3 },
+  { 53, 2 },
+  { 53, 3 },
+  { 53, 3 },
+  { 53, 2 },
+  { 53, 3 },
+  { 53, 3 },
+  { 53, 5 },
+  { 53, 5 },
+  { 53, 3 },
+  { 53, 2 },
+  { 53, 4 },
+  { 53, 6 },
+  { 53, 6 },
+  { 53, 4 },
+  { 53, 4 },
+  { 53, 6 },
+  { 53, 6 },
+  { 53, 4 },
+  { 53, 4 },
+  { 53, 5 },
+  { 53, 5 },
+  { 53, 4 },
+  { 53, 4 },
+  { 53, 4 },
+  { 53, 2 },
+  { 53, 4 },
+  { 54, 1 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 3 },
+  { 54, 4 },
+  { 55, 1 },
+  { 55, 2 },
+  { 55, 2 },
+  { 55, 2 },
+  { 55, 2 },
+  { 55, 2 },
+  { 57, 3 },
+  { 57, 1 },
+  { 57, 1 },
+  { 57, 1 },
+  { 56, 1 },
+  { 56, 1 },
+  { 56, 1 },
 };
 
 static void yy_accept(yyParser*);  /* Forward Declaration */
@@ -1079,47 +869,34 @@ static void yy_accept(yyParser*);  /* Forward Declaration */
 */
 static void yy_reduce(
   yyParser *yypParser,         /* The parser */
-  unsigned int yyruleno        /* Number of the rule by which to reduce */
+  int yyruleno                 /* Number of the rule by which to reduce */
 ){
   int yygoto;                     /* The next state */
   int yyact;                      /* The next action */
+  YYMINORTYPE yygotominor;        /* The LHS of the rule reduced */
   yyStackEntry *yymsp;            /* The top of the parser's stack */
   int yysize;                     /* Amount to pop the stack */
   ParseARG_FETCH;
-  yymsp = yypParser->yytos;
+  yymsp = &yypParser->yystack[yypParser->yyidx];
 #ifndef NDEBUG
-  if( yyTraceFILE && yyruleno<(int)(sizeof(yyRuleName)/sizeof(yyRuleName[0])) ){
-    yysize = yyRuleInfo[yyruleno].nrhs;
-    fprintf(yyTraceFILE, "%sReduce [%s], go to state %d.\n", yyTracePrompt,
-      yyRuleName[yyruleno], yymsp[yysize].stateno);
+  if( yyTraceFILE && yyruleno>=0 
+        && yyruleno<(int)(sizeof(yyRuleName)/sizeof(yyRuleName[0])) ){
+    fprintf(yyTraceFILE, "%sReduce [%s].\n", yyTracePrompt,
+      yyRuleName[yyruleno]);
   }
 #endif /* NDEBUG */
 
-  /* Check that the stack is large enough to grow by a single entry
-  ** if the RHS of the rule is empty.  This ensures that there is room
-  ** enough on the stack to push the LHS value */
-  if( yyRuleInfo[yyruleno].nrhs==0 ){
-#ifdef YYTRACKMAXSTACKDEPTH
-    if( (int)(yypParser->yytos - yypParser->yystack)>yypParser->yyhwm ){
-      yypParser->yyhwm++;
-      assert( yypParser->yyhwm == (int)(yypParser->yytos - yypParser->yystack));
-    }
+#ifndef NDEBUG
+  /* Silence complaints from purify about yygotominor being uninitialized
+  ** in some cases when it is copied into the stack after the following
+  ** switch.  yygotominor is uninitialized when a rule reduces that does
+  ** not set the value of its left-hand side nonterminal.  Leaving the
+  ** value of the nonterminal uninitialized is utterly harmless as long
+  ** as the value is never used.  So really the only thing this code
+  ** accomplishes is to quieten purify.  
+  */
+  memset(&yygotominor, 0, sizeof(yygotominor));
 #endif
-#if YYSTACKDEPTH>0 
-    if( yypParser->yytos>=yypParser->yystackEnd ){
-      yyStackOverflow(yypParser);
-      return;
-    }
-#else
-    if( yypParser->yytos>=&yypParser->yystack[yypParser->yystksz-1] ){
-      if( yyGrowStack(yypParser) ){
-        yyStackOverflow(yypParser);
-        return;
-      }
-      yymsp = yypParser->yytos;
-    }
-#endif
-  }
 
   switch( yyruleno ){
   /* Beginning here are the reduction cases.  A typical example
@@ -1130,384 +907,364 @@ static void yy_reduce(
   **  #line <lineno> <thisfile>
   **     break;
   */
-/********** Begin reduce actions **********************************************/
-        YYMINORTYPE yylhsminor;
-      case 0: /* stmt ::= expr EOL */
-      case 2: /* stmt ::= PRINT expr EOL */ yytestcase(yyruleno==2);
-#line 61 "parser.lemon"
+      case 0:
+      case 2:
+#line 62 "parser.lemon"
 {
 	Debug::Print(yymsp[-1].minor.yy0.intValue);
 }
-#line 1142 "parser.c"
+#line 918 "parser.c"
         break;
-      case 1: /* stmt ::= STAR EOL */
-#line 66 "parser.lemon"
+      case 1:
+#line 67 "parser.lemon"
 {
 	Debug::PrintRegisters();
 }
-#line 1149 "parser.c"
+#line 925 "parser.c"
         break;
-      case 3: /* stmt ::= BREAK EOL */
-#line 76 "parser.lemon"
+      case 3:
+#line 77 "parser.lemon"
 {
 	Debug::Break();
 }
-#line 1156 "parser.c"
+#line 932 "parser.c"
         break;
-      case 4: /* stmt ::= BREAK expr EOL */
-#line 81 "parser.lemon"
+      case 4:
+#line 82 "parser.lemon"
 {
 	Debug::Break(yymsp[-1].minor.yy0.intValue);
 }
-#line 1163 "parser.c"
+#line 939 "parser.c"
         break;
-      case 5: /* stmt ::= BACKTRACE EOL */
-#line 86 "parser.lemon"
+      case 5:
+#line 87 "parser.lemon"
 {
 	Debug::PrintBackTrace();
 }
-#line 1170 "parser.c"
+#line 946 "parser.c"
         break;
-      case 6: /* stmt ::= CONTINUE EOL */
-#line 91 "parser.lemon"
+      case 6:
+#line 92 "parser.lemon"
 {
 	command->action = Debug::cmdContinue;
 	command->argc = 0;
 }
-#line 1178 "parser.c"
+#line 954 "parser.c"
         break;
-      case 7: /* stmt ::= TBREAK EOL */
-#line 97 "parser.lemon"
+      case 7:
+#line 98 "parser.lemon"
 {
 	Debug::ToolBreak();
 }
-#line 1185 "parser.c"
+#line 961 "parser.c"
         break;
-      case 8: /* stmt ::= TBREAK expr EOL */
-#line 102 "parser.lemon"
+      case 8:
+#line 103 "parser.lemon"
 {
 	Debug::ToolBreak(yymsp[-1].minor.yy0.intValue);
 }
-#line 1192 "parser.c"
+#line 968 "parser.c"
         break;
-      case 9: /* stmt ::= RBREAK EOL */
-#line 107 "parser.lemon"
+      case 9:
+#line 108 "parser.lemon"
 {
 	Debug::ReadBreak();
 }
-#line 1199 "parser.c"
+#line 975 "parser.c"
         break;
-      case 10: /* stmt ::= RBREAK expr EOL */
-#line 112 "parser.lemon"
+      case 10:
+#line 113 "parser.lemon"
 {
 	Debug::ReadBreak(yymsp[-1].minor.yy0.intValue);
 }
-#line 1206 "parser.c"
+#line 982 "parser.c"
         break;
-      case 11: /* stmt ::= WBREAK EOL */
-#line 117 "parser.lemon"
+      case 11:
+#line 118 "parser.lemon"
 {
 	Debug::WriteBreak();
 }
-#line 1213 "parser.c"
+#line 989 "parser.c"
         break;
-      case 12: /* stmt ::= WBREAK expr EOL */
-#line 122 "parser.lemon"
+      case 12:
+#line 123 "parser.lemon"
 {
 	Debug::WriteBreak(yymsp[-1].minor.yy0.intValue);
 }
-#line 1220 "parser.c"
+#line 996 "parser.c"
         break;
-      case 13: /* stmt ::= RWBREAK expr EOL */
-#line 128 "parser.lemon"
+      case 13:
+#line 129 "parser.lemon"
 {
 	Debug::ReadWriteBreak(yymsp[-1].minor.yy0.intValue);
 }
-#line 1227 "parser.c"
+#line 1003 "parser.c"
         break;
-      case 14: /* stmt ::= NEXT EOL */
-#line 134 "parser.lemon"
+      case 14:
+#line 135 "parser.lemon"
 {
 	command->action = Debug::cmdStep;
 	command->argc = 0;
 }
-#line 1235 "parser.c"
+#line 1011 "parser.c"
         break;
-      case 15: /* stmt ::= NEXT expr EOL */
-#line 140 "parser.lemon"
+      case 15:
+#line 141 "parser.lemon"
 {
 	command->action = Debug::cmdStep;
 	command->argc = 1;
 	command->argv[0] = yymsp[-1].minor.yy0.intValue;
 }
-#line 1244 "parser.c"
+#line 1020 "parser.c"
         break;
-      case 16: /* stmt ::= DUMP expr EOL */
-#line 147 "parser.lemon"
+      case 16:
+#line 148 "parser.lemon"
 {
 	Debug::Dump(yymsp[-1].minor.yy0.intValue);
 }
-#line 1251 "parser.c"
+#line 1027 "parser.c"
         break;
-      case 17: /* stmt ::= DUMP expr COLON expr EOL */
-#line 152 "parser.lemon"
+      case 17:
+#line 153 "parser.lemon"
 {
 	Debug::Dump(yymsp[-3].minor.yy0.intValue, yymsp[-1].minor.yy0.intValue - yymsp[-3].minor.yy0.intValue);
 }
-#line 1258 "parser.c"
+#line 1034 "parser.c"
         break;
-      case 18: /* stmt ::= DUMP expr AT expr EOL */
-#line 157 "parser.lemon"
+      case 18:
+#line 158 "parser.lemon"
 {
 	Debug::Dump(yymsp[-3].minor.yy0.intValue, yymsp[-1].minor.yy0.intValue);
 }
-#line 1265 "parser.c"
+#line 1041 "parser.c"
         break;
-      case 19: /* stmt ::= LIST expr EOL */
-#line 162 "parser.lemon"
+      case 19:
+#line 163 "parser.lemon"
 {
 	Debug::List(yymsp[-1].minor.yy0.intValue);
 }
-#line 1272 "parser.c"
+#line 1048 "parser.c"
         break;
-      case 20: /* stmt ::= STACKCRAWL EOL */
-#line 167 "parser.lemon"
+      case 20:
+#line 168 "parser.lemon"
 {
 	Debug::StackCrawl();
 }
-#line 1279 "parser.c"
+#line 1055 "parser.c"
         break;
-      case 21: /* stmt ::= expr SEMI SEMIH EOL */
-#line 172 "parser.lemon"
+      case 21:
+#line 173 "parser.lemon"
 {
 	Debug::Dump(yymsp[-3].minor.yy0.intValue);
 }
-#line 1286 "parser.c"
+#line 1062 "parser.c"
         break;
-      case 22: /* stmt ::= expr COLON expr SEMI SEMIH EOL */
-#line 177 "parser.lemon"
+      case 22:
+#line 178 "parser.lemon"
 {
 	Debug::Dump(yymsp[-5].minor.yy0.intValue, yymsp[-3].minor.yy0.intValue - yymsp[-5].minor.yy0.intValue);
 }
-#line 1293 "parser.c"
+#line 1069 "parser.c"
         break;
-      case 23: /* stmt ::= expr AT expr SEMI SEMIH EOL */
-#line 182 "parser.lemon"
+      case 23:
+#line 183 "parser.lemon"
 {
 	Debug::Dump(yymsp[-5].minor.yy0.intValue, yymsp[-3].minor.yy0.intValue);
 }
-#line 1300 "parser.c"
+#line 1076 "parser.c"
         break;
-      case 24: /* stmt ::= expr SEMI SEMII EOL */
-#line 188 "parser.lemon"
+      case 24:
+#line 189 "parser.lemon"
 {
 	Debug::Info(yymsp[-3].minor.yy0.intValue);
 }
-#line 1307 "parser.c"
+#line 1083 "parser.c"
         break;
-      case 25: /* stmt ::= expr SEMI SEMIL EOL */
-#line 194 "parser.lemon"
+      case 25:
+#line 195 "parser.lemon"
 {
 	Debug::List(yymsp[-3].minor.yy0.intValue);
 }
-#line 1314 "parser.c"
+#line 1090 "parser.c"
         break;
-      case 26: /* stmt ::= expr AT expr SEMI SEMIL EOL */
-#line 199 "parser.lemon"
+      case 26:
+#line 200 "parser.lemon"
 {
 	Debug::List(yymsp[-5].minor.yy0.intValue, (int)yymsp[-3].minor.yy0.intValue);
 }
-#line 1321 "parser.c"
+#line 1097 "parser.c"
         break;
-      case 27: /* stmt ::= expr COLON expr SEMI SEMIL EOL */
-#line 204 "parser.lemon"
+      case 27:
+#line 205 "parser.lemon"
 {
 	Debug::List(yymsp[-5].minor.yy0.intValue, yymsp[-3].minor.yy0.intValue);
 }
-#line 1328 "parser.c"
+#line 1104 "parser.c"
         break;
-      case 28: /* stmt ::= expr SEMI SEMIDATE EOL */
-#line 209 "parser.lemon"
+      case 28:
+#line 210 "parser.lemon"
 {
 	Debug::PrintDate(yymsp[-3].minor.yy0.intValue);
 }
-#line 1335 "parser.c"
+#line 1111 "parser.c"
         break;
-      case 29: /* stmt ::= expr SEMI SEMIERROR EOL */
-#line 214 "parser.lemon"
+      case 29:
+#line 215 "parser.lemon"
 {
 	Debug::PrintError(yymsp[-3].minor.yy0.intValue);
 }
-#line 1342 "parser.c"
+#line 1118 "parser.c"
         break;
-      case 30: /* stmt ::= expr SEMI SEMIT IDENTIFIER EOL */
-#line 221 "parser.lemon"
+      case 30:
+#line 222 "parser.lemon"
 {
 	Debug::ApplyTemplate(yymsp[-4].minor.yy0.intValue, *yymsp[-1].minor.yy0.stringValue);	
 }
-#line 1349 "parser.c"
+#line 1125 "parser.c"
         break;
-      case 31: /* stmt ::= expr SEMI SEMIT error EOL */
-#line 227 "parser.lemon"
+      case 31:
+#line 228 "parser.lemon"
 {
 	fprintf(stderr, "usage: expression ; t TemplateName\n");
 }
-#line 1356 "parser.c"
+#line 1132 "parser.c"
         break;
-      case 32: /* stmt ::= DREGISTER EQ expr EOL */
-#line 233 "parser.lemon"
+      case 32:
+#line 234 "parser.lemon"
 {
 	Debug::SetDRegister(yymsp[-3].minor.yy0.intValue, yymsp[-1].minor.yy0.intValue);
 }
-#line 1363 "parser.c"
+#line 1139 "parser.c"
         break;
-      case 33: /* stmt ::= AREGISTER EQ expr EOL */
-#line 238 "parser.lemon"
+      case 33:
+#line 239 "parser.lemon"
 {
 	Debug::SetARegister(yymsp[-3].minor.yy0.intValue, yymsp[-1].minor.yy0.intValue);
 }
-#line 1370 "parser.c"
+#line 1146 "parser.c"
         break;
-      case 34: /* stmt ::= XREGISTER EQ expr EOL */
-#line 243 "parser.lemon"
+      case 34:
+#line 244 "parser.lemon"
 {
 	Debug::SetXRegister(yymsp[-3].minor.yy0.intValue, yymsp[-1].minor.yy0.intValue);
 }
-#line 1377 "parser.c"
+#line 1153 "parser.c"
         break;
-      case 35: /* stmt ::= HELP EOL */
-#line 248 "parser.lemon"
+      case 35:
+#line 249 "parser.lemon"
 {
 	Debug::Help();
 }
-#line 1384 "parser.c"
+#line 1160 "parser.c"
         break;
-      case 36: /* stmt ::= IDENTIFIER EQ expr EOL */
-#line 253 "parser.lemon"
+      case 36:
+#line 254 "parser.lemon"
 {
 	Debug::VariableSet(*yymsp[-3].minor.yy0.stringValue, yymsp[-1].minor.yy0.intValue);
 }
-#line 1391 "parser.c"
+#line 1167 "parser.c"
         break;
-      case 37: /* expr ::= unary */
-      case 57: /* unary ::= term */ yytestcase(yyruleno==57);
-      case 64: /* term ::= INTEGER */ yytestcase(yyruleno==64);
-      case 65: /* term ::= register */ yytestcase(yyruleno==65);
-#line 257 "parser.lemon"
-{ yylhsminor.yy0 = yymsp[0].minor.yy0; }
-#line 1399 "parser.c"
-  yymsp[0].minor.yy0 = yylhsminor.yy0;
-        break;
-      case 38: /* expr ::= expr PLUS expr */
+      case 37:
+      case 57:
+      case 58:
+      case 64:
+      case 65:
 #line 258 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue + yymsp[0].minor.yy0.intValue); }
-#line 1405 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = yymsp[0].minor.yy0; }
+#line 1176 "parser.c"
         break;
-      case 39: /* expr ::= expr MINUS expr */
+      case 38:
 #line 259 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue - yymsp[0].minor.yy0.intValue); }
-#line 1411 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue + yymsp[0].minor.yy0.intValue); }
+#line 1181 "parser.c"
         break;
-      case 40: /* expr ::= expr STAR expr */
+      case 39:
 #line 260 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue * yymsp[0].minor.yy0.intValue); }
-#line 1417 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue - yymsp[0].minor.yy0.intValue); }
+#line 1186 "parser.c"
         break;
-      case 41: /* expr ::= expr SLASH expr */
+      case 40:
 #line 261 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue / yymsp[0].minor.yy0.intValue); }
-#line 1423 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue * yymsp[0].minor.yy0.intValue); }
+#line 1191 "parser.c"
         break;
-      case 42: /* expr ::= expr PERCENT expr */
+      case 41:
 #line 262 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue % yymsp[0].minor.yy0.intValue); }
-#line 1429 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue / yymsp[0].minor.yy0.intValue); }
+#line 1196 "parser.c"
         break;
-      case 43: /* expr ::= expr LTLT expr */
+      case 42:
 #line 263 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue << yymsp[0].minor.yy0.intValue); }
-#line 1435 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue % yymsp[0].minor.yy0.intValue); }
+#line 1201 "parser.c"
         break;
-      case 44: /* expr ::= expr GTGT expr */
+      case 43:
 #line 264 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue >> yymsp[0].minor.yy0.intValue); }
-#line 1441 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue << yymsp[0].minor.yy0.intValue); }
+#line 1206 "parser.c"
         break;
-      case 45: /* expr ::= expr LT expr */
+      case 44:
 #line 265 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue < yymsp[0].minor.yy0.intValue); }
-#line 1447 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue >> yymsp[0].minor.yy0.intValue); }
+#line 1211 "parser.c"
         break;
-      case 46: /* expr ::= expr LTEQ expr */
+      case 45:
 #line 266 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue <= yymsp[0].minor.yy0.intValue); }
-#line 1453 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue < yymsp[0].minor.yy0.intValue); }
+#line 1216 "parser.c"
         break;
-      case 47: /* expr ::= expr GT expr */
+      case 46:
 #line 267 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue > yymsp[0].minor.yy0.intValue); }
-#line 1459 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue <= yymsp[0].minor.yy0.intValue); }
+#line 1221 "parser.c"
         break;
-      case 48: /* expr ::= expr GTEQ expr */
+      case 47:
 #line 268 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue >= yymsp[0].minor.yy0.intValue); }
-#line 1465 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue > yymsp[0].minor.yy0.intValue); }
+#line 1226 "parser.c"
         break;
-      case 49: /* expr ::= expr EQEQ expr */
+      case 48:
 #line 269 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue == yymsp[0].minor.yy0.intValue); }
-#line 1471 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue >= yymsp[0].minor.yy0.intValue); }
+#line 1231 "parser.c"
         break;
-      case 50: /* expr ::= expr BANGEQ expr */
+      case 49:
 #line 270 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue != yymsp[0].minor.yy0.intValue); }
-#line 1477 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue == yymsp[0].minor.yy0.intValue); }
+#line 1236 "parser.c"
         break;
-      case 51: /* expr ::= expr AMP expr */
+      case 50:
 #line 271 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue & yymsp[0].minor.yy0.intValue); }
-#line 1483 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue != yymsp[0].minor.yy0.intValue); }
+#line 1241 "parser.c"
         break;
-      case 52: /* expr ::= expr CARET expr */
+      case 51:
 #line 272 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue ^ yymsp[0].minor.yy0.intValue); }
-#line 1489 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue & yymsp[0].minor.yy0.intValue); }
+#line 1246 "parser.c"
         break;
-      case 53: /* expr ::= expr PIPE expr */
+      case 52:
 #line 273 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue | yymsp[0].minor.yy0.intValue); }
-#line 1495 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue ^ yymsp[0].minor.yy0.intValue); }
+#line 1251 "parser.c"
         break;
-      case 54: /* expr ::= expr AMPAMP expr */
+      case 53:
 #line 274 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue && yymsp[0].minor.yy0.intValue); }
-#line 1501 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue | yymsp[0].minor.yy0.intValue); }
+#line 1256 "parser.c"
         break;
-      case 55: /* expr ::= expr PIPEPIPE expr */
+      case 54:
 #line 275 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue || yymsp[0].minor.yy0.intValue); }
-#line 1507 "parser.c"
-  yymsp[-2].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue && yymsp[0].minor.yy0.intValue); }
+#line 1261 "parser.c"
         break;
-      case 56: /* expr ::= unary LPAREN register RPAREN */
-#line 281 "parser.lemon"
+      case 55:
+#line 276 "parser.lemon"
+{ yygotominor.yy0 = Token::Make(yymsp[-2].minor.yy0.intValue || yymsp[0].minor.yy0.intValue); }
+#line 1266 "parser.c"
+        break;
+      case 56:
+#line 282 "parser.lemon"
 {
 	uint32_t offset = yymsp[-3].minor.yy0.intValue;
 	uint32_t value = yymsp[-1].minor.yy0.intValue;
@@ -1519,112 +1276,100 @@ static void yy_reduce(
 			offset |= 0xffff0000;
 	}
 
-	yylhsminor.yy0 = Token::Make(value + offset);
+	yygotominor.yy0 = Token::Make(value + offset);
 }
-#line 1525 "parser.c"
-  yymsp[-3].minor.yy0 = yylhsminor.yy0;
+#line 1283 "parser.c"
         break;
-      case 58: /* unary ::= PLUS unary */
-#line 297 "parser.lemon"
-{ yymsp[-1].minor.yy0 = yymsp[0].minor.yy0; }
-#line 1531 "parser.c"
-        break;
-      case 59: /* unary ::= MINUS unary */
-#line 298 "parser.lemon"
-{ yymsp[-1].minor.yy0 = Token::Make(-yymsp[0].minor.yy0.intValue); }
-#line 1536 "parser.c"
-        break;
-      case 60: /* unary ::= TILDE unary */
+      case 59:
 #line 299 "parser.lemon"
-{ yymsp[-1].minor.yy0 = Token::Make(~yymsp[0].minor.yy0.intValue); }
-#line 1541 "parser.c"
+{ yygotominor.yy0 = Token::Make(-yymsp[0].minor.yy0.intValue); }
+#line 1288 "parser.c"
         break;
-      case 61: /* unary ::= BANG unary */
+      case 60:
 #line 300 "parser.lemon"
-{ yymsp[-1].minor.yy0 = Token::Make(!yymsp[0].minor.yy0.intValue); }
-#line 1546 "parser.c"
+{ yygotominor.yy0 = Token::Make(~yymsp[0].minor.yy0.intValue); }
+#line 1293 "parser.c"
         break;
-      case 62: /* unary ::= STAR unary */
+      case 61:
 #line 301 "parser.lemon"
-{ yymsp[-1].minor.yy0 = Token::Make(Debug::ReadLong(yymsp[0].minor.yy0)); }
-#line 1551 "parser.c"
+{ yygotominor.yy0 = Token::Make(!yymsp[0].minor.yy0.intValue); }
+#line 1298 "parser.c"
         break;
-      case 63: /* term ::= LPAREN expr RPAREN */
-#line 303 "parser.lemon"
-{ yymsp[-2].minor.yy0 = yymsp[-1].minor.yy0; }
-#line 1556 "parser.c"
+      case 62:
+#line 302 "parser.lemon"
+{ yygotominor.yy0 = Token::Make(Debug::ReadLong(yymsp[0].minor.yy0)); }
+#line 1303 "parser.c"
         break;
-      case 66: /* term ::= IDENTIFIER */
-#line 309 "parser.lemon"
+      case 63:
+#line 304 "parser.lemon"
+{ yygotominor.yy0 = yymsp[-1].minor.yy0; }
+#line 1308 "parser.c"
+        break;
+      case 66:
+#line 310 "parser.lemon"
 {
 	// should throw/barf if undefined?
-	yylhsminor.yy0 = Token::Make(Debug::VariableGet(*yymsp[0].minor.yy0.stringValue));
+	yygotominor.yy0 = Token::Make(Debug::VariableGet(*yymsp[0].minor.yy0.stringValue));
 }
-#line 1564 "parser.c"
-  yymsp[0].minor.yy0 = yylhsminor.yy0;
+#line 1316 "parser.c"
         break;
-      case 67: /* register ::= DREGISTER */
-#line 315 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(cpuGetDReg(yymsp[0].minor.yy0)); }
-#line 1570 "parser.c"
-  yymsp[0].minor.yy0 = yylhsminor.yy0;
-        break;
-      case 68: /* register ::= AREGISTER */
+      case 67:
 #line 316 "parser.lemon"
-{ yylhsminor.yy0 = Token::Make(cpuGetAReg(yymsp[0].minor.yy0)); }
-#line 1576 "parser.c"
-  yymsp[0].minor.yy0 = yylhsminor.yy0;
+{ yygotominor.yy0 = Token::Make(cpuGetDReg(yymsp[0].minor.yy0)); }
+#line 1321 "parser.c"
         break;
-      case 69: /* register ::= XREGISTER */
-#line 318 "parser.lemon"
+      case 68:
+#line 317 "parser.lemon"
+{ yygotominor.yy0 = Token::Make(cpuGetAReg(yymsp[0].minor.yy0)); }
+#line 1326 "parser.c"
+        break;
+      case 69:
+#line 319 "parser.lemon"
 {
 	switch(yymsp[0].minor.yy0)
 	{
 	case 0: 
-		yylhsminor.yy0 = Token::Make(cpuGetPC());
+		yygotominor.yy0 = Token::Make(cpuGetPC());
 		break;
 	case 1:
-		yylhsminor.yy0 = Token::Make(cpuGetSR());
+		yygotominor.yy0 = Token::Make(cpuGetSR());
 		break;
 	default:
-		yylhsminor.yy0 = Token::Make(0);
+		yygotominor.yy0 = Token::Make(0);
 	}
 }
-#line 1594 "parser.c"
-  yymsp[0].minor.yy0 = yylhsminor.yy0;
+#line 1343 "parser.c"
         break;
-      default:
-        break;
-/********** End reduce actions ************************************************/
   };
-  assert( yyruleno<sizeof(yyRuleInfo)/sizeof(yyRuleInfo[0]) );
   yygoto = yyRuleInfo[yyruleno].lhs;
   yysize = yyRuleInfo[yyruleno].nrhs;
-  yyact = yy_find_reduce_action(yymsp[yysize].stateno,(YYCODETYPE)yygoto);
-
-  /* There are no SHIFTREDUCE actions on nonterminals because the table
-  ** generator has simplified them to pure REDUCE actions. */
-  assert( !(yyact>YY_MAX_SHIFT && yyact<=YY_MAX_SHIFTREDUCE) );
-
-  /* It is not possible for a REDUCE to be followed by an error */
-  assert( yyact!=YY_ERROR_ACTION );
-
-  if( yyact==YY_ACCEPT_ACTION ){
-    yypParser->yytos += yysize;
+  yypParser->yyidx -= yysize;
+  yyact = yy_find_reduce_action(yymsp[-yysize].stateno,yygoto);
+  if( yyact < YYNSTATE ){
+#ifdef NDEBUG
+    /* If we are not debugging and the reduce action popped at least
+    ** one element off the stack, then we can push the new element back
+    ** onto the stack here, and skip the stack overflow test in yy_shift().
+    ** That gives a significant speed improvement. */
+    if( yysize ){
+      yypParser->yyidx++;
+      yymsp -= yysize-1;
+      yymsp->stateno = yyact;
+      yymsp->major = yygoto;
+      yymsp->minor = yygotominor;
+    }else
+#endif
+    {
+      yy_shift(yypParser,yyact,yygoto,&yygotominor);
+    }
+  }else if( yyact == YYNSTATE + YYNRULE + 1 ){
     yy_accept(yypParser);
-  }else{
-    yymsp += yysize+1;
-    yypParser->yytos = yymsp;
-    yymsp->stateno = (YYACTIONTYPE)yyact;
-    yymsp->major = (YYCODETYPE)yygoto;
-    yyTraceShift(yypParser, yyact);
   }
 }
 
 /*
 ** The following code executes when the parse fails
 */
-#ifndef YYNOERRORRECOVERY
 static void yy_parse_failed(
   yyParser *yypParser           /* The parser */
 ){
@@ -1634,19 +1379,16 @@ static void yy_parse_failed(
     fprintf(yyTraceFILE,"%sFail!\n",yyTracePrompt);
   }
 #endif
-  while( yypParser->yytos>yypParser->yystack ) yy_pop_parser_stack(yypParser);
+  while( yypParser->yyidx>=0 ) yy_pop_parser_stack(yypParser);
   /* Here code is inserted which will be executed whenever the
   ** parser fails */
-/************ Begin %parse_failure code ***************************************/
 #line 36 "parser.lemon"
 
-	//fprintf(stderr,"I don't understand.\n");
+	// fprintf(stderr,"I don't understand.\n");
 	command->valid = false;
-#line 1646 "parser.c"
-/************ End %parse_failure code *****************************************/
+#line 1392 "parser.c"
   ParseARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
-#endif /* YYNOERRORRECOVERY */
 
 /*
 ** The following code executes when a syntax error first occurs.
@@ -1654,12 +1396,10 @@ static void yy_parse_failed(
 static void yy_syntax_error(
   yyParser *yypParser,           /* The parser */
   int yymajor,                   /* The major type of the error token */
-  ParseTOKENTYPE yyminor         /* The minor type of the error token */
+  YYMINORTYPE yyminor            /* The minor type of the error token */
 ){
   ParseARG_FETCH;
-#define TOKEN yyminor
-/************ Begin %syntax_error code ****************************************/
-/************ End %syntax_error code ******************************************/
+#define TOKEN (yyminor.yy0)
   ParseARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 
@@ -1675,18 +1415,13 @@ static void yy_accept(
     fprintf(yyTraceFILE,"%sAccept!\n",yyTracePrompt);
   }
 #endif
-#ifndef YYNOERRORRECOVERY
-  yypParser->yyerrcnt = -1;
-#endif
-  assert( yypParser->yytos==yypParser->yystack );
+  while( yypParser->yyidx>=0 ) yy_pop_parser_stack(yypParser);
   /* Here code is inserted which will be executed whenever the
   ** parser accepts */
-/*********** Begin %parse_accept code *****************************************/
 #line 41 "parser.lemon"
 
 	command->valid = true;
-#line 1689 "parser.c"
-/*********** End %parse_accept code *******************************************/
+#line 1428 "parser.c"
   ParseARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 
@@ -1716,44 +1451,44 @@ void Parse(
   ParseARG_PDECL               /* Optional %extra_argument parameter */
 ){
   YYMINORTYPE yyminorunion;
-  unsigned int yyact;   /* The parser action. */
-#if !defined(YYERRORSYMBOL) && !defined(YYNOERRORRECOVERY)
+  int yyact;            /* The parser action. */
   int yyendofinput;     /* True if we are at the end of input */
-#endif
-#ifdef YYERRORSYMBOL
   int yyerrorhit = 0;   /* True if yymajor has invoked an error */
-#endif
   yyParser *yypParser;  /* The parser */
 
+  /* (re)initialize the parser, if necessary */
   yypParser = (yyParser*)yyp;
-  assert( yypParser->yytos!=0 );
-#if !defined(YYERRORSYMBOL) && !defined(YYNOERRORRECOVERY)
+  if( yypParser->yyidx<0 ){
+    /* if( yymajor==0 ) return; // not sure why this was here... */
+    yypParser->yyidx = 0;
+    yypParser->yyerrcnt = -1;
+    yypParser->yystack[0].stateno = 0;
+    yypParser->yystack[0].major = 0;
+  }
+  yyminorunion.yy0 = yyminor;
   yyendofinput = (yymajor==0);
-#endif
   ParseARG_STORE;
 
 #ifndef NDEBUG
   if( yyTraceFILE ){
-    fprintf(yyTraceFILE,"%sInput '%s'\n",yyTracePrompt,yyTokenName[yymajor]);
+    fprintf(yyTraceFILE,"%sInput %s\n",yyTracePrompt,yyTokenName[yymajor]);
   }
 #endif
 
   do{
-    yyact = yy_find_shift_action(yypParser,(YYCODETYPE)yymajor);
-    if( yyact <= YY_MAX_SHIFTREDUCE ){
-      yy_shift(yypParser,yyact,yymajor,yyminor);
-#ifndef YYNOERRORRECOVERY
+    yyact = yy_find_shift_action(yypParser,yymajor);
+    if( yyact<YYNSTATE ){
+      yy_shift(yypParser,yyact,yymajor,&yyminorunion);
       yypParser->yyerrcnt--;
-#endif
-      yymajor = YYNOCODE;
-    }else if( yyact <= YY_MAX_REDUCE ){
-      yy_reduce(yypParser,yyact-YY_MIN_REDUCE);
-    }else{
-      assert( yyact == YY_ERROR_ACTION );
-      yyminorunion.yy0 = yyminor;
-#ifdef YYERRORSYMBOL
+      if( yyendofinput && yypParser->yyidx>=0 ){
+        yymajor = 0;
+      }else{
+        yymajor = YYNOCODE;
+      }
+    }else if( yyact < YYNSTATE + YYNRULE ){
+      yy_reduce(yypParser,yyact-YYNSTATE);
+    }else if( yyact == YY_ERROR_ACTION ){
       int yymx;
-#endif
 #ifndef NDEBUG
       if( yyTraceFILE ){
         fprintf(yyTraceFILE,"%sSyntax Error!\n",yyTracePrompt);
@@ -1780,9 +1515,9 @@ void Parse(
       **
       */
       if( yypParser->yyerrcnt<0 ){
-        yy_syntax_error(yypParser,yymajor,yyminor);
+        yy_syntax_error(yypParser,yymajor,yyminorunion);
       }
-      yymx = yypParser->yytos->major;
+      yymx = yypParser->yystack[yypParser->yyidx].major;
       if( yymx==YYERRORSYMBOL || yyerrorhit ){
 #ifndef NDEBUG
         if( yyTraceFILE ){
@@ -1790,42 +1525,30 @@ void Parse(
              yyTracePrompt,yyTokenName[yymajor]);
         }
 #endif
-        yy_destructor(yypParser, (YYCODETYPE)yymajor, &yyminorunion);
+        yy_destructor(yymajor,&yyminorunion);
         yymajor = YYNOCODE;
       }else{
-        while( yypParser->yytos >= yypParser->yystack
-            && yymx != YYERRORSYMBOL
-            && (yyact = yy_find_reduce_action(
-                        yypParser->yytos->stateno,
-                        YYERRORSYMBOL)) >= YY_MIN_REDUCE
+         while(
+          yypParser->yyidx >= 0 &&
+          yymx != YYERRORSYMBOL &&
+          (yyact = yy_find_reduce_action(
+                        yypParser->yystack[yypParser->yyidx].stateno,
+                        YYERRORSYMBOL)) >= YYNSTATE
         ){
           yy_pop_parser_stack(yypParser);
         }
-        if( yypParser->yytos < yypParser->yystack || yymajor==0 ){
-          yy_destructor(yypParser,(YYCODETYPE)yymajor,&yyminorunion);
+        if( yypParser->yyidx < 0 || yymajor==0 ){
+          yy_destructor(yymajor,&yyminorunion);
           yy_parse_failed(yypParser);
-#ifndef YYNOERRORRECOVERY
-          yypParser->yyerrcnt = -1;
-#endif
           yymajor = YYNOCODE;
         }else if( yymx!=YYERRORSYMBOL ){
-          yy_shift(yypParser,yyact,YYERRORSYMBOL,yyminor);
+          YYMINORTYPE u2;
+          u2.YYERRSYMDT = 0;
+          yy_shift(yypParser,yyact,YYERRORSYMBOL,&u2);
         }
       }
       yypParser->yyerrcnt = 3;
       yyerrorhit = 1;
-#elif defined(YYNOERRORRECOVERY)
-      /* If the YYNOERRORRECOVERY macro is defined, then do not attempt to
-      ** do any kind of error recovery.  Instead, simply invoke the syntax
-      ** error routine and continue going as if nothing had happened.
-      **
-      ** Applications can set this macro (for example inside %include) if
-      ** they intend to abandon the parse upon the first syntax error seen.
-      */
-      yy_syntax_error(yypParser,yymajor, yyminor);
-      yy_destructor(yypParser,(YYCODETYPE)yymajor,&yyminorunion);
-      yymajor = YYNOCODE;
-      
 #else  /* YYERRORSYMBOL is not defined */
       /* This is what we do if the grammar does not define ERROR:
       **
@@ -1837,32 +1560,19 @@ void Parse(
       ** three input tokens have been successfully shifted.
       */
       if( yypParser->yyerrcnt<=0 ){
-        yy_syntax_error(yypParser,yymajor, yyminor);
+        yy_syntax_error(yypParser,yymajor,yyminorunion);
       }
       yypParser->yyerrcnt = 3;
-      yy_destructor(yypParser,(YYCODETYPE)yymajor,&yyminorunion);
+      yy_destructor(yymajor,&yyminorunion);
       if( yyendofinput ){
         yy_parse_failed(yypParser);
-#ifndef YYNOERRORRECOVERY
-        yypParser->yyerrcnt = -1;
-#endif
       }
       yymajor = YYNOCODE;
 #endif
+    }else{
+      yy_accept(yypParser);
+      yymajor = YYNOCODE;
     }
-  }while( yymajor!=YYNOCODE && yypParser->yytos>yypParser->yystack );
-#ifndef NDEBUG
-  if( yyTraceFILE ){
-    yyStackEntry *i;
-    char cDiv = '[';
-    fprintf(yyTraceFILE,"%sReturn. Stack=",yyTracePrompt);
-    for(i=&yypParser->yystack[1]; i<=yypParser->yytos; i++){
-      fprintf(yyTraceFILE,"%c%s", cDiv, yyTokenName[i->major]);
-      cDiv = ' ';
-    }
-    if (cDiv == '[') fprintf(yyTraceFILE,"[");
-    fprintf(yyTraceFILE,"]\n");
-  }
-#endif
+  }while( yymajor!=YYNOCODE && yypParser->yyidx>=0 );
   return;
 }
