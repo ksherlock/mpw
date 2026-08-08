@@ -505,22 +505,31 @@ uint8_t ReadByte(uint32_t address)
 
 void Help()
 {
-	printf("help\n");
-	printf("break expression\n");
-	printf("step\n");
-	printf("continue\n");
-	printf("\n");
-	printf("print expression\n");
-	printf("list expression\n");
-	printf("dump expression\n");
-	printf("register=expression\n");
-	printf("bt | backtrace     -- print cpu backtrace\n");
-	printf("expression;h       -- print hexdump\n");
-	printf("expression;i       -- print information\n");
-	printf("expression;l       -- print assembly listing\n");
-	printf("\n");
-	printf("registers: a0-7, d0-7, pc, sp, fp, csr\n");
-	printf("\n");
+	fputs(
+		"help\n"
+		"break expression       -- set cpu break\n"
+		"mbreak expression      -- set memory break (r+w)\n"
+		"rbreak expression      -- set memory break (r)\n"
+		"wbreak expression      -- set memory break (w)\n"
+		"tbreak expression      -- set tool break\n"
+		"step\n"
+		"continue\n"
+		"bt | backtrace         -- print cpu backtrace\n"
+		"\n"
+		"print expression\n"
+		"list expression\n"
+		"dump expression\n"
+		"register=expression\n"
+		"\n"
+		"expression;h           -- print hexdump\n"
+		"expression;i           -- print information\n"
+		"expression;l           -- print assembly listing\n"
+		"expression;t template  -- print template\n"
+		"*                      -- print registers\n"
+		"\n"
+		"registers: a0-7, d0-7, pc, sp, fp, csr\n"
+		"\n",
+		stdout);
 }
 
 
