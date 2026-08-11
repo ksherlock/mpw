@@ -151,6 +151,10 @@ void StackCrawl(void);
 
 void ApplyTemplate(int32_t address, const std::string &name);
 
+int endOfModule(unsigned opcode);
+bool validMacsBugSymbol(uint32_t pc, std::string &name, uint32_t *newPC = nullptr);
+
+
 }
 
 #endif

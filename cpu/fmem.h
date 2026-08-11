@@ -24,6 +24,13 @@ extern uint8_t memoryReadByte(uint32_t address);
 extern uint16_t memoryReadWord(uint32_t address);
 extern uint32_t memoryReadLong(uint32_t address);
 extern uint64_t memoryReadLongLong(uint32_t address);
+
+/* safe variants don't trap or log */
+extern uint8_t memoryReadByteSafe(uint32_t address);
+extern uint16_t memoryReadWordSafe(uint32_t address);
+extern uint32_t memoryReadLongSafe(uint32_t address);
+extern uint64_t memoryReadLongLongSafe(uint32_t address);
+
 extern void memoryWriteByte(uint8_t data, uint32_t address);
 extern void memoryWriteWord(uint16_t data, uint32_t address);
 extern void memoryWriteLong(uint32_t data, uint32_t address);

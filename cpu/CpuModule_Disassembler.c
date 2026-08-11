@@ -26,6 +26,11 @@
 #include "CpuModule.h"
 #include "CpuModule_DisassemblerFunc.h"
 
+#define memoryReadByte memoryReadByteSafe
+#define memoryReadWord memoryReadWordSafe
+#define memoryReadLong memoryReadLongSafe
+#define memoryReadLongLong memoryReadLongLongSafe
+
 typedef uint32_t (*cpuDisFunc)(uint32_t prc, uint16_t opc, char *sdata, char *sinstruction, char *soperands);  
 
 static uint32_t cpuDisGetSourceMode(uint16_t opcode)

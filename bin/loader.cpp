@@ -465,64 +465,31 @@ void InstructionLogger()
 	uint32_t pc = cpuGetPC();
 	uint16_t opcode = ReadWord(Memory, pc);
 
-	if ((opcode & 0xf000) == 0xa000)
-	{
-		LogToolBox(pc, opcode);
-		return;
-	}
 
 
 	if (Flags.traceCPU)
 	{
+		if ((opcode & 0xf000) == 0xa000)
+		{
+			LogToolBox(pc, opcode);
+			return;
+		}
+
+
 		cpuDisOpcode(pc, strings[0], strings[1], strings[2], strings[3]);
 
 		// address, data, instruction, operand
 		fprintf(stderr, "%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
 
-		// todo -- trace registers (only print changed registers?)
-
-		#if 0
-		if (pc >= 0x00010E94 && pc <= 0x00010FC0)
-		{
-			fprintf(stderr, "d7 = %08x\n", cpuGetDReg(7));
-		}
-		#endif
 	}
 
-	int mboffset = 0;
-	switch (opcode)
-	{
-		case 0x4E75: // rts
-		case 0x4ED0: // jmp (a0)
-			mboffset = 2;
-			break;
-		case 0x4E74: // rtd #
-			mboffset = 4;
-			break;
-	}
-
-	if (mboffset) // RTS or JMP (A0)
-	{
-		pc += mboffset;
-		// check for MacsBug name after rts.
+	if (Flags.traceMacsbug) {
 		std::string s;
-		unsigned b = memoryReadByte(pc);
-		if (b >= 0x80 && b <= 0x9f)
-		{
-			b -= 0x80;
-			pc++;
 
-			if (!b) b = memoryReadByte(pc++);
-
-			s.reserve(b);
-			for (unsigned i = 0; i < b; ++i)
-			{
-				s.push_back(memoryReadByte(pc++));
-			}
-			fprintf(stderr, "%s\n\n", s.c_str());
-		}
+		int mboffset = Debug::endOfModule(opcode);
+		if (mboffset && Debug::validMacsBugSymbol(pc + mboffset, s))
+			fprintf(stderr, "%s\n", s.c_str());
 	}
-
 }
 
 void MemoryLogger(uint32_t address, int size, int readWrite, uint32_t value)

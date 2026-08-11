@@ -88,6 +88,15 @@ uint8_t memoryReadByte(uint32_t address)
 	return 0;
 }
 
+
+uint8_t memoryReadByteSafe(uint32_t address)
+{
+	// hmmm... 32-bit clean addresses?
+	if (address < MemorySize) 
+		return Memory[address];
+	return 0;
+}
+
 uint16_t memoryReadWord(uint32_t address)
 {
 
@@ -96,6 +105,15 @@ uint16_t memoryReadWord(uint32_t address)
 
 	if (address & 0x01) memoryOddRead(address);
 
+	if (address + 1 < MemorySize)
+		return (Memory[address + 0] << 8) 
+			| (Memory[address + 1] << 0); 
+
+	return 0;
+}
+
+uint16_t memoryReadWordSafe(uint32_t address)
+{
 	if (address + 1 < MemorySize)
 		return (Memory[address + 0] << 8) 
 			| (Memory[address + 1] << 0); 
@@ -120,6 +138,16 @@ uint32_t memoryReadLong(uint32_t address)
 	return 0;
 }
 
+uint32_t memoryReadLongSafe(uint32_t address)
+{
+	if (address + 3 < MemorySize)
+		return (Memory[address + 0] << 24) 
+			| (Memory[address + 1] << 16)
+			| (Memory[address + 2] << 8)
+			| (Memory[address + 3] << 0); 
+
+	return 0;
+}
 
 uint64_t memoryReadLongLong(uint32_t address)
 {
@@ -131,6 +159,19 @@ uint64_t memoryReadLongLong(uint32_t address)
 
 	return tmp;
 }
+
+
+uint64_t memoryReadLongLongSafe(uint32_t address)
+{
+	uint64_t tmp;
+
+	tmp = memoryReadLongSafe(address);
+	tmp <<= 32;
+	tmp |= memoryReadLongSafe(address + 4);
+
+	return tmp;
+}
+
 
 void memoryWriteByte(uint8_t data, uint32_t address)
 {
