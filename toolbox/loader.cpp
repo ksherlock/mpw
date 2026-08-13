@@ -222,7 +222,13 @@ namespace Loader {
 		}
 
 
-	}
+
+		inline bool validSymbolChar(unsigned c) {
+			// macsbug appendix D says '.' is ok
+			return c == '_' || c == '%' || c == ' ' || c == '.' || isalnum(c);
+		}
+
+	}  // Internal namespace
 
 	namespace Native
 	{
@@ -375,8 +381,8 @@ namespace Loader {
 			{
 
 				const auto &si = Segments[seg];
-				const uint8_t *memory = memoryPointer(si.address);
-				unsigned size = si.size;
+				// const uint8_t *memory = memoryPointer(si.address);
+				// unsigned size = si.size;
 
 				// store entry for start?
 				// SEG_## = pc ?
@@ -397,20 +403,20 @@ namespace Loader {
 				 *
 				 */
 
-				uint32_t start = 0;
-				for (unsigned pc = 0; pc < size; )
+				uint32_t start = si.address;
+				uint32_t end = si.address + si.size;
+				for (unsigned pc = si.address; pc < end; )
 				{
 					bool eof = false; // end of function
-					uint32_t oldpc = pc;
 
-					uint16_t opcode = (memory[pc + 0] << 8) | memory[pc + 1];
+					uint16_t opcode =  memoryReadWordSafe(pc);
 					pc += 2;
 
 					switch(opcode)
 					{
 					case 0x4E56:
 						// link A6,#
-						start = oldpc;
+						start = pc - 2;
 						break;
 
 					case 0x4E75: // rts
@@ -428,85 +434,11 @@ namespace Loader {
 
 					if (!eof) continue;
 
+
 					std::string s;
+					if (!validMacsBugSymbol(pc, s, &pc)) continue;
 
-					unsigned length = memory[pc];
-
-					// variable length.
-					if (length >= 0x80 && length <= 0x9f)
-					{
-						length &= 0x7f;
-						++pc;
-
-						if (length == 0)
-							length = memory[pc++];
-
-						s.assign((const char *)memory + pc, length);
-
-						// align to word boundary
-						pc = (pc + length + 1) & ~1;
-					}
-					else
-					{
-						// fixed length.  high byte may or may not be set.
-						// if high byte of second char is set, it's a 16-char string.
-
-						length = 8;
-						s.assign((const char *)memory + pc, 8);
-						s[0] &= 0x7f;
-
-						while (s.length() && s.back() == ' ') s.pop_back();
-
-						if ((s.length() >= 2) && (s[1] & 0x80))
-						{
-							s[1] &= 0x7f;
-							length = 16;
-
-							std::string tmp((const char *)memory + pc + 8, 8);
-							while (tmp.length() && tmp.back() == ' ') tmp.pop_back();
-
-							tmp.push_back('.');
-							tmp.append(s);
-							s = std::move(tmp);
-						}
-
-						pc += length;
-					}
-
-					// verify name is legal.
-					bool ok = std::all_of(s.begin(), s.end(),
-						[](char c) {
-							if (c >= 'A' && c <= 'Z') return true;
-							if (c >= 'a' && c <= 'z') return true;
-							if (c >= '0' && c <= '9') return true;
-							if (c == '.') return true;
-							if (c == '_') return true;
-							if (c == '%') return true;
-							return false;
-					});
-
-					if (!ok)
-					{
-						// also set start.
-
-						start = pc = oldpc + 2;
-						if (opcode == 0x4E74) start += 2;
-						continue;
-					}
-
-
-
-					// constant data
-					length = (memory[pc + 0] << 8) | memory[pc + 1];
-					pc += 2;
-					if (length)
-					{
-						pc = (pc + length + 1) & ~1;
-					}
-
-
-					// TODO -- should this include the name and data?
-					table.emplace(std::move(s), std::make_pair(start + si.address, pc + si.address));
+					table.emplace(std::move(s), std::make_pair(start, pc));
 
 					// in case no link instruction...
 					start = pc;
@@ -517,9 +449,119 @@ namespace Loader {
 		}
 
 
+		int endOfModule(unsigned opcode) {
+			switch(opcode) {
+			case 0x4E75: // rts
+			case 0x4ED0: // jmp (a0)
+				return 2;
+			case 0x4E74: // rtd #
+				return 4;
+			default:
+				return 0;
+			}
+		}
 
 
-	} // Internal namespace
+		/* this uses the name but not the prototype of */
+		bool validMacsBugSymbol(uint32_t pc, std::string &name, uint32_t *newPC) {
+
+
+			/*
+			 * Building and Managing Programs in MPW, Appendix B, page 25/26:
+			 *
+			 * char *validMacsBugSymbol(char *start, void *limit, char *symbol);
+			 * char *showMacsBugSymbol(char *symStart, void *limit, char *operand, short *bytesUsed);
+			 *
+			 * byte 1   byte 2  length  comment
+			 * 20-7f    20-7f   8       old macsbug
+			 * a0-ff    20-7f   8       old macsbug
+			 * 20-7f    80-ff   16      old macapp ab -> b.a
+			 * a0-ff    80-ff   16      old macapp ab -> b.a
+			 * 80       01-ff   n       apple compiler, n = 2nd byte
+			 * 81-9f    00-ff   m       apple compiler, m = 1st byte & 0x7f
+			 *
+			 * macsbug characters: _, %, spaces, alpha, numeric
+			 * apple compiler - will contain pad character if odd length, followed by word
+			 * indicating the size of the constant
+			 */
+
+			name.clear();
+
+			std::string s;
+			unsigned b1 =  memoryReadByteSafe(pc);
+			unsigned b2 = memoryReadByteSafe(pc+1);
+			int n = -1;
+			int format = 0;
+
+			if (b1 < 0x20) return 0;
+
+			if (b1 == 0x80) {
+				n = b2;
+				format = 3;
+				pc += 2;
+			}
+			else if (b1 >= 0x81 && b1 <= 0x9f) {
+				n = b1 & 0x7f;
+				++pc;
+				format = 3;
+			}
+			else {
+				if (!validSymbolChar(b1 & 0x7f)) return false;
+				if (!validSymbolChar(b2 & 0x7f)) return false;
+
+				if (b2 >= 0x20 && b2 <= 0x7f) {
+					n = 8;
+					format = 1;
+				} else if (b2 >= 0x80 && b2 <= 0xff) {
+					n = 16;
+					format = 2;
+				}
+				b1 &= 0x7f;
+				b2 &= 0x7f;
+			}
+
+			if (n < 0) return false;
+
+			s.reserve(n);
+			if (format == 1 || format == 2) {
+				s.push_back(b1 & 0x7f);
+				s.push_back(b2 & 0x7f);
+				n -= 2;
+				pc += 2;
+			}
+			for (unsigned i = 0; i < n; ++i) {
+				unsigned c = memoryReadByteSafe(pc++);
+				if (!validSymbolChar(c)) return false;
+				s.push_back(c);
+			}
+
+			if (format == 2) {
+				std::string a = s.substr(0, 8);
+				std::string b = s.substr(8, 16);
+				while (!a.empty() && a.back() == ' ') a.pop_back();
+				while (!b.empty() && b.back() == ' ') b.pop_back();
+				s = b;
+				s.push_back('.');
+				s.append(a);
+			} else {
+				while (!s.empty() && s.back() == ' ') s.pop_back();
+			}
+
+			if (format == 3) {
+				pc = pc + 1 & ~0x01;
+				pc += memoryReadWordSafe(pc);
+				pc += 2;
+			}
+
+			name = std::move(s);
+			if (newPC) *newPC = pc;
+			return true;
+		}
+
+
+
+
+	}
 
 
 	/*

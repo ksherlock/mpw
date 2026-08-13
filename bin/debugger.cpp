@@ -106,9 +106,7 @@ namespace {
 	std::deque<BackTraceInfo> BackTrace;
 
 
-	inline bool validSymbolChar(unsigned c) {
-		return c == '_' || c == '%' || c == ' ' || isalnum(c);
-	}
+
 
 	// TODO -- state indicator for code/data
 	uint32_t disasm(uint32_t pc, uint16_t *op = nullptr)
@@ -204,9 +202,9 @@ namespace {
 
 		printf("%s   %-10s %-40s ; %s\n", strings[0], strings[2], strings[3], strings[1]);
 
-		int mboffset = Debug::endOfModule(opcode);
+		int mboffset = Loader::Native::endOfModule(opcode);
 		std::string s;
-		if (mboffset && Debug::validMacsBugSymbol(pc + mboffset, s, &newpc))
+		if (mboffset && Loader::Native::validMacsBugSymbol(pc + mboffset, s, &newpc))
 			printf("            %s\n\n", s.c_str());
 
 		return newpc;
@@ -248,8 +246,8 @@ namespace {
 		if (Flags.traceMacsbug && !trace) {
 			std::string s;
 
-			int mboffset = Debug::endOfModule(op);
-			if (mboffset && Debug::validMacsBugSymbol(pc + mboffset, s))
+			int mboffset = Loader::Native::endOfModule(op);
+			if (mboffset && Loader::Native::validMacsBugSymbol(pc + mboffset, s))
 				fprintf(stderr, "%s\n", s.c_str());
 		}
 
@@ -317,7 +315,6 @@ namespace {
 			printf("Stack underflow error\n");
 			return false;
 		}
-
 		return true;
 	}
 
@@ -402,113 +399,6 @@ namespace {
 namespace Debug {
 
 
-int endOfModule(unsigned opcode) {
-	switch(opcode) {
-	case 0x4E75: // rts
-	case 0x4ED0: // jmp (a0)
-		return 2;
-	case 0x4E74: // rtd #
-		return 4;
-	default:
-		return 0;
-	}
-}
-
-/* this uses the name but not the prototype of */
-bool validMacsBugSymbol(uint32_t pc, std::string &name, uint32_t *newPC) {
-
-
-	/*
-	 * Building and Managing Programs in MPW, Appendix B, page 25/26:
-	 *
-	 * char *validMacsBugSymbol(char *start, void *limit, char *symbol);
-	 * char *showMacsBugSymbol(char *symStart, void *limit, char *operand, short *bytesUsed);
-	 *
-	 * byte 1   byte 2  length  comment
-	 * 20-7f    20-7f   8       old macsbug
-	 * a0-ff    20-7f   8       old macsbug
-	 * 20-7f    80-ff   16      old macapp ab -> b.a
-	 * a0-ff    80-ff   16      old macapp ab -> b.a
-	 * 80       01-ff   n       apple compiler, n = 2nd byte
-	 * 81-9f    00-ff   m       apple compiler, m = 1st byte & 0x7f
-	 *
-	 * macsbug characters: _, %, spaces, alpha, numeric
-	 * apple compiler - will contain pad character if odd length, followed by word
-	 * indicating the size of the constant
-	 */
-
-	name.clear();
-
-	std::string s;
-	unsigned b1 = Debug::ReadByte(pc);
-	unsigned b2 = Debug::ReadByte(pc+1);
-	int n = -1;
-	int format = 0;
-
-	if (b1 < 0x20) return 0;
-
-	if (b1 == 0x80) {
-		n = b2;
-		format = 3;
-		pc += 2;
-	}
-	else if (b1 >= 0x81 && b1 <= 0x9f) {
-		n = b1 & 0x7f;
-		++pc;
-		format = 3;
-	}
-	else {
-		if (!validSymbolChar(b1 & 0x7f)) return false;
-		if (!validSymbolChar(b2 & 0x7f)) return false;
-
-		if (b2 >= 0x20 && b2 <= 0x7f) {
-			n = 8;
-			format = 1;
-		} else if (b2 >= 0x80 && b2 <= 0xff) {
-			n = 16;
-			format = 2;
-		}
-		b1 &= 0x7f;
-		b2 &= 0x7f;
-	}
-
-	if (n < 0) return false;
-
-	s.reserve(n);
-	if (format == 1 || format == 2) {
-		s.push_back(b1 & 0x7f);
-		s.push_back(b2 & 0x7f);
-		n -= 2;
-		pc += 2;
-	}
-	for (unsigned i = 0; i < n; ++i) {
-		unsigned c = Debug::ReadByte(pc++);
-		if (!validSymbolChar(c)) return false;
-		s.push_back(c);
-	}
-
-	if (format == 2) {
-		std::string a = s.substr(0, 8);
-		std::string b = s.substr(8, 16);
-		while (!a.empty() && a.back() == ' ') a.pop_back();
-		while (!b.empty() && b.back() == ' ') b.pop_back();
-		s = b;
-		s.push_back('.');
-		s.append(a);
-	} else {
-		while (!s.empty() && s.back() == ' ') s.pop_back();
-	}
-
-	if (format == 3) {
-		pc = pc + 1 & ~0x01;
-		pc += Debug::ReadWord(pc);
-		pc += 2;
-	}
-
-	name = std::move(s);
-	if (newPC) *newPC = pc;
-	return true;
-}
 
 
 

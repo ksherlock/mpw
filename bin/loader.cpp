@@ -486,8 +486,8 @@ void InstructionLogger()
 	if (Flags.traceMacsbug) {
 		std::string s;
 
-		int mboffset = Debug::endOfModule(opcode);
-		if (mboffset && Debug::validMacsBugSymbol(pc + mboffset, s))
+		int mboffset = Loader::Native::endOfModule(opcode);
+		if (mboffset && Loader::Native::validMacsBugSymbol(pc + mboffset, s))
 			fprintf(stderr, "%s\n", s.c_str());
 	}
 }
@@ -691,8 +691,6 @@ void MainLoop()
 	fprintf(stderr, "Begin Emulation Time: %20lld\n", (begin_emu_time - start_time).count());
 	#endif
 
-
-	cpuSetRaiseInterrupt(0);
 
 	uint64_t cycles = 0;
 	for (;;)
@@ -966,9 +964,12 @@ int main(int argc, char **argv)
 		// else do it manually below.
 	}
 
+	cpuSetRaiseInterrupt(0);
+
 #ifndef LOADER_LOAD
 	cpuInitializeFromNewPC(address);
 #endif
+
 
 	if (Flags.debugger) Debug::Shell();
 	else MainLoop();

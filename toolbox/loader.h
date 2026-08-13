@@ -24,6 +24,13 @@ namespace Loader {
 		// associates them with the start of the segment.
 		void LoadDebugNames(DebugNameTable &table);
 
+
+
+		/* returns size (2/4) if this is an rtn/rtd/jmp a0, 0 otherwise */
+		int endOfModule(unsigned opcode);
+		bool validMacsBugSymbol(uint32_t pc, std::string &name, uint32_t *newPC = nullptr);
+
+
 	}
 
 	uint16_t UnloadSeg(uint16_t trap);
